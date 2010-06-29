@@ -1,0 +1,3 @@
+This is an experimental piece of code. Feel free to comment. It uses Apache's pdfbox, fontbox, jempbox and commons-logging (the latter three as dependencies of the former), which are licensed under the Apache 2.0 licence. It also uses Roedy Green's (http://www.mindprod.com) CSV library.
+
+THIS CODE IS NOT OPEN SOURCE ITSELF. IT MAY BE RELEASED UNDER AN OSS LICENCE IN THE FUTURE, BUT RIGHT NOW IT'S ALL COPYRIGHT DAVID STARK.
