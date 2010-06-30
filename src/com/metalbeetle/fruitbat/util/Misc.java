@@ -15,7 +15,7 @@ public final class Misc {
 	}
 
 	public static void mkAncestors(File f) {
-		File parent = f.getParentFile();
+		File parent = f.getAbsoluteFile().getParentFile();
 		if (!parent.exists()) {
 			if (!parent.mkdirs()) {
 				throw new RuntimeException("Couldn't create parent folder for " + f + ".");
