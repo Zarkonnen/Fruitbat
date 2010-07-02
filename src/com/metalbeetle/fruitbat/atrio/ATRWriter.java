@@ -88,7 +88,8 @@ public class ATRWriter {
 					if (codePoint >= RAW_MIN && codePoint <= RAW_MAX) {
 						out.write(codePoint);
 					} else {
-						// Write the codepoint in its full glory.
+						// Write the codepoint in its full glory. To do this, we write the escape
+						// char, then the unicode escape char, then six hexadecimal digits.
 						out.write(ESCAPE);
 						out.write(UNICODE_E);
 						for (int shift = 5 * 4; shift >= 0; shift -= 4) {
