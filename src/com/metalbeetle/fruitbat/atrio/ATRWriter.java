@@ -73,17 +73,17 @@ public class ATRWriter {
 			charIndex += Character.charCount(codePoint);
 			switch (codePoint) {
 				case ESCAPE:
-					out.write(ESCAPE); out.write(ESCAPE); break;
+					out.write(ESCAPE); out.write(ESCAPE);    break;
 				case F_START:
-					out.write(ESCAPE); out.write(F_START_E);         break;
+					out.write(ESCAPE); out.write(F_START_E); break;
 				case F_END:
-					out.write(ESCAPE); out.write(F_END_E);         break;
+					out.write(ESCAPE); out.write(F_END_E);   break;
 				case R_START:
-					out.write(ESCAPE); out.write(R_START_E);         break;
+					out.write(ESCAPE); out.write(R_START_E); break;
 				case R_END:
-					out.write(ESCAPE); out.write(R_END_E);         break;
+					out.write(ESCAPE); out.write(R_END_E);   break;
 				case CR:
-					out.write(ESCAPE); out.write(CR_E);         break;
+					out.write(ESCAPE); out.write(CR_E);      break;
 				default: {
 					if (codePoint >= RAW_MIN && codePoint <= RAW_MAX) {
 						out.write(codePoint);
