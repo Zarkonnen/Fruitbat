@@ -15,7 +15,7 @@ import java.util.Collection;
  * ignored.
  *
  * Backslash, colon, tab, line feed, percent and carriage return are all escaped using two-character
- * escape coded, while all other characters not in the range of " " to "~" are represented as
+ * escape codes, while all other characters not in the range of " " to "~" are represented as
  * six-digit hexadecimal representations of their unicode code points.
  */
 public class ATRWriter {
