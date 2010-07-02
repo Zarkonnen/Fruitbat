@@ -1,3 +1,7 @@
-This is an experimental piece of code. Feel free to comment. It uses Apache's pdfbox, fontbox, jempbox and commons-logging (the latter three as dependencies of the former), which are licensed under the Apache 2.0 licence. It also uses Roedy Green's (http://www.mindprod.com) CSV library.
+Fruitbat is a personal document storage system, storing multi-page documents along with text key/value data. Currently, only the data storage backend and some simple searching of keys is implemented.
+
+This is an experimental piece of code. Feel free to comment at david.stark@metalbeetle.com . It uses Apache's pdfbox, fontbox, jempbox and commons-logging (the latter three as dependencies of the former), which are licensed under the Apache 2.0 licence.
+
+Jars of the required libraries are provided in the lib folder.
 
 THIS CODE IS NOT OPEN SOURCE ITSELF. IT MAY BE RELEASED UNDER AN OSS LICENCE IN THE FUTURE, BUT RIGHT NOW IT'S ALL COPYRIGHT DAVID STARK.
