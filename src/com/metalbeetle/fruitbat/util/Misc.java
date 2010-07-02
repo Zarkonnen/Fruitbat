@@ -2,6 +2,7 @@ package com.metalbeetle.fruitbat.util;
 
 import java.io.File;
 
+/** Misc utilities. */
 public final class Misc {
 	private Misc() {}
 
@@ -14,6 +15,7 @@ public final class Misc {
 		}
 	}
 
+	/** Creates the ancestral directories of the given file, throwing an exception on failure. */
 	public static void mkAncestors(File f) {
 		File parent = f.getAbsoluteFile().getParentFile();
 		if (!parent.exists()) {
@@ -23,6 +25,7 @@ public final class Misc {
 		}
 	}
 
+	/** Like File.mkdirs(), but throws an exception on failure to create. */
 	public static void mkDirs(File f) {
 		if (!f.exists()) {
 			if (!f.mkdirs()) {

@@ -1,5 +1,6 @@
 package com.metalbeetle.fruitbat.util;
 
+/** An immutable pair of objects. */
 public final class Pair<A, B> {
 	public final A a;
 	public final B b;
