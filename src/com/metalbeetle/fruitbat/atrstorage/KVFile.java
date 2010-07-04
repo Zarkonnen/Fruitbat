@@ -11,6 +11,7 @@ import java.io.FileOutputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 
@@ -22,6 +23,7 @@ final class KVFile {
 
 	final File f;
 	private final HashMap<String, String> keyValueMap = new HashMap<String, String>();
+	private final TreeSet<String> keys = new TreeSet<String>();
 
 	private boolean loaded = false;
 
@@ -30,6 +32,17 @@ final class KVFile {
 
 	/** @return The key/value map in the file. Never use keyValueMap directly! */
 	HashMap<String, String> kv() {
+		load();
+		return keyValueMap;
+	}
+
+	/** @return The sorted list of keys in the file. Never use keys directly! */
+	TreeSet<String> k() {
+		load();
+		return keys;
+	}
+
+	void load() {
 		if (!loaded) {
 			if (f.exists()) {
 				ATRReader r = null;
@@ -41,17 +54,21 @@ final class KVFile {
 						if (fieldsRead != 3) { continue; }
 						if (fields[0].equals(PUT)) {
 							keyValueMap.put(fields[1], fields[2]);
+							keys.add(fields[1]);
 							continue;
 						}
 						if (fields[0].equals(REMOVE)) {
 							keyValueMap.remove(fields[1]);
+							keys.remove(fields[1]);
 							continue;
 						}
 						if (fields[0].equals(MOVE)) {
 							String value = kv().get(fields[1]);
 							if (value == null) { continue; }
-							kv().put(fields[2], value);
-							kv().remove(fields[1]);
+							keyValueMap.put(fields[2], value);
+							keys.add(fields[2]);
+							keyValueMap.remove(fields[1]);
+							keys.remove(fields[1]);
 							continue;
 						}
 					}
@@ -63,7 +80,6 @@ final class KVFile {
 			}
 			loaded = true;
 		}
-		return keyValueMap;
 	}
 	
 	String get(String key) {
@@ -76,18 +92,20 @@ final class KVFile {
 	}
 
 	List<String> keys() {
-		return immute(kv().keySet());
+		return immute(k());
 	}
 
 	/** Puts the key/value into the file. */
 	void put(String key, String value) {
 		kv().put(key, value);
+		k().add(key);
 		append(PUT, key, value);
 	}
 
 	/** Removes the mapping from the file. */
 	void remove(String key) {
 		kv().remove(key);
+		k().remove(key);
 		append(REMOVE, key, "");
 	}
 
@@ -96,7 +114,9 @@ final class KVFile {
 		String value = kv().get(srcKey);
 		if (value == null) { return; }
 		kv().put(dstKey, value);
+		k().add(dstKey);
 		kv().remove(srcKey);
+		k().remove(srcKey);
 		append(MOVE, srcKey, dstKey);
 	}
 

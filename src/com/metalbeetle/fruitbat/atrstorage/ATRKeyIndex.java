@@ -60,6 +60,8 @@ public class ATRKeyIndex implements KeyIndex {
 		return p((List<Document>) (List) docs, coKeyList);
 	}
 
+	public boolean isKey(String key) { return index.containsKey(key); }
+
 	/** Called when a key is added to a document. */
 	void keyAdded(ATRDocument d, String key) {
 		if (!index.containsKey(key)) {
