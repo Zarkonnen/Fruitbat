@@ -18,6 +18,7 @@ import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 import javax.swing.Box;
@@ -36,6 +37,7 @@ import javax.swing.text.BadLocationException;
 public class MainFrame extends JFrame {
 	final Fruitbat app;
 	Pair<List<Document>, List<String>> currentSearchResult;
+	HashMap<String, String> lastSearchKV = new HashMap<String, String>();
 	List<String> lastSearchKeys = new ArrayList<String>();
 	String lastSearch = "";
 
@@ -59,7 +61,7 @@ public class MainFrame extends JFrame {
 	public MainFrame(Fruitbat application) throws HeadlessException {
 		super("Fruitbat");
 		app = application;
-		currentSearchResult = app.getIndex().searchKeys(Collections.<String>emptyList());
+		currentSearchResult = app.getIndex().search(Collections.<String, String>emptyMap());
 
 		Container c = getContentPane();
 		c.setLayout(new BorderLayout(0, 5));
@@ -102,7 +104,7 @@ public class MainFrame extends JFrame {
 						tagsList.setCellRenderer(new TagCellRenderer(this));
 						tagsList.addMouseListener(new MouseAdapter() {
 							@Override
-							public void mouseClicked(MouseEvent e) {
+							public void mousePressed(MouseEvent e) {
 								tagClick(tagsList.locationToIndex(e.getPoint()));
 							}
 						});
@@ -122,10 +124,15 @@ public class MainFrame extends JFrame {
 
 	void search(String searchText) {
 		lastSearch = searchText;
-		String[] keys = searchText.split(" ");
+		String[] terms = searchText.split(" +");
+		lastSearchKV.clear();
 		lastSearchKeys.clear();
-		lastSearchKeys.addAll(Arrays.asList(keys));
-		currentSearchResult = app.getIndex().searchKeys(lastSearchKeys);
+		for (String t : terms) {
+			String[] kv = t.split(":", 2);
+			lastSearchKV.put(kv[0], kv.length == 1 ? "" : kv[1]);
+			lastSearchKeys.add(kv[0]);
+		}
+		currentSearchResult = app.getIndex().search(lastSearchKV);
 		docsListM.changed();
 		tagsListM.changed();
 	}
@@ -167,11 +174,11 @@ public class MainFrame extends JFrame {
 							tag = " " + tag;
 						}
 					}
-					if (searchF.getCaretPosition() == searchF.getText().length() ||
+					/*if (searchF.getCaretPosition() == searchF.getText().length() ||
 						searchF.getText().charAt(searchF.getCaretPosition()) != ' ')
 					{
 						tag = tag + " ";
-					}
+					}*/
 					searchF.getDocument().insertString(searchF.getCaretPosition(), tag, null);
 					search(searchF.getText());
 				} catch (BadLocationException e) {

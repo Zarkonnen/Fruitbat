@@ -24,7 +24,7 @@ class DocCellRenderer extends DefaultListCellRenderer {
 		sb.append("<html>");
 		for (String k : d.keys()) {
 			sb.append(" <font color=\"");
-			sb.append(mf.lastSearchKeys.contains(k) ? MATCHED_TAG_HTML : TAG_HTML);
+			sb.append(mf.lastSearchKV.containsKey(k) ? MATCHED_TAG_HTML : TAG_HTML);
 			sb.append("\">");
 			sb.append(k);
 			sb.append("</font>");

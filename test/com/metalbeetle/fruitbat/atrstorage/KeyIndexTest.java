@@ -13,7 +13,7 @@ public class KeyIndexTest {
 	public static final String SCARY = "\"\n\r\u0026\u0416\u4E2D\uD800\uDF46\n\n\"\n\"\"\"\t\r\"\n";
 
 	ATRStore s;
-	ATRKeyIndex index;
+	ATRDocIndex index;
 
 	@Test
 	public void search() {
@@ -38,13 +38,13 @@ public class KeyIndexTest {
 
 		// Searching for SCARY should yield d1 and d2.
 		Pair<List<Document>, List<String>> result;
-		result = index.searchKeys(l(SCARY));
+		result = index.search(m(p(SCARY, "")));
 		assertTrue(result.a.contains(d1));
 		assertTrue(result.a.contains(d2));
 		assertFalse(result.a.contains(d3));
 
 		// Searching for SCARY and x should just yield d2.
-		result = index.searchKeys(l(SCARY, "x"));
+		result = index.search(m(p(SCARY, ""), p("x", SCARY)));
 		assertFalse(result.a.contains(d1));
 		assertTrue(result.a.contains(d2));
 		assertFalse(result.a.contains(d3));
@@ -75,13 +75,13 @@ public class KeyIndexTest {
 		Pair<List<Document>, List<String>> result;
 
 		// Check that searching for a gives a narrowing suggestion of b only.
-		result = index.searchKeys(l("a"));
+		result = index.search(m(p("a", "")));
 		assertFalse(result.b.contains("a"));
 		assertTrue(result.b.contains("b"));
 		assertFalse(result.b.contains("c"));
 
 		// Check that searching for b gives a narrowing suggestion of a and c.
-		result = index.searchKeys(l("b"));
+		result = index.search(m(p("b", "")));
 		assertTrue(result.b.contains("a"));
 		assertFalse(result.b.contains("b"));
 		assertTrue(result.b.contains("c"));
@@ -90,13 +90,13 @@ public class KeyIndexTest {
 	void rebootStore() {
 		index.close();
 		s = new ATRStore(s.getLocation());
-		index = new ATRKeyIndex(s);
+		index = new ATRDocIndex(s);
 	}
 
     @Before
     public void setUp() {
 		s = new ATRStore(Util.createTempFolder());
-		index = new ATRKeyIndex(s);
+		index = new ATRDocIndex(s);
     }
 
     @After

@@ -20,7 +20,7 @@ public class ATRStore implements Store {
 	final File docsF;
 	final KVFile metaF;
 	final HashMap<String, ATRDocument> idToDoc = new HashMap<String, ATRDocument>();
-	ATRKeyIndex keyIndex;
+	ATRDocIndex keyIndex;
 
 	public ATRStore(File location) {
 		this.location = location;
@@ -79,7 +79,7 @@ public class ATRStore implements Store {
 	}
 
 	// Used to manage key indexes.
-	void setKeyIndex(ATRKeyIndex keyIndex) {
+	void setKeyIndex(ATRDocIndex keyIndex) {
 		if (this.keyIndex != null) { this.keyIndex.close(); }
 		this.keyIndex = keyIndex;
 	}
