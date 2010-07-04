@@ -26,7 +26,7 @@ public class DataStorageTest {
 		assertEquals(0, d.keys().size());
 		d.put(SCARY, SCARY);
 		assertTrue(d.has(SCARY));
-		d.put(SCARY, null);
+		d.remove(SCARY);
 		assertFalse(d.has(SCARY));
 	}
 
@@ -45,7 +45,7 @@ public class DataStorageTest {
 	public void reallyGone() {
 		Document d = s.create();
 		d.put(SCARY, SCARY);
-		d.put(SCARY, null);
+		d.remove(SCARY);
 		String id = d.getID();
 		rebootStore();
 		d = s.get(id);
@@ -64,6 +64,18 @@ public class DataStorageTest {
 		for (int i = 0; i < 100; i++) {
 			assertEquals("value " + i, d.get("key " + i));
 		}
+	}
+
+	@Test
+	public void move() {
+		Document d = s.create();
+		d.put(SCARY, SCARY);
+		d.move(SCARY, "foo");
+		assertTrue(d.has("foo"));
+		assertFalse(d.has(SCARY));
+		rebootStore();
+		assertTrue(d.has("foo"));
+		assertFalse(d.has(SCARY));
 	}
 
 	void rebootStore() {

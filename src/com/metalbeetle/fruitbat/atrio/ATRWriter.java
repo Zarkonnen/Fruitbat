@@ -25,21 +25,21 @@ public class ATRWriter {
 	static final int RAW_MAX   = 126;
 
 	// Backslash used for all escape sequences, u for unicode hex codes.
-	static final int ESCAPE =     (int) '\\'; static final int UNICODE_E = (int) 'u';
+	static final int ESCAPE    = (int) '\\'; static final int UNICODE_E = (int) 'u';
 
 	// : starts fields, \t ends them.
-	static final int F_START   =  (int)  ':'; static final int F_START_E = (int) 'c';
-	static final int F_END     =  (int) '\t'; static final int F_END_E   = (int) 't';
+	static final int F_START   = (int)  ':'; static final int F_START_E = (int) 'c';
+	static final int F_END     = (int) '\t'; static final int F_END_E   = (int) 't';
 
 	// \n starts records, % ends them.
-	static final int R_START   =  (int) '\n'; static final int R_START_E = (int) 'n';
-	static final int R_END     =  (int)  '%'; static final int R_END_E   = (int) 'p';
+	static final int R_START   = (int) '\n'; static final int R_START_E = (int) 'n';
+	static final int R_END     = (int)  '%'; static final int R_END_E   = (int) 'p';
 	
 	// Also escaping carriage return for sanity purposes.
-	static final int CR        =  (int) '\r'; static final int CR_E      = (int) 'r';
+	static final int CR        = (int) '\r'; static final int CR_E      = (int) 'r';
 
 	// Base numbers for quickly encoding hexadecimal.
-	static final int ZERO      =  (int)  '0'; static final int A         = (int) 'a';
+	static final int ZERO      = (int)  '0'; static final int A         = (int) 'a';
 
 	private final OutputStream out;
 

@@ -33,12 +33,13 @@ class SimpleATRReader {
 			// If there is no end marker, the line's defective, so try again.
 			if (recordEndMarker == -1) { continue; }
 			line = line.substring(0, recordEndMarker);
-			// Now we can split along field start markers. However, the first field of the split
-			// must be empty, otherwise the second one didn't actually start itself.
+			// Now we can split along field start markers.
 			String[] rawFields = line.split("[:]", -1);
 			// Of course the record may just be empty.
 			if (rawFields.length == 0) { return Collections.emptyList(); }
-			int firstFieldIndex = rawFields[0].isEmpty() ? 1 : 2;
+			// Note that the first field of the split must be empty, otherwise the second one didn't
+			// actually start itself.
+			int firstFieldIndex = rawFields[0].length() == 0 ? 1 : 2;
 			// Now we go through the fields processing the escape codes, and ignoring those that do
 			// not end with a field end marker.
 			ArrayList<String> fields = new ArrayList<String>(rawFields.length);

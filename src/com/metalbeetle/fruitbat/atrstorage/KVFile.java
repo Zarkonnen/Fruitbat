@@ -16,6 +16,10 @@ import static com.metalbeetle.fruitbat.util.Collections.*;
 
 /** Stores key/value data in an append-only ATR file. */
 final class KVFile {
+	static final String PUT    = "p";
+	static final String REMOVE = "r";
+	static final String MOVE   = "m";
+
 	final File f;
 	private final HashMap<String, String> keyValueMap = new HashMap<String, String>();
 
@@ -31,12 +35,24 @@ final class KVFile {
 				ATRReader r = null;
 				try {
 					r = new ATRReader(new BufferedInputStream(new FileInputStream(f)));
-					String[] fields = new String[2];
+					String[] fields = new String[3];
 					int fieldsRead;
 					while ((fieldsRead = r.readRecord(fields, 0, 2)) != -1) {
-						switch (fieldsRead) {
-							case 2: keyValueMap.put(fields[0], fields[1]); break;
-							case 1: keyValueMap.remove(fields[0]);         break;
+						if (fieldsRead != 3) { continue; }
+						if (fields[0].equals(PUT)) {
+							keyValueMap.put(fields[1], fields[2]);
+							continue;
+						}
+						if (fields[0].equals(REMOVE)) {
+							keyValueMap.remove(fields[1]);
+							continue;
+						}
+						if (fields[0].equals(MOVE)) {
+							String value = kv().get(fields[1]);
+							if (value == null) { continue; }
+							kv().put(fields[2], value);
+							kv().remove(fields[1]);
+							continue;
 						}
 					}
 				} catch (Exception e) {
@@ -63,24 +79,37 @@ final class KVFile {
 		return immute(kv().keySet());
 	}
 
-	/** Puts the key/value into the file - use a value of null to remove a mapping. */
+	/** Puts the key/value into the file. */
 	void put(String key, String value) {
-		if (value == null) {
-			kv().remove(key);
-		} else {
-			kv().put(key, value);
-		}
+		kv().put(key, value);
+		append(PUT, key, value);
+	}
 
+	/** Removes the mapping from the file. */
+	void remove(String key) {
+		kv().remove(key);
+		append(REMOVE, key, "");
+	}
+
+	/** Moves the mapping from one key to another. */
+	void move(String srcKey, String dstKey) {
+		String value = kv().get(srcKey);
+		if (value == null) { return; }
+		kv().put(dstKey, value);
+		kv().remove(srcKey);
+		append(MOVE, srcKey, dstKey);
+	}
+
+	void append(String action, String arg1, String arg2) {
 		mkAncestors(f);
 
 		ATRWriter w = null;
 		try {
-			// Append a record to the ATR file. If it's a put, write both the key and the value. If
-			// it's a removal, write only the key.
 			w = new ATRWriter(new BufferedOutputStream(new FileOutputStream(f, /*append*/ true)));
 			w.startRecord();
-			w.write(key);
-			if (value != null) { w.write(value); }
+			w.write(action);
+			w.write(arg1);
+			w.write(arg2);
 			w.endRecord();
 		} catch (Exception e) {
 			throw new RuntimeException("Couldn't append to " + f + ".", e);

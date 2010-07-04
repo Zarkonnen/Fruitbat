@@ -31,12 +31,20 @@ class ATRDocument implements Comparable<ATRDocument>, Document {
 	public String get(String key) { return data.get(key); }
 	public void put(String key, String value) {
 		data.put(key, value);
-		if (value == null) {
-			s.keyRemoved(this, key);
-		} else {
-			s.keyAdded(this, key);
-		}
+		s.keyAdded(this, key);
 	}
+
+	public void remove(String key) {
+		data.remove(key);
+		s.keyRemoved(this, key);
+	}
+
+	public void move(String srcKey, String dstKey) {
+		data.move(srcKey, dstKey);
+		s.keyRemoved(this, srcKey);
+		s.keyAdded(this, dstKey);
+	}
+
 	public boolean has(String key) { return data.has(key); }
 	public List<String> keys() { return data.keys(); }
 
@@ -64,6 +72,14 @@ class ATRDocument implements Comparable<ATRDocument>, Document {
 			name = preDot + "_" + i + postDot;
 		}
 		return name;
+	}
+
+	public void removePage(String key) {
+		files.remove(key);
+	}
+
+	public void movePage(String srcKey, String dstKey) {
+		files.move(srcKey, dstKey);
 	}
 
 	public boolean hasPage(String key) { return files.has(key); }

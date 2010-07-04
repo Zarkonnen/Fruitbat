@@ -11,10 +11,14 @@ public interface Document {
 	public boolean has(String key);
 	public String get(String key);
 	public void put(String key, String value);
+	public void remove(String key);
+	public void move(String srcKey, String dstKey);
 	public List<String> keys();
 
 	public boolean hasPage(String key);
 	public URI getPage(String key);
 	public List<String> pageKeys();
 	public void putPage(String key, File f);
+	public void removePage(String key);
+	public void movePage(String srcKey, String dstKey);
 }
