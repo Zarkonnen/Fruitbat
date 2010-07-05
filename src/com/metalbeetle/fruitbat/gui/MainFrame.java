@@ -17,7 +17,6 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
@@ -32,10 +31,14 @@ import javax.swing.JSplitPane;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.text.BadLocationException;
-
+import static com.metalbeetle.fruitbat.util.Collections.*;
 
 public class MainFrame extends JFrame {
 	final Fruitbat app;
+
+	List<TagSuggestor> suggestors;
+	List<String> suggestions = new ArrayList<String>();
+
 	Pair<List<Document>, List<String>> currentSearchResult;
 	HashMap<String, String> lastSearchKV = new HashMap<String, String>();
 	List<String> lastSearchKeys = new ArrayList<String>();
@@ -61,7 +64,8 @@ public class MainFrame extends JFrame {
 	public MainFrame(Fruitbat application) throws HeadlessException {
 		super("Fruitbat");
 		app = application;
-		currentSearchResult = app.getIndex().search(Collections.<String, String>emptyMap());
+		suggestors = l((TagSuggestor) new DateSuggestor());
+		search("");
 
 		Container c = getContentPane();
 		c.setLayout(new BorderLayout(0, 5));
@@ -127,20 +131,28 @@ public class MainFrame extends JFrame {
 		String[] terms = searchText.split(" +");
 		lastSearchKV.clear();
 		lastSearchKeys.clear();
+		suggestions.clear();
+		for (TagSuggestor ts : suggestors) { suggestions.addAll(ts.suggestSearchTerms(terms)); }
 		for (String t : terms) {
 			String[] kv = t.split(":", 2);
 			lastSearchKV.put(kv[0], kv.length == 1 ? null : kv[1]);
 			lastSearchKeys.add(kv[0]);
 		}
 		currentSearchResult = app.getIndex().search(lastSearchKV);
-		docsListM.changed();
-		tagsListM.changed();
+		if (docsListM != null) { docsListM.changed(); }
+		if (tagsListM != null) { tagsListM.changed(); }
 	}
 
 	void tagClick(int index) {
 		if (index != -1) {
 			String tag = (String) tagsListM.getElementAt(index);
-			if (Arrays.asList(searchF.getText().split(" +")).contains(tag)) {
+			String[] tags = searchF.getText().split(" +");
+			boolean tagAlreadyExists = false;
+			for (String t : tags) {
+				String key = t.split(":", 2)[0];
+				if (key.equals(tag)) { tagAlreadyExists = true; break; }
+			}
+			if (tagAlreadyExists) {
 				// Remove the tag.
 				int searchStart = 0;
 				int found = -1;
@@ -150,10 +162,21 @@ public class MainFrame extends JFrame {
 					if (found != 0 && text.charAt(found - 1) != ' ') { continue; }
 					int consumeToRight = 0;
 					if (found + tag.length() < text.length()) {
-						if (text.charAt(found + tag.length()) != ' ') {
-							continue;
-						} else {
+						char nextC = text.charAt(found + tag.length());
+						if (nextC == ' ') {
 							consumeToRight = 1;
+						} else {
+							if (nextC == ':') {
+								// The tag is a key/value pair. We want to get rid of both, so let's
+								// see how far the value extends.
+								int nextSpaceIndex = text.indexOf(" ", found + 1);
+								if (nextSpaceIndex == -1) { nextSpaceIndex = text.length(); }
+								consumeToRight = nextSpaceIndex - found - tag.length();
+							} else {
+								// The tag we've clicked on happens to be the start of a preexisting
+								// tag.
+								continue;
+							}
 						}
 					}
 					// OK, it's bounded on both sides by the end of the document or spaces.
@@ -192,14 +215,13 @@ public class MainFrame extends JFrame {
 		// Creates a new document with some semiconvinging tags.
 		Document d = app.getStore().create();
 		Random r = new Random();
-
-		d.put("" + (2005 + r.nextInt(6)), "");
-		d.put(new String[] { "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct",
-				"nov", "dec"}[r.nextInt(12)], "");
-		d.put(new String[] { "bank", "water", "tax", "electricity", "internet", "rent" }
-				[r.nextInt(6)], "");
+		
 		d.put(new String[] { "bill", "letter", "topay", "notes" }[r.nextInt(3)], "");
 		d.put("name", new String[] {"bob", "suzy", "mike"}[r.nextInt(3)]);
+		d.put("d",
+				(2005 + r.nextInt(6)) + "-" +
+				"0" + (1 + r.nextInt(8)) + "-" +
+				(10 + r.nextInt(18)));
 
 		// Then re-search to include it in the view.
 		search(lastSearch);

@@ -12,16 +12,31 @@ class TagCellRenderer extends DefaultListCellRenderer {
 	public TagCellRenderer(MainFrame mf) { this.mf = mf; }
 
 	@Override
-	public Component getListCellRendererComponent(JList list, Object value, int index,
+	public Component getListCellRendererComponent(JList list, Object o, int index,
 			boolean isSelected, boolean cellHasFocus)
 	{
-		super.getListCellRendererComponent(list, value, index, false, false);
+		super.getListCellRendererComponent(list, o, index, false, false);
+		String key = (String) o;
+		String value = null;
+		if (key.contains(":")) {
+			String[] kv = key.split(":", 2);
+			key = kv[0];
+			value = ":" + kv[1];
+		}
 		sb.setLength(0);
 		sb.append("<html><font color=\"");
-		sb.append(mf.lastSearchKV.containsKey((String) value) ? MATCHED_TAG_HTML : TAG_HTML);
+		sb.append(mf.lastSearchKV.containsKey(key) ? MATCHED_TAG_HTML : TAG_HTML);
 		sb.append("\">");
-		sb.append(value);
-		sb.append("</font></html>");
+		sb.append(key);
+		sb.append("</font>");
+		if (value != null) {
+			sb.append("<font color=\"");
+			sb.append(VALUE_HTML);
+			sb.append("\">");
+			sb.append(value);
+			sb.append("</font>");
+		}
+		sb.append("</html>");
 		setText(sb.toString());
 		return this;
 	}

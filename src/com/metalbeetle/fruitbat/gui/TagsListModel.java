@@ -7,12 +7,15 @@ class TagsListModel extends AbstractListModel {
 
 	TagsListModel(MainFrame mf) { this.mf = mf; }
 
-	public int getSize() { return mf.lastSearchKeys.size() + mf.currentSearchResult.b.size(); }
+	public int getSize() { return mf.suggestions.size() + mf.lastSearchKeys.size() + mf.currentSearchResult.b.size(); }
 
 	public Object getElementAt(int index) {
-		return index < mf.lastSearchKeys.size()
-				? mf.lastSearchKeys.get(index)
-				: mf.currentSearchResult.b.get(index - mf.lastSearchKeys.size());
+		return
+				index < mf.suggestions.size()
+				? mf.suggestions.get(index)
+				: (index - mf.suggestions.size()) < mf.lastSearchKeys.size()
+				? mf.lastSearchKeys.get(index - mf.suggestions.size())
+				: mf.currentSearchResult.b.get(index - mf.suggestions.size() - mf.lastSearchKeys.size());
 	}
 
 	void changed() { fireContentsChanged(this, 0, getSize()); }
