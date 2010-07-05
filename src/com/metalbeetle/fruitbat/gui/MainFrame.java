@@ -72,7 +72,7 @@ public class MainFrame extends JFrame {
 				searchBoxV.add(Box.createVerticalStrut(5));
 				searchBoxV.add(searchF = new JTextPane());
 					searchF.setBorder(new JTextField().getBorder());
-					searchF.setDocument(new ColorizingDocument(searchF, app));
+					searchF.setDocument(new SearchColorizingDocument(searchF, app));
 					searchF.addKeyListener(new KeyAdapter() {
 						@Override
 						public void keyReleased(KeyEvent e) {
@@ -129,7 +129,7 @@ public class MainFrame extends JFrame {
 		lastSearchKeys.clear();
 		for (String t : terms) {
 			String[] kv = t.split(":", 2);
-			lastSearchKV.put(kv[0], kv.length == 1 ? "" : kv[1]);
+			lastSearchKV.put(kv[0], kv.length == 1 ? null : kv[1]);
 			lastSearchKeys.add(kv[0]);
 		}
 		currentSearchResult = app.getIndex().search(lastSearchKV);
@@ -199,6 +199,7 @@ public class MainFrame extends JFrame {
 		d.put(new String[] { "bank", "water", "tax", "electricity", "internet", "rent" }
 				[r.nextInt(6)], "");
 		d.put(new String[] { "bill", "letter", "topay", "notes" }[r.nextInt(3)], "");
+		d.put("name", new String[] {"bob", "suzy", "mike"}[r.nextInt(3)]);
 
 		// Then re-search to include it in the view.
 		search(lastSearch);

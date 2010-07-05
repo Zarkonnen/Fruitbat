@@ -15,6 +15,8 @@ public final class Colors {
 	public static final Color MATCHED_TAG = new Color(0, 191, 0);
 	public static final String MATCHED_TAG_HTML = toHTMLColor(MATCHED_TAG);
 
+	public static final Color VALUE = new Color(91, 0, 91);
+	public static final String VALUE_HTML = toHTMLColor(VALUE);
 
 	static String toHTMLColor(Color c) {
 		return "#" + toHex(c.getRed()) + toHex(c.getGreen()) + toHex(c.getBlue());

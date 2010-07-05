@@ -7,6 +7,7 @@ import javax.swing.JList;
 import static com.metalbeetle.fruitbat.gui.Colors.*;
 
 class DocCellRenderer extends DefaultListCellRenderer {
+	static final int VALUE_TRUNCATE = 20;
 	final StringBuilder sb = new StringBuilder();
 	final MainFrame mf;
 
@@ -15,19 +16,30 @@ class DocCellRenderer extends DefaultListCellRenderer {
 	}
 
 	@Override
-	public Component getListCellRendererComponent(JList list, Object value, int index,
+	public Component getListCellRendererComponent(JList list, Object o, int index,
 			boolean isSelected, boolean cellHasFocus)
 	{
-		super.getListCellRendererComponent(list, value, index, false, false);
-		Document d = (Document) value;
+		super.getListCellRendererComponent(list, o, index, false, false);
+		Document d = (Document) o;
 		sb.setLength(0);
 		sb.append("<html>");
-		for (String k : d.keys()) {
+		for (String key : d.keys()) {
 			sb.append(" <font color=\"");
-			sb.append(mf.lastSearchKV.containsKey(k) ? MATCHED_TAG_HTML : TAG_HTML);
+			sb.append(mf.lastSearchKV.containsKey(key) ? MATCHED_TAG_HTML : TAG_HTML);
 			sb.append("\">");
-			sb.append(k);
+			sb.append(key);
 			sb.append("</font>");
+			if (mf.lastSearchKV.get(key) != null) {
+				String value = d.get(key);
+				if (value.length() > VALUE_TRUNCATE) {
+					value = value.substring(0, VALUE_TRUNCATE - 3) + "...";
+				}
+				sb.append("<font color=\"");
+				sb.append(VALUE_HTML);
+				sb.append("\">:");
+				sb.append(value);
+				sb.append("</font>");
+			}
 		}
 		sb.append("</html>");
 		setText(sb.toString());

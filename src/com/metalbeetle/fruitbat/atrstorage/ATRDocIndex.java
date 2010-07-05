@@ -55,7 +55,10 @@ public class ATRDocIndex implements DocIndex {
 		for (Iterator<ATRDocument> it = docs.iterator(); it.hasNext();) {
 			ATRDocument d = it.next();
 			for (Entry<String, String> e : searchKV.entrySet()) {
-				if (d.has(e.getKey()) && !d.get(e.getKey()).startsWith(e.getValue())) {
+				if (e.getValue() != null &&
+				    d.has(e.getKey())    &&
+				    !d.get(e.getKey()).startsWith(e.getValue()))
+				{
 					it.remove();
 					break;
 				}
