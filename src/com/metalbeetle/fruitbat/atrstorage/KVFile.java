@@ -66,7 +66,7 @@ final class KVFile {
 							loaded = true;
 							break;
 						}
-						keyValueMap.put(fields[1], fields[2]);
+						keyValueMap.put(fields[0], fields[1]);
 						keys.add(fields[1]);
 					}
 				} catch (Exception e) {

@@ -10,20 +10,20 @@ import java.util.Random;
 public class Main {
 	public static void main(String[] args) throws Exception {
 		Fruitbat f = new Fruitbat(new File("Documents"));
-		/*for (int i = 0; i < 1000; i++) {
+		/*for (int i = 0; i < 6000; i++) {
 			Document d = f.getStore().create();
 			Random r = new Random();
 
-			d.put(new String[] { "bill", "letter", "topay", "notes" }[r.nextInt(3)], "");
-			d.put("name", new String[] {"bob", "suzy", "mike"}[r.nextInt(3)]);
+			d.put(new String[] { "bill", "letter", "topay", "notes" }[r.nextInt(4)], "");
+			d.put(new String[] {"bob", "suzy", "mike"}[r.nextInt(3)], "");
 			d.put("d",
 					(2005 + r.nextInt(6)) + "-" +
 					"0" + (1 + r.nextInt(8)) + "-" +
 					(10 + r.nextInt(18)));
 		}*/
 		MainFrame mf = new MainFrame(f);
-		mf.setVisible(true);
 		mf.setLocationRelativeTo(null);
+		mf.setVisible(true);
 	}
 
 	static void printlist(List<?> l) {

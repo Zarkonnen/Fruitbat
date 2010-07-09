@@ -3,6 +3,9 @@ package com.metalbeetle.fruitbat.gui;
 import com.metalbeetle.fruitbat.storage.Document;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
@@ -26,6 +29,15 @@ class DocsList extends JList {
 		final DocsList self = this;
 
 		setCellRenderer(new DocCellRenderer(mf));
+		addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyPressed(KeyEvent e) {
+				if (e.getKeyCode() == KeyEvent.VK_ENTER && getSelectedIndex() != -1) {
+					Document d = (Document) m.getElementAt(getSelectedIndex());
+					mf.openDocManager.open(d, mf);
+				}
+			}
+		});
 		addFocusListener(new FocusAdapter() {
 			@Override
 			public void focusGained(FocusEvent e) {
@@ -46,8 +58,10 @@ class DocsList extends JList {
 			}
 			@Override
 			public void mousePressed(MouseEvent e) {
-				Document d = (Document) m.getElementAt(locationToIndex(e.getPoint()));
-				mf.openDocManager.open(d, mf);
+				if (e.getClickCount() == 2) {
+					Document d = (Document) m.getElementAt(locationToIndex(e.getPoint()));
+					mf.openDocManager.open(d, mf);
+				}
 			}
 		});
 		addMouseMotionListener(new MouseMotionAdapter() {
