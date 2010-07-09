@@ -32,4 +32,13 @@ public final class Collections {
 		}
 		return unmodifiableMap(m);
 	}
+
+	/** @return Joined version of the lists. */
+	public static <T> List<T> join(List<T>... ls) {
+		int size = 0;
+		for (List<T> l : ls) { size += l.size(); }
+		ArrayList<T> joint = new ArrayList<T>(size);
+		for (List<T> l : ls) { joint.addAll(l); }
+		return unmodifiableList(joint);
+	}
 }

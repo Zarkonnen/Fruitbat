@@ -17,7 +17,13 @@ public class Fruitbat {
 	public Fruitbat(File storeLocation) {
 		store = new ATRStore(storeLocation);
 		index = new ATRDocIndex((ATRStore) store);
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			@Override
+			public void run() {
+				close();
+			}
+		});
 	}
 
-	public void close() { index.close(); }
+	public void close() { index.close(); store.close(); }
 }

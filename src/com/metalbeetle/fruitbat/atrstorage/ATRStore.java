@@ -25,13 +25,18 @@ public class ATRStore implements Store {
 	public ATRStore(File location) {
 		this.location = location;
 		docsF = new File(location, "docs");
-		metaF = new KVFile(new File(location, "meta.atr"), META_DEFAULTS);
+		metaF = new KVFile(new File(location, "meta.atr"), new File(location, "meta-cache.atr"),
+				META_DEFAULTS);
 		if (docsF.exists()) {
 			for (File f : docsF.listFiles(new DocFilter())) {
 				ATRDocument d = new ATRDocument(f, this);
 				idToDoc.put(d.getID(), d);
 			}
 		}
+	}
+
+	public void close() {
+		metaF.saveToCache();
 	}
 
 	static final class DocFilter implements FilenameFilter {

@@ -9,4 +9,5 @@ public interface Store {
 	public Document undelete(String docID);
 	public List<Document> docs();
 	public Document get(String id);
+	public void close();
 }

@@ -20,14 +20,20 @@ final class KVFile {
 	static final String PUT    = "p";
 	static final String REMOVE = "r";
 	static final String MOVE   = "m";
+	static final String END_OF_CACHE = "EOC";
 
 	final File f;
+	final File cacheF;
+	private final Map<String, String> defaults;
 	private final HashMap<String, String> keyValueMap = new HashMap<String, String>();
 	private final TreeSet<String> keys = new TreeSet<String>();
 
 	private boolean loaded = false;
 
-	KVFile(File f, Map<String, String> defaults) { this.f = f; keyValueMap.putAll(defaults); }
+	KVFile(File f, File cacheF,  Map<String, String> defaults) {
+		this.f = f; this.cacheF = cacheF; this.defaults = new HashMap<String, String>(defaults);
+	}
+	KVFile(File f, Map<String, String> defaults) { this(f, null, defaults); }
 	KVFile(File f) { this(f, Collections.<String, String>emptyMap()); }
 
 	/** @return The key/value map in the file. Never use keyValueMap directly! */
@@ -42,9 +48,39 @@ final class KVFile {
 		return keys;
 	}
 
-	void load() {
+	private void load() {
 		if (!loaded) {
-			if (f.exists()) {
+			keyValueMap.clear();
+			keys.clear();
+			keyValueMap.putAll(defaults);
+			keys.addAll(defaults.keySet());
+			if (cacheF != null && cacheF.exists()) {
+				ATRReader r = null;
+				try {
+					r = new ATRReader(new BufferedInputStream(new FileInputStream(cacheF)));
+					String[] fields = new String[2];
+					int fieldsRead;
+					while ((fieldsRead = r.readRecord(fields, 0, 2)) != -1) {
+						if (fieldsRead == 0) { break; } // Broken cache!
+						if (fieldsRead == 1 && fields[0].equals(END_OF_CACHE)) {
+							loaded = true;
+							break;
+						}
+						keyValueMap.put(fields[1], fields[2]);
+						keys.add(fields[1]);
+					}
+				} catch (Exception e) {
+					throw new RuntimeException("Couldn't read data from " + f + ".", e);
+				} finally {
+					try { r.close(); } catch (Exception e) {}
+				}
+				loaded = cacheF.delete() && loaded;
+			}
+			if (!loaded && f.exists()) {
+				keyValueMap.clear();
+				keys.clear();
+				keyValueMap.putAll(defaults);
+				keys.addAll(defaults.keySet());
 				ATRReader r = null;
 				try {
 					r = new ATRReader(new BufferedInputStream(new FileInputStream(f)));
@@ -79,6 +115,32 @@ final class KVFile {
 				}
 			}
 			loaded = true;
+		}
+	}
+
+	void saveToCache() {
+		if (cacheF != null && loaded) {
+			mkAncestors(cacheF);
+
+			ATRWriter w = null;
+			try {
+				w = new ATRWriter(new BufferedOutputStream(new FileOutputStream(cacheF,
+						/*append*/ false)));
+				for (Map.Entry<String, String> kv : keyValueMap.entrySet()) {
+					w.startRecord();
+					w.write(kv.getKey());
+					w.write(kv.getValue());
+					w.endRecord();
+				}
+				w.startRecord();
+				w.write(END_OF_CACHE);
+				w.endRecord();
+				loaded = false;
+			} catch (Exception e) {
+				throw new RuntimeException("Couldn't append to " + f + ".", e);
+			} finally {
+				try { w.close(); } catch (Exception e) {}
+			}
 		}
 	}
 	

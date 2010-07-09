@@ -19,7 +19,7 @@ class DocCellRenderer extends DefaultListCellRenderer {
 	public Component getListCellRendererComponent(JList list, Object o, int index,
 			boolean isSelected, boolean cellHasFocus)
 	{
-		super.getListCellRendererComponent(list, o, index, false, false);
+		super.getListCellRendererComponent(list, o, index, cellHasFocus && isSelected, cellHasFocus);
 		Document d = (Document) o;
 		sb.setLength(0);
 		sb.append("<html>");
