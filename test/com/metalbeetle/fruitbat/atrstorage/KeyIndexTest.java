@@ -1,8 +1,8 @@
 package com.metalbeetle.fruitbat.atrstorage;
 
+import com.metalbeetle.fruitbat.storage.DocIndex;
 import com.metalbeetle.fruitbat.storage.Document;
-import com.metalbeetle.fruitbat.util.Pair;
-import java.util.List;
+import com.metalbeetle.fruitbat.storage.SearchResult;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,17 +37,17 @@ public class KeyIndexTest {
 		d3 = s.get(id3);
 
 		// Searching for SCARY should yield d1 and d2.
-		Pair<List<Document>, List<String>> result;
-		result = index.search(m(p(SCARY, "")));
-		assertTrue(result.a.contains(d1));
-		assertTrue(result.a.contains(d2));
-		assertFalse(result.a.contains(d3));
+		SearchResult result;
+		result = index.search(m(p(SCARY, "")), DocIndex.ALL_DOCS, DocIndex.NO_TIMEOUT);
+		assertTrue(result.docs.contains(d1));
+		assertTrue(result.docs.contains(d2));
+		assertFalse(result.docs.contains(d3));
 
 		// Searching for SCARY and x should just yield d2.
-		result = index.search(m(p(SCARY, ""), p("x", SCARY)));
-		assertFalse(result.a.contains(d1));
-		assertTrue(result.a.contains(d2));
-		assertFalse(result.a.contains(d3));
+		result = index.search(m(p(SCARY, ""), p("x", SCARY)), DocIndex.ALL_DOCS, DocIndex.NO_TIMEOUT);
+		assertFalse(result.docs.contains(d1));
+		assertTrue(result.docs.contains(d2));
+		assertFalse(result.docs.contains(d3));
 	}
 
 	@Test
@@ -72,19 +72,19 @@ public class KeyIndexTest {
 		d2 = s.get(id2);
 		d3 = s.get(id3);
 
-		Pair<List<Document>, List<String>> result;
+		SearchResult result;
 
 		// Check that searching for a gives a narrowing suggestion of b only.
-		result = index.search(m(p("a", "")));
-		assertFalse(result.b.contains("a"));
-		assertTrue(result.b.contains("b"));
-		assertFalse(result.b.contains("c"));
+		result = index.search(m(p("a", "")), DocIndex.ALL_DOCS, DocIndex.NO_TIMEOUT);
+		assertFalse(result.narrowingTags.contains("a"));
+		assertTrue(result.narrowingTags.contains("b"));
+		assertFalse(result.narrowingTags.contains("c"));
 
 		// Check that searching for b gives a narrowing suggestion of a and c.
-		result = index.search(m(p("b", "")));
-		assertTrue(result.b.contains("a"));
-		assertFalse(result.b.contains("b"));
-		assertTrue(result.b.contains("c"));
+		result = index.search(m(p("b", "")), DocIndex.ALL_DOCS, DocIndex.NO_TIMEOUT);
+		assertTrue(result.narrowingTags.contains("a"));
+		assertFalse(result.narrowingTags.contains("b"));
+		assertTrue(result.narrowingTags.contains("c"));
 	}
 
 	void rebootStore() {

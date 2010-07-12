@@ -1,8 +1,10 @@
 package com.metalbeetle.fruitbat.gui;
 
 import com.metalbeetle.fruitbat.Fruitbat;
+import com.metalbeetle.fruitbat.storage.DocIndex;
 import com.metalbeetle.fruitbat.storage.Document;
-import com.metalbeetle.fruitbat.util.Pair;
+import com.metalbeetle.fruitbat.storage.SearchOutcome;
+import com.metalbeetle.fruitbat.storage.SearchResult;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Cursor;
@@ -34,20 +36,22 @@ import javax.swing.JSplitPane;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.KeyStroke;
-import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 import static com.metalbeetle.fruitbat.util.Collections.*;
-import static com.metalbeetle.fruitbat.gui.Colors.*;
 
 public class MainFrame extends JFrame {
+	static final int DEFAULT_TIMEOUT = 300;
+	static final int DEFAULT_MAX_DOCS = 100;
+
 	final Fruitbat app;
+	final Dialogs dialogs = new Dialogs();
 
 	final OpenDocManager openDocManager = new OpenDocManager();
 
 	List<TagSuggestor> suggestors;
 	List<String> suggestions = new ArrayList<String>();
 
-	Pair<List<Document>, List<String>> currentSearchResult;
+	SearchResult currentSearchResult;
 	HashMap<String, String> lastSearchKV = new HashMap<String, String>();
 	List<String> lastSearchKeys = new ArrayList<String>();
 	String lastSearch = "";
@@ -70,13 +74,12 @@ public class MainFrame extends JFrame {
 			final JLabel tagsL;
 			final JScrollPane tagsListSP;
 				final NarrowSearchTagsList tagsList;
-				final JLabel quickLookF;
 
 	public MainFrame(Fruitbat application) throws HeadlessException {
 		super("Fruitbat");
 		app = application;
 		suggestors = l((TagSuggestor) new DateSuggestor());
-		search("", /*force*/ true);
+		search("", DEFAULT_MAX_DOCS, DEFAULT_TIMEOUT, /*force*/ true);
 
 		Container c = getContentPane();
 		c.setLayout(new BorderLayout(0, 5));
@@ -97,7 +100,7 @@ public class MainFrame extends JFrame {
 						@Override
 						public void keyReleased(KeyEvent e) {
 							if (!lastSearch.trim().equals(searchF.getText().trim())) {
-								search(searchF.getText());
+								search(searchF.getText(), DEFAULT_MAX_DOCS, DEFAULT_TIMEOUT);
 							}
 							if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
 								switchCompleteMenu();
@@ -120,8 +123,17 @@ public class MainFrame extends JFrame {
 					docsL.addMouseListener(new MouseAdapter() {
 						@Override
 						public void mousePressed(MouseEvent e) {
-							docsList.m.setShowAll(!docsList.m.getShowAll());
-							updateDocsLabel();
+							String answer = dialogs.askQuestion("More...",
+									"How many documents would you like to see?",
+									"" + Math.min(currentSearchResult.minimumAvailableDocs, 1000));
+							int maxDocs = -1;
+							try {
+								maxDocs = Integer.parseInt(answer);
+							} catch (Exception ex) {}
+							if (maxDocs > 0) {
+								search(searchF.getText(), maxDocs, DocIndex.NO_TIMEOUT,
+										/*force*/ true);
+							}
 						}
 					});
 					docsL.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -131,11 +143,6 @@ public class MainFrame extends JFrame {
 				tagsP.add(tagsL = new JLabel("Tags"), BorderLayout.NORTH);
 				tagsP.add(tagsListSP = new JScrollPane(), BorderLayout.CENTER);
 					tagsListSP.setViewportView(tagsList = new NarrowSearchTagsList(this));
-			quickLookF = new JLabel();
-				quickLookF.setBorder(new EmptyBorder(3, 3, 3, 3));
-				quickLookF.setVerticalAlignment(SwingConstants.TOP);
-				quickLookF.setBackground(TAG_BG);
-				quickLookF.setOpaque(true);
 		updateDocsLabel();
 		setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
 		addWindowListener(new WindowAdapter() {
@@ -165,23 +172,20 @@ public class MainFrame extends JFrame {
 	}
 
 	void updateDocsLabel() {
-		String s = "<html>" + currentSearchResult.a.size() + " documents";
-		if (docsList.m.getShowAll()) {
-			s += " ( <font color=\"#0000FF\"><u>show " + DocsListModel.MAX_DOCS_DISPLAYED +
-					" only</u></font> )";
-		} else {
-			if (currentSearchResult.a.size() != docsList.m.getSize()) {
-				s += ", " + docsList.m.getSize() +
-						" shown ( <font color=\"#0000FF\"><u>show all</u></font> )";
-			}
+		String s = "<html>" + currentSearchResult.docs.size() + " documents";
+		if (currentSearchResult.outcome != SearchOutcome.EXHAUSTIVE) {
+			s += " of \u2265" + currentSearchResult.minimumAvailableDocs +
+					" <font color=\"#0000FF\"><u>more</u></font>";
 		}
 		s += "</html>";
 		docsL.setText(s);
 	}
 
-	void search(String searchText) { search(searchText, false); }
+	void search() { search(searchF.getText(), DEFAULT_MAX_DOCS, DEFAULT_TIMEOUT); }
 
-	void search(String searchText, boolean force) {
+	void search(String searchText, int maxDocs, int timeout) { search(searchText, maxDocs, timeout, false); }
+
+	void search(String searchText, int maxDocs, int timeout, boolean force) {
 		lastSearch = searchText;
 		String[] terms = searchText.split(" +");
 		HashMap<String, String> searchKV = new HashMap<String, String>();
@@ -197,53 +201,15 @@ public class MainFrame extends JFrame {
 			lastSearchKeys.addAll(searchKV.keySet());
 			suggestions.clear();
 			for (TagSuggestor ts : suggestors) { suggestions.addAll(ts.suggestSearchTerms(terms)); }
-			currentSearchResult = app.getIndex().search(lastSearchKV);
+			currentSearchResult = app.getIndex().search(lastSearchKV, maxDocs, timeout);
 			if (docsList != null) {
-				docsList.m.setShowAll(false);
+				docsList.m.changed();
 				docsList.clearSelection();
 				updateDocsLabel();
 			}
 			if (tagsList != null) {
 				tagsList.m.changed();
 			}
-		}
-	}
-
-	void quickLook(int index) {
-		Document d = index == -1 ? null : currentSearchResult.a.get(index);
-		if (d != quickLookD) {
-			quickLook(d);
-		}
-	}
-
-	void quickLook(Document d) {
-		quickLookD = d;
-		if (d == null) {
-			tagsL.setText("Tags");
-			tagsListSP.setViewportView(tagsList);
-		} else {
-			StringBuilder sb = new StringBuilder();
-			sb.append("<html>");
-			for (String k : d.keys()) {
-				sb.append("<font color=\"");
-				sb.append(TAG_HTML);
-				sb.append("\">");
-				sb.append(k);
-				sb.append("</font>");
-				String v = d.get(k);
-				if (v.length() > 0) {
-					sb.append("<font color=\"");
-					sb.append(VALUE_HTML);
-					sb.append("\">:");
-					sb.append(v);
-					sb.append("</font>");
-				}
-				sb.append("<br>");
-			}
-			sb.append("</html>");
-			quickLookF.setText(sb.toString());
-			tagsL.setText("Tags for this document");
-			tagsListSP.setViewportView(quickLookF);
 		}
 	}
 
@@ -260,7 +226,7 @@ public class MainFrame extends JFrame {
 				(10 + r.nextInt(18)));
 
 		// Then re-search to include it in the view.
-		search(lastSearch, /*force*/ true);
+		search(lastSearch, DEFAULT_MAX_DOCS, DEFAULT_TIMEOUT, /*force*/ true);
 		openDocManager.open(d, this);
 	}
 }

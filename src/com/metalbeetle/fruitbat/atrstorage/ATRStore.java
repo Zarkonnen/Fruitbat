@@ -1,5 +1,6 @@
 package com.metalbeetle.fruitbat.atrstorage;
 
+import com.metalbeetle.fruitbat.gui.ProgressMonitor;
 import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.Store;
 import java.io.File;
@@ -87,14 +88,6 @@ public class ATRStore implements Store {
 	void setKeyIndex(ATRDocIndex keyIndex) {
 		if (this.keyIndex != null) { this.keyIndex.close(); }
 		this.keyIndex = keyIndex;
-	}
-
-	void keyAdded(ATRDocument d, String key) {
-		if (keyIndex != null) { keyIndex.keyAdded(d, key); }
-	}
-
-	void keyRemoved(ATRDocument d, String key) {
-		if (keyIndex != null) { keyIndex.keyRemoved(d, key); }
 	}
 
 	@Override

@@ -2,6 +2,7 @@ package com.metalbeetle.fruitbat;
 
 import com.metalbeetle.fruitbat.atrstorage.ATRDocIndex;
 import com.metalbeetle.fruitbat.atrstorage.ATRStore;
+import com.metalbeetle.fruitbat.gui.ProgressMonitor;
 import com.metalbeetle.fruitbat.storage.DocIndex;
 import com.metalbeetle.fruitbat.storage.Store;
 import java.io.File;
@@ -14,9 +15,9 @@ public class Fruitbat {
 	public DocIndex getIndex() { return index; }
 	public Store getStore() { return store; }
 
-	public Fruitbat(File storeLocation) {
+	public Fruitbat(File storeLocation, ProgressMonitor pm) {
 		store = new ATRStore(storeLocation);
-		index = new ATRDocIndex((ATRStore) store);
+		index = new ATRDocIndex((ATRStore) store, pm);
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {

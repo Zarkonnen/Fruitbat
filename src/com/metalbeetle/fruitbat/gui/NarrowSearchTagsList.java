@@ -73,7 +73,7 @@ class NarrowSearchTagsList extends JList {
 					// OK, it's bounded on both sides by the end of the document or spaces.
 					try {
 						mf.searchF.getDocument().remove(found, clicked.length() + consumeToRight);
-						mf.search(mf.searchF.getText());
+						mf.search();
 					} catch (BadLocationException e) {
 						// La la la should not happen.
 					}
@@ -90,7 +90,7 @@ class NarrowSearchTagsList extends JList {
 						try {
 							mf.searchF.getDocument().remove(clickedIndex, spaceIndex - clickedIndex);
 							mf.searchF.getDocument().insertString(clickedIndex, clicked, null);
-							mf.search(mf.searchF.getText());
+							mf.search();
 						} catch (BadLocationException e) {
 							// La la la should not happen.
 						}
@@ -108,7 +108,7 @@ class NarrowSearchTagsList extends JList {
 					}
 					mf.searchF.getDocument().insertString(mf.searchF.getCaretPosition(), clicked,
 							null);
-					mf.search(mf.searchF.getText());
+					mf.search();
 				} catch (BadLocationException e) {
 					// La la la should not happen.
 				}

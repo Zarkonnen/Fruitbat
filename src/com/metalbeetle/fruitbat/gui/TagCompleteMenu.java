@@ -23,7 +23,7 @@ public class TagCompleteMenu extends JPopupMenu {
 		if (spacePos >= colonPos) {
 			// Suggest a tag
 			final String tagFragment = text.substring(spacePos, caretPos);
-			for (final String tag : join(mf.suggestions, mf.currentSearchResult.b)) {
+			for (final String tag : join(mf.suggestions, mf.currentSearchResult.narrowingTags)) {
 				if (tag.startsWith(tagFragment)) {
 					JMenuItem tagItem = new JMenuItem(tag);
 					tagItem.setForeground(TAG);
@@ -43,7 +43,7 @@ public class TagCompleteMenu extends JPopupMenu {
 			final String key = text.substring(spacePos, colonPos - 1);
 			final String valueFragment = text.substring(colonPos, caretPos);
 			HashSet<String> values = new HashSet<String>(MAX_SUGGESTED_VALUES * 2);
-			for (final Document d : mf.currentSearchResult.a) {
+			for (final Document d : mf.currentSearchResult.docs) {
 				if (d.has(key)) {
 					String dValue = d.get(key);
 					if (dValue.startsWith(valueFragment)) {

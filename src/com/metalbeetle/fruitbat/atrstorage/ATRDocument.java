@@ -28,25 +28,33 @@ class ATRDocument implements Comparable<ATRDocument>, Document {
 
 	public String getID() { return string(id); }
 
-	public String get(String key) { return data.get(key); }
+	public String get(String key) {
+		String cached = s.keyIndex.getCachedValue(this, key);
+		return cached == null ? data.get(key) : cached;
+	}
+
 	public void put(String key, String value) {
 		data.put(key, value);
-		s.keyAdded(this, key);
+		s.keyIndex.keyAdded(this, key, value);
 	}
 
 	public void remove(String key) {
 		data.remove(key);
-		s.keyRemoved(this, key);
+		s.keyIndex.keyRemoved(this, key);
 	}
 
 	public void move(String srcKey, String dstKey) {
 		data.move(srcKey, dstKey);
-		s.keyRemoved(this, srcKey);
-		s.keyAdded(this, dstKey);
+		s.keyIndex.keyRemoved(this, srcKey);
+		s.keyIndex.keyAdded(this, dstKey, data.get(dstKey));
 	}
 
-	public boolean has(String key) { return data.has(key); }
-	public List<String> keys() { return data.keys(); }
+	public boolean has(String key) {
+		return s.keyIndex.hasKey(this, key);
+	}
+	public List<String> keys() {
+		return s.keyIndex.getKeys(this);
+	}
 
 	public URI getPage(String key) { return new File(location, files.get(key)).toURI(); }
 

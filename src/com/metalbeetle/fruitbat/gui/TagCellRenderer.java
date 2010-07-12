@@ -25,7 +25,7 @@ class TagCellRenderer extends DefaultListCellRenderer {
 		}
 		sb.setLength(0);
 		sb.append("<html><font color=\"");
-		sb.append(mf.lastSearchKV.containsKey(key) ? MATCHED_TAG_HTML : TAG_HTML);
+		sb.append((value == null && mf.lastSearchKV.containsKey(key)) ? MATCHED_TAG_HTML : TAG_HTML);
 		sb.append("\">");
 		sb.append(key);
 		sb.append("</font>");
