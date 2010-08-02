@@ -1,6 +1,7 @@
 package com.metalbeetle.fruitbat;
 
 import com.metalbeetle.fruitbat.atrstorage.ATRStorageSystem;
+import com.metalbeetle.fruitbat.gui.Dialogs;
 import com.metalbeetle.fruitbat.gui.MainFrame;
 import com.metalbeetle.fruitbat.gui.SplashWindow;
 import com.metalbeetle.fruitbat.gui.setup.ConfigDialog;
@@ -16,6 +17,7 @@ import static com.metalbeetle.fruitbat.util.Collections.*;
 
 public class Main {
 	public static void main(String[] args) throws Exception {
+		new Dialogs().showProgressBar("fqe", "eqf", 3);
 		//ConfigDialog.newConfig(new MultiplexStorageSystem(), null);
 		/*MultiplexStorageSystem mss = new MultiplexStorageSystem();
 		Fruitbat f = new Fruitbat(mss.init(typedL(Object.class, typedL(Object.class,

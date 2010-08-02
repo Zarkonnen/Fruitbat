@@ -14,12 +14,13 @@ public class Dialogs implements ProgressMonitor {
 	}
 
 	final JDialog progressDialog;
-		final SimpleProgressPanel progressPanel;
+		final SimpleProgressPanel2 progressPanel;
 
 	public Dialogs() {
 		progressDialog = new JDialog((Frame) null, "Progress", /*modal*/ true);
-			progressDialog.setContentPane(progressPanel = new SimpleProgressPanel());
+			progressDialog.setContentPane(progressPanel = new SimpleProgressPanel2());
 		progressDialog.pack();
+		progressDialog.setSize(400, progressDialog.getHeight());
 		progressDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
 		progressDialog.setResizable(false);
 	}

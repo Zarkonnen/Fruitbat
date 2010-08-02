@@ -6,7 +6,6 @@ import com.metalbeetle.fruitbat.storage.StorageSystem;
 import com.metalbeetle.fruitbat.storage.StoreConfigInvalidException;
 import com.metalbeetle.fruitbat.storage.Utils;
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import static java.awt.GridBagConstraints.*;
 import java.awt.GridBagLayout;
