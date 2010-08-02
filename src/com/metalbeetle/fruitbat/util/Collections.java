@@ -16,6 +16,11 @@ public final class Collections {
 		return immute(Arrays.asList(ts));
 	}
 
+	/** @return Immutable list of items of a given type. */
+	public static <T> List<T> typedL(Class<T> c, Object... ts) {
+		return (List<T>)(List)l(ts);
+	}
+
 	/** @return Immutable list copy of collection. */
 	public static <T> List<T> immute(Collection<T> l) {
 		return unmodifiableList(new ArrayList<T>(l));

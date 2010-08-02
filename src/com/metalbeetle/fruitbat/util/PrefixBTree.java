@@ -1,9 +1,9 @@
 package com.metalbeetle.fruitbat.util;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 
 public class PrefixBTree<T> {
+	static final int FULL_ARRAY_THRESHOLD = 4;
 	final Node<T> root = new Node<T>();
 
 	public HashSet<T> get(String key) { return get(key.getBytes()); }
@@ -18,7 +18,7 @@ public class PrefixBTree<T> {
 		int prefixIndex = 0;
 		while (prefixIndex < prefix.length) {
 			int index = prefix[prefixIndex] + node.childrenOffset;
-			if (index >= 0 && index < node.children.length) {
+			if (node.children != null && index >= 0 && index < node.children.length) {
 				node = node.children[index];
 				if (node == null) { return l; }
 				prefixIndex++;
@@ -57,7 +57,7 @@ public class PrefixBTree<T> {
 		Node<T>[] children;
 		int childrenOffset = 0;
 		int childCount = 0;
-		ArrayList<T> leaves = new ArrayList<T>(0);
+		HashSet<T> leaves = new HashSet<T>(4);
 
 		int numberOfNodes() {
 			int n = 1;
@@ -93,7 +93,6 @@ public class PrefixBTree<T> {
 		void put(byte[] key, int keyIndex, T value) {
 			if (keyIndex == key.length) {
 				if (!leaves.contains(value)) {
-					leaves.ensureCapacity(8);
 					leaves.add(value);
 				}
 			} else {

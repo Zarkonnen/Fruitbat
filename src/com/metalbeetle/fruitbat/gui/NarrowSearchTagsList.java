@@ -1,118 +1,106 @@
 package com.metalbeetle.fruitbat.gui;
 
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import com.metalbeetle.fruitbat.Fruitbat;
+import java.awt.Component;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.AbstractListModel;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.JList;
-import javax.swing.text.BadLocationException;
+import javax.swing.JTextPane;
+import static com.metalbeetle.fruitbat.gui.Colors.*;
 
 /** List of suitable tags for narrowing search. */
-class NarrowSearchTagsList extends JList {
+class NarrowSearchTagsList extends TagsList {
 	final MainFrame mf;
-	final TagsListModel m;
+	final NarrowSearchTagsListModel m;
 
 	NarrowSearchTagsList(MainFrame mf) {
-		this(mf, new TagsListModel(mf));
+		this(mf, new NarrowSearchTagsListModel(mf));
 	}
 
-	private NarrowSearchTagsList(final MainFrame mf, final TagsListModel m) {
-		super(m);
+	private NarrowSearchTagsList(final MainFrame mf, final NarrowSearchTagsListModel m) {
+		super();
 		this.m = m;
 		this.mf = mf;
+		setModel(m);
 		setCellRenderer(new TagCellRenderer(mf));
-		addMouseListener(new MouseAdapter() {
-			@Override
-			public void mousePressed(MouseEvent e) {
-				tagClick(locationToIndex(e.getPoint()));
-			}
-		});
-		setFocusable(false);
 	}
 
-	void tagClick(int index) {
-		if (index != -1) {
-			String clicked = (String) m.getElementAt(index);
-			String[] tags = mf.searchF.getText().split(" +");
-			boolean tagAlreadyExists = false;
-			if (clicked.contains(":")) {
-				for (String t: tags) {
-					if (clicked.equals(t)) { tagAlreadyExists = true; break; }
-				}
-			} else {
-				for (String t : tags) {
-					String key = t.split(":", 2)[0];
-					if (key.equals(clicked)) { tagAlreadyExists = true; break; }
-				}
-			}
-			if (tagAlreadyExists) {
-				// Remove the tag.
-				int searchStart = 0;
-				int found = -1;
-				String text = mf.searchF.getText();
-				while ((found = text.indexOf(clicked, searchStart)) != -1) {
-					// Check this is not just a substring of a larger tag.
-					if (found != 0 && text.charAt(found - 1) != ' ') { continue; }
-					int consumeToRight = 0;
-					if (found + clicked.length() < text.length()) {
-						char nextC = text.charAt(found + clicked.length());
-						if (nextC == ' ') {
-							consumeToRight = 1;
-						} else {
-							if (nextC == ':') {
-								// The tag is a key/value pair. We want to get rid of both, so let's
-								// see how far the value extends.
-								int nextSpaceIndex = text.indexOf(" ", found + 1);
-								if (nextSpaceIndex == -1) { nextSpaceIndex = text.length(); }
-								consumeToRight = nextSpaceIndex - found - clicked.length();
-							} else {
-								// The tag we've clicked on happens to be the start of a preexisting
-								// tag.
-								continue;
-							}
-						}
-					}
-					// OK, it's bounded on both sides by the end of the document or spaces.
-					try {
-						mf.searchF.getDocument().remove(found, clicked.length() + consumeToRight);
-						mf.search();
-					} catch (BadLocationException e) {
-						// La la la should not happen.
-					}
-					searchStart = found + 1;
-				}
-			} else {
-				// See if we can use this tag to narrow a search.
-				if (clicked.contains(":")) {
-					String[] kv = clicked.split(":");
-					int clickedIndex = mf.searchF.getText().indexOf(kv[0] + ":");
-					if (clickedIndex != -1) {
-						int spaceIndex = mf.searchF.getText().indexOf(" ", clickedIndex);
-						if (spaceIndex == -1) { spaceIndex = mf.searchF.getText().length(); }
-						try {
-							mf.searchF.getDocument().remove(clickedIndex, spaceIndex - clickedIndex);
-							mf.searchF.getDocument().insertString(clickedIndex, clicked, null);
-							mf.search();
-						} catch (BadLocationException e) {
-							// La la la should not happen.
-						}
-						return;
-					}
-				}
+	@Override
+	JTextPane getTagsField() {
+		return mf.searchF;
+	}
 
-				// Insert the tag.
-				try {
-					// Put spaces around the tag as needed.
-					if (mf.searchF.getCaretPosition() != 0) {
-						if (mf.searchF.getText().charAt(mf.searchF.getCaretPosition() - 1) != ' ') {
-							clicked = " " + clicked;
-						}
-					}
-					mf.searchF.getDocument().insertString(mf.searchF.getCaretPosition(), clicked,
-							null);
-					mf.search();
-				} catch (BadLocationException e) {
-					// La la la should not happen.
+	@Override
+	void postChange() {
+		mf.search();
+	}
+
+	static class TagCellRenderer extends DefaultListCellRenderer {
+		final StringBuilder sb = new StringBuilder();
+		final MainFrame mf;
+
+		TagCellRenderer(MainFrame mf) { this.mf = mf; }
+
+		@Override
+		public Component getListCellRendererComponent(JList list, Object o, int index,
+				boolean isSelected, boolean cellHasFocus)
+		{
+			super.getListCellRendererComponent(list, o, index, false, false);
+			String key = (String) o;
+			String value = null;
+			if (key.contains(":")) {
+				String[] kv = key.split(":", 2);
+				key = kv[0];
+				value = ":" + kv[1];
+			}
+			sb.setLength(0);
+			sb.append("<html><font color=\"");
+			sb.append((value == null && mf.lastSearchKV.containsKey(key)) ? MATCHED_TAG_HTML : TAG_HTML);
+			sb.append("\">");
+			sb.append(key);
+			sb.append("</font>");
+			if (value != null) {
+				sb.append("<font color=\"");
+				sb.append(VALUE_HTML);
+				sb.append("\">");
+				sb.append(value);
+				sb.append("</font>");
+			}
+			sb.append("</html>");
+			setText(sb.toString());
+			return this;
+		}
+	}
+
+	static class NarrowSearchTagsListModel extends AbstractListModel {
+		final MainFrame mf;
+
+		NarrowSearchTagsListModel(MainFrame mf) { this.mf = mf; }
+
+		List<String> visibleNarrowingTags() {
+			ArrayList<String> l = new ArrayList<String>();
+			l.ensureCapacity(mf.currentSearchResult.narrowingTags.size());
+			for (String t : mf.currentSearchResult.narrowingTags) {
+				if (!t.startsWith(Fruitbat.HIDDEN_KEY_PREFIX)) {
+					l.add(t);
 				}
 			}
+			return l;
 		}
+
+		public int getSize() {
+			return mf.lastSearchKeys.size() + visibleNarrowingTags().size();
+		}
+
+		public Object getElementAt(int index) {
+			return
+					index < mf.lastSearchKeys.size()
+					? mf.lastSearchKeys.get(index)
+					: visibleNarrowingTags().get(index - mf.lastSearchKeys.size());
+		}
+
+		void changed() { fireContentsChanged(this, 0, getSize()); }
 	}
 }

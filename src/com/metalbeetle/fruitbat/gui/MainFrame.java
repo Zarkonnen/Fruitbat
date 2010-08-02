@@ -1,16 +1,18 @@
 package com.metalbeetle.fruitbat.gui;
 
+import com.metalbeetle.fruitbat.Closeable;
 import com.metalbeetle.fruitbat.Fruitbat;
-import com.metalbeetle.fruitbat.storage.DocIndex;
 import com.metalbeetle.fruitbat.storage.Document;
+import com.metalbeetle.fruitbat.storage.FatalStorageException;
+import com.metalbeetle.fruitbat.storage.ProgressMonitor;
 import com.metalbeetle.fruitbat.storage.SearchOutcome;
 import com.metalbeetle.fruitbat.storage.SearchResult;
+import com.metalbeetle.fruitbat.storage.Store;
+import com.metalbeetle.fruitbat.storage.StoreConfig;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Cursor;
 import java.awt.FlowLayout;
-import java.awt.HeadlessException;
-import java.awt.KeyboardFocusManager;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
@@ -19,13 +21,10 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
-import java.util.Set;
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -33,33 +32,34 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
-import javax.swing.JTextField;
 import javax.swing.JTextPane;
-import javax.swing.KeyStroke;
 import javax.swing.border.EmptyBorder;
-import static com.metalbeetle.fruitbat.util.Collections.*;
+import static com.metalbeetle.fruitbat.util.Misc.*;
 
-public class MainFrame extends JFrame {
-	static final int DEFAULT_TIMEOUT = 300;
-	static final int DEFAULT_MAX_DOCS = 100;
+public class MainFrame extends JFrame implements Closeable {
+	static final int DEFAULT_MAX_DOCS = 50;
 
 	final Fruitbat app;
-	final Dialogs dialogs = new Dialogs();
+	final Store store;
+	final StoreConfig config;
+
+	ProgressMonitor pm;
+	boolean isEmergencyShutdown = false;
 
 	final OpenDocManager openDocManager = new OpenDocManager();
-
-	List<TagSuggestor> suggestors;
-	List<String> suggestions = new ArrayList<String>();
+	final ShortcutOverlay shortcutOverlay = new ShortcutOverlay();
 
 	SearchResult currentSearchResult;
 	HashMap<String, String> lastSearchKV = new HashMap<String, String>();
 	List<String> lastSearchKeys = new ArrayList<String>();
 	String lastSearch = "";
+	
+	SearchTagCompleteMenu completeMenu = null;
 
-	Document quickLookD = null;
+	File lastDirectory = new File("");
+	boolean tagsChanged = false;
 
-	TagCompleteMenu completeMenu = null;
-
+	final MainMenuBar mainMenuBar;
 	final Box searchBoxH;
 		final Box searchBoxV;
 			final JTextPane searchF;
@@ -75,32 +75,29 @@ public class MainFrame extends JFrame {
 			final JScrollPane tagsListSP;
 				final NarrowSearchTagsList tagsList;
 
-	public MainFrame(Fruitbat application) throws HeadlessException {
-		super("Fruitbat");
+	public MainFrame(Fruitbat application, Store store, ProgressMonitor pm, StoreConfig config) {
+		super("Fruitbat: " + store);
 		app = application;
-		suggestors = l((TagSuggestor) new DateSuggestor());
-		search("", DEFAULT_MAX_DOCS, DEFAULT_TIMEOUT, /*force*/ true);
+		this.store = store;
+		this.pm = pm;
+		this.config = config;
+		search("", DEFAULT_MAX_DOCS, /*force*/ true);
 
 		Container c = getContentPane();
 		c.setLayout(new BorderLayout(0, 5));
+		final MainFrame self = this;
 		// This layouting is horrible and should be replaced by a grid bag.
 		c.add(searchBoxH = Box.createHorizontalBox(), BorderLayout.NORTH);
 			searchBoxH.add(Box.createHorizontalStrut(5));
 			searchBoxH.add(searchBoxV = Box.createVerticalBox());
 				searchBoxV.add(Box.createVerticalStrut(5));
-				searchBoxV.add(searchF = new JTextPane());
-					// Fix tab focusing behaviour.
-					Set<KeyStroke> strokes = new HashSet<KeyStroke>(Arrays.asList(KeyStroke.getKeyStroke("pressed TAB")));
-					searchF.setFocusTraversalKeys(KeyboardFocusManager.FORWARD_TRAVERSAL_KEYS, strokes);
-					strokes = new HashSet<KeyStroke>(Arrays.asList(KeyStroke.getKeyStroke("shift pressed TAB")));
-					searchF.setFocusTraversalKeys(KeyboardFocusManager.BACKWARD_TRAVERSAL_KEYS, strokes);
-					searchF.setBorder(new JTextField().getBorder());
-					searchF.setDocument(new SearchColorizingDocument(searchF, app));
+				searchBoxV.add(searchF = new FixedTextPane());
+					searchF.setDocument(new SearchColorizingDocument(this));
 					searchF.addKeyListener(new KeyAdapter() {
 						@Override
 						public void keyReleased(KeyEvent e) {
 							if (!lastSearch.trim().equals(searchF.getText().trim())) {
-								search(searchF.getText(), DEFAULT_MAX_DOCS, DEFAULT_TIMEOUT);
+								search();
 							}
 							if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
 								switchCompleteMenu();
@@ -120,40 +117,50 @@ public class MainFrame extends JFrame {
 			split.setBorder(new EmptyBorder(0, 5, 5, 5));
 			split.setLeftComponent(docsP = new JPanel(new BorderLayout(5, 5)));
 				docsP.add(docsL = new JLabel("Documents"), BorderLayout.NORTH);
-					docsL.addMouseListener(new MouseAdapter() {
-						@Override
-						public void mousePressed(MouseEvent e) {
-							String answer = dialogs.askQuestion("More...",
-									"How many documents would you like to see?",
-									"" + Math.min(currentSearchResult.minimumAvailableDocs, 1000));
-							int maxDocs = -1;
-							try {
-								maxDocs = Integer.parseInt(answer);
-							} catch (Exception ex) {}
-							if (maxDocs > 0) {
-								search(searchF.getText(), maxDocs, DocIndex.NO_TIMEOUT,
-										/*force*/ true);
-							}
-						}
-					});
+					docsL.addMouseListener(new MouseAdapter() { @Override public void mousePressed(MouseEvent e) {
+						searchMore();
+					}});
 					docsL.setCursor(new Cursor(Cursor.HAND_CURSOR));
 				docsP.add(docsListSP = new JScrollPane(), BorderLayout.CENTER);
 					docsListSP.setViewportView(docsList = new DocsList(this));
 			split.setRightComponent(tagsP = new JPanel(new BorderLayout(5, 5)));
-				tagsP.add(tagsL = new JLabel("Tags"), BorderLayout.NORTH);
+				tagsP.add(tagsL = new JLabel("with these tags"), BorderLayout.NORTH);
 				tagsP.add(tagsListSP = new JScrollPane(), BorderLayout.CENTER);
 					tagsListSP.setViewportView(tagsList = new NarrowSearchTagsList(this));
+		setJMenuBar(mainMenuBar = new MainMenuBar(this));
 		updateDocsLabel();
-		setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
-				System.exit(0);
+				close();
+			}
+			@Override
+			public void windowActivated(WindowEvent e) {
+				if (tagsChanged) {
+					search(searchF.getText(), DEFAULT_MAX_DOCS, /*force*/true);
+					tagsChanged = false;
+				}
+				searchF.requestFocusInWindow();
 			}
 		});
+		shortcutOverlay.attachTo(this);
 		pack();
-		setSize(800, 600);
+		setSize(800, 700);
 		split.setDividerLocation(500);
+	}
+
+	public StoreConfig getConfig() { return config; }
+
+	/** Call when closing application. */
+	public void close() {
+		openDocManager.close();
+		try {
+			store.close();
+		} catch (Exception e) {
+			pm.handleException(e, this);
+		}
+		app.storeClosed(this);
 	}
 
 	/** Show/hide a menu for completing a half-started tag. */
@@ -163,7 +170,7 @@ public class MainFrame extends JFrame {
 			completeMenu = null;
 			return;
 		}
-		completeMenu = new TagCompleteMenu(this);
+		completeMenu = new SearchTagCompleteMenu(this);
 		if (completeMenu.getSubElements().length > 0) {
 			completeMenu.show(searchF, 0, searchF.getHeight());
 		} else {
@@ -181,52 +188,79 @@ public class MainFrame extends JFrame {
 		docsL.setText(s);
 	}
 
-	void search() { search(searchF.getText(), DEFAULT_MAX_DOCS, DEFAULT_TIMEOUT); }
-
-	void search(String searchText, int maxDocs, int timeout) { search(searchText, maxDocs, timeout, false); }
-
-	void search(String searchText, int maxDocs, int timeout, boolean force) {
-		lastSearch = searchText;
-		String[] terms = searchText.split(" +");
-		HashMap<String, String> searchKV = new HashMap<String, String>();
-		for (String t : terms) {
-			String[] kv = t.split(":", 2);
-			if (searchKV.containsKey(kv[0])) { continue; }
-			if (!app.getIndex().isKey(kv[0])) { continue; }
-			searchKV.put(kv[0], kv.length == 1 ? null : kv[1]);
+	void searchMore() {
+		int maxDocs = -1;
+		if (currentSearchResult.minimumAvailableDocs < 400) {
+			maxDocs = currentSearchResult.minimumAvailableDocs;
+		} else {
+			String answer = pm.askQuestion("More...",
+					"How many documents would you like to see?",
+					string(Math.min(currentSearchResult.minimumAvailableDocs,
+					1000)));
+			try {
+				maxDocs = Integer.parseInt(answer);
+			} catch (Exception ex) {}
 		}
-		if (force || !lastSearchKV.equals(searchKV)) {
-			lastSearchKV = searchKV;
-			lastSearchKeys.clear();
-			lastSearchKeys.addAll(searchKV.keySet());
-			suggestions.clear();
-			for (TagSuggestor ts : suggestors) { suggestions.addAll(ts.suggestSearchTerms(terms)); }
-			currentSearchResult = app.getIndex().search(lastSearchKV, maxDocs, timeout);
-			if (docsList != null) {
-				docsList.m.changed();
-				docsList.clearSelection();
-				updateDocsLabel();
+		if (maxDocs > 0) {
+			search(searchF.getText(), maxDocs, /*force*/ true);
+		}
+	}
+
+	void search() { search(searchF.getText(), DEFAULT_MAX_DOCS); }
+
+	void search(String searchText, int maxDocs) { search(searchText, maxDocs, false); }
+
+	void search(String searchText, final int maxDocs, boolean force) {
+		try {
+			lastSearch = searchText;
+			String[] terms = searchText.split(" +");
+			final HashMap<String, String> searchKV = new HashMap<String, String>();
+			for (String t : terms) {
+				String[] kv = t.split(":", 2);
+				if (kv[0].length() == 0) { continue; }
+				if (searchKV.containsKey(kv[0])) { continue; }
+				if (!store.getIndex().isKey(kv[0])) { continue; }
+				searchKV.put(kv[0], kv.length == 1 ? null : kv[1]);
 			}
-			if (tagsList != null) {
-				tagsList.m.changed();
+			if (force || !lastSearchKV.equals(searchKV)) {
+				lastSearchKV = searchKV;
+				lastSearchKeys.clear();
+				lastSearchKeys.addAll(searchKV.keySet());
+				currentSearchResult = store.getIndex().search(lastSearchKV, maxDocs);
+				if (docsList != null) {
+					docsList.m.changed();
+					docsList.clearSelection();
+					updateDocsLabel();
+				}
+				if (tagsList != null) {
+					tagsList.m.changed();
+				}
 			}
+		} catch (FatalStorageException e) {
+			pm.handleException(e, this);
 		}
 	}
 
 	void newDocument() {
-		// Creates a new document with some semiconvincing tags.
-		Document d = app.getStore().create();
-		Random r = new Random();
-		
-		d.put(new String[] { "bill", "letter", "topay", "notes" }[r.nextInt(3)], "");
-		d.put(new String[] {"bob", "suzy", "mike"}[r.nextInt(3)], "");
-		d.put("d",
-				(2005 + r.nextInt(6)) + "-" +
-				"0" + (1 + r.nextInt(8)) + "-" +
-				(10 + r.nextInt(18)));
+		try {
+			Document d = store.create();
+			search(lastSearch, DEFAULT_MAX_DOCS, /*force*/ true);
+			openDocManager.open(d, this);
+		} catch (FatalStorageException e) {
+			pm.handleException(e, this);
+		}
+	}
 
-		// Then re-search to include it in the view.
-		search(lastSearch, DEFAULT_MAX_DOCS, DEFAULT_TIMEOUT, /*force*/ true);
-		openDocManager.open(d, this);
+	public void setProgressMonitor(ProgressMonitor pm) {
+		this.pm = pm;
+		store.setProgressMonitor(pm);
+	}
+
+	void handleException(Exception e) {
+		pm.handleException(e, this);
+	}
+
+	void setIsEmergencyShutdown() {
+		isEmergencyShutdown = true;
 	}
 }

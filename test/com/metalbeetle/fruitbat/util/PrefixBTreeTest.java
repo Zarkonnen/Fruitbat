@@ -96,4 +96,17 @@ public class PrefixBTreeTest {
 		assertEquals(4, t.get("1997").size());
 		assertEquals(40, t.get("19").size());
 	}
+
+	@Test
+	public void noSuchPrefix() {
+		PrefixBTree<String> t = new PrefixBTree<String>();
+		t.put("abc", "foo");
+		assertEquals(0, t.get("aqx").size());
+	}
+
+	@Test
+	public void emptyTree() {
+		PrefixBTree<String> t = new PrefixBTree<String>();
+		assertEquals(0, t.get("aqx").size());
+	}
 }

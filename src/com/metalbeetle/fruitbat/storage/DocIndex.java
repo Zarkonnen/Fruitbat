@@ -1,17 +1,17 @@
 package com.metalbeetle.fruitbat.storage;
 
-import com.metalbeetle.fruitbat.gui.ProgressMonitor;
+import com.metalbeetle.fruitbat.Closeable;
+import java.util.List;
 import java.util.Map;
 
-public interface DocIndex {
+public interface DocIndex extends Closeable {
 	public static final int ALL_DOCS = -1;
-	public static final int NO_TIMEOUT = -1;
 
-	public SearchResult search(Map<String, String> searchKV, int maxDocs, int timeoutMs);
+	public SearchResult search(Map<String, String> searchKV, int maxDocs) throws FatalStorageException;
 
 	/** @return Whether the given key is featured in the document set. */
-	public boolean isKey(String key);
+	public boolean isKey(String key) throws FatalStorageException;
 
-	/** Call this when you're done using the index! */
-	public void close();
+	/** @return All keys in the document set. */
+	public List<String> allKeys() throws FatalStorageException;
 }

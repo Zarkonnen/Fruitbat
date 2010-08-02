@@ -2,6 +2,9 @@ package com.metalbeetle.fruitbat.atrstorage;
 
 import com.metalbeetle.fruitbat.atrio.ATRReader;
 import com.metalbeetle.fruitbat.atrio.ATRWriter;
+import com.metalbeetle.fruitbat.storage.Change;
+import com.metalbeetle.fruitbat.storage.DataChange;
+import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import java.io.File;
 import java.util.HashMap;
 import java.io.BufferedInputStream;
@@ -29,6 +32,7 @@ final class KVFile {
 	private final TreeSet<String> keys = new TreeSet<String>();
 
 	private boolean loaded = false;
+	private long version = 0;
 
 	KVFile(File f, File cacheF,  Map<String, String> defaults) {
 		this.f = f; this.cacheF = cacheF; this.defaults = new HashMap<String, String>(defaults);
@@ -37,28 +41,31 @@ final class KVFile {
 	KVFile(File f) { this(f, Collections.<String, String>emptyMap()); }
 
 	/** @return The key/value map in the file. Never use keyValueMap directly! */
-	HashMap<String, String> kv() {
+	HashMap<String, String> kv() throws FatalStorageException {
 		load();
 		return keyValueMap;
 	}
 
 	/** @return The sorted list of keys in the file. Never use keys directly! */
-	TreeSet<String> k() {
+	TreeSet<String> k() throws FatalStorageException {
 		load();
 		return keys;
 	}
 
-	private void load() {
+	private void load() throws FatalStorageException {
 		if (!loaded) {
 			keyValueMap.clear();
 			keys.clear();
 			keyValueMap.putAll(defaults);
 			keys.addAll(defaults.keySet());
+			version = 0;
 			if (cacheF != null && cacheF.exists()) {
 				ATRReader r = null;
 				try {
 					r = new ATRReader(new BufferedInputStream(new FileInputStream(cacheF)));
 					String[] fields = new String[2];
+					r.readRecord(fields, 0, 1);
+					version = Long.valueOf(fields[0]);
 					int fieldsRead;
 					while ((fieldsRead = r.readRecord(fields, 0, 2)) != -1) {
 						if (fieldsRead == 0) { break; } // Broken cache!
@@ -70,7 +77,7 @@ final class KVFile {
 						keys.add(fields[1]);
 					}
 				} catch (Exception e) {
-					throw new RuntimeException("Couldn't read data from " + f + ".", e);
+					// Who cares?
 				} finally {
 					try { r.close(); } catch (Exception e) {}
 				}
@@ -84,32 +91,37 @@ final class KVFile {
 				ATRReader r = null;
 				try {
 					r = new ATRReader(new BufferedInputStream(new FileInputStream(f)));
-					String[] fields = new String[3];
-					int fieldsRead;
-					while ((fieldsRead = r.readRecord(fields, 0, 2)) != -1) {
-						if (fieldsRead != 3) { continue; }
-						if (fields[0].equals(PUT)) {
-							keyValueMap.put(fields[1], fields[2]);
-							keys.add(fields[1]);
-							continue;
+					List<String> rec;
+					while ((rec = r.readRecord()) != null) {
+						int i = 0;
+						while (i < rec.size()) {
+							if (rec.get(i).equals(PUT)) {
+								keyValueMap.put(rec.get(i + 1), rec.get(i + 2));
+								keys.add(rec.get(i + 1));
+								i += 3;
+								continue;
+							}
+							if (rec.get(i).equals(MOVE)) {
+								String value = keyValueMap.get(rec.get(i + 1));
+								if (value == null) { continue; }
+								keyValueMap.put(rec.get(i + 2), value);
+								keys.add(rec.get(i + 2));
+								keyValueMap.remove(rec.get(i + 1));
+								keys.remove(rec.get(i + 1));
+								i += 3;
+								continue;
+							}
+							if (rec.get(i).equals(REMOVE)) {
+								keyValueMap.remove(rec.get(i + 1));
+								keys.remove(rec.get(i + 1));
+								i += 2;
+								continue;
+							}
 						}
-						if (fields[0].equals(REMOVE)) {
-							keyValueMap.remove(fields[1]);
-							keys.remove(fields[1]);
-							continue;
-						}
-						if (fields[0].equals(MOVE)) {
-							String value = kv().get(fields[1]);
-							if (value == null) { continue; }
-							keyValueMap.put(fields[2], value);
-							keys.add(fields[2]);
-							keyValueMap.remove(fields[1]);
-							keys.remove(fields[1]);
-							continue;
-						}
+						version++;
 					}
 				} catch (Exception e) {
-					throw new RuntimeException("Couldn't read data from " + f + ".", e);
+					throw new FatalStorageException("Couldn't read data from " + f + ".", e);
 				} finally {
 					try { r.close(); } catch (Exception e) {}
 				}
@@ -118,7 +130,7 @@ final class KVFile {
 		}
 	}
 
-	void saveToCache() {
+	void saveToCache() throws FatalStorageException {
 		if (cacheF != null && loaded) {
 			mkAncestors(cacheF);
 
@@ -126,6 +138,9 @@ final class KVFile {
 			try {
 				w = new ATRWriter(new BufferedOutputStream(new FileOutputStream(cacheF,
 						/*append*/ false)));
+				w.startRecord();
+				w.write(string(version));
+				w.endRecord();
 				for (Map.Entry<String, String> kv : keyValueMap.entrySet()) {
 					w.startRecord();
 					w.write(kv.getKey());
@@ -137,66 +152,95 @@ final class KVFile {
 				w.endRecord();
 				loaded = false;
 			} catch (Exception e) {
-				throw new RuntimeException("Couldn't append to " + f + ".", e);
+				throw new FatalStorageException("Couldn't append to " + f + ".", e);
 			} finally {
 				try { w.close(); } catch (Exception e) {}
 			}
 		}
 	}
-	
-	String get(String key) {
-		if (has(key)) { return kv().get(key); }
-		throw new RuntimeException("Key " + key + " not found in " + f + ".");
+
+	long version() throws FatalStorageException {
+		load();
+		return version;
 	}
 
-	boolean has(String key) {
+	String get(String key) throws FatalStorageException {
+		if (has(key)) { return kv().get(key); }
+		throw new FatalStorageException("Key " + key + " not found in " + f + ".");
+	}
+
+	boolean has(String key) throws FatalStorageException {
 		return kv().containsKey(key);
 	}
 
-	List<String> keys() {
+	List<String> keys() throws FatalStorageException {
 		return immute(k());
 	}
 
-	/** Puts the key/value into the file. */
-	void put(String key, String value) {
-		kv().put(key, value);
-		k().add(key);
-		append(PUT, key, value);
+	void change(List<Change> changes) throws FatalStorageException {
+		if (loaded) {
+			for (Change c : changes) {
+				if (c instanceof DataChange.Put) {
+					DataChange.Put p = (DataChange.Put) c;
+					kv().put(p.key, p.value);
+					k().add(p.key);
+				}
+				if (c instanceof DataChange.Move) {
+					DataChange.Move m = (DataChange.Move) c;
+					String value = kv().get(m.srcKey);
+					if (value == null) { return; }
+					kv().put(m.dstKey, value);
+					k().add(m.dstKey);
+					kv().remove(m.srcKey);
+					k().remove(m.srcKey);
+				}
+				if (c instanceof DataChange.Remove) {
+					DataChange.Remove r = (DataChange.Remove) c;
+					kv().remove(r.key);
+					k().remove(r.key);
+				}
+			}
+		}
+
+		append(changes);
 	}
 
-	/** Removes the mapping from the file. */
-	void remove(String key) {
-		kv().remove(key);
-		k().remove(key);
-		append(REMOVE, key, "");
-	}
-
-	/** Moves the mapping from one key to another. */
-	void move(String srcKey, String dstKey) {
-		String value = kv().get(srcKey);
-		if (value == null) { return; }
-		kv().put(dstKey, value);
-		k().add(dstKey);
-		kv().remove(srcKey);
-		k().remove(srcKey);
-		append(MOVE, srcKey, dstKey);
-	}
-
-	void append(String action, String arg1, String arg2) {
+	void append(List<Change> changes) throws FatalStorageException {
 		mkAncestors(f);
 
 		ATRWriter w = null;
 		try {
 			w = new ATRWriter(new BufferedOutputStream(new FileOutputStream(f, /*append*/ true)));
 			w.startRecord();
-			w.write(action);
-			w.write(arg1);
-			w.write(arg2);
+			for (Change c : changes) {
+				if (c instanceof DataChange.Put) {
+					DataChange.Put p = (DataChange.Put) c;
+					w.write(PUT);
+					w.write(p.key);
+					w.write(p.value);
+				}
+				if (c instanceof DataChange.Move) {
+					DataChange.Move m = (DataChange.Move) c;
+					w.write(MOVE);
+					w.write(m.srcKey);
+					w.write(m.dstKey);
+				}
+				if (c instanceof DataChange.Remove) {
+					DataChange.Remove r = (DataChange.Remove) c;
+					w.write(REMOVE);
+					w.write(r.key);
+				}
+			}
 			w.endRecord();
 		} catch (Exception e) {
-			throw new RuntimeException("Couldn't append to " + f + ".", e);
+			throw new FatalStorageException("Couldn't append to " + f + ".", e);
 		} finally {
-			try { w.close(); } catch (Exception e) {}
+			try {
+				w.close();
+			} catch (Exception e) {
+				throw new FatalStorageException("Couldn't append to " + f + ".", e);
+			}
+			version++;
 		}
 	}
 }

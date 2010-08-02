@@ -15,6 +15,9 @@ public final class Colors {
 	public static final Color MATCHED_TAG = new Color(0, 191, 0);
 	public static final String MATCHED_TAG_HTML = toHTMLColor(MATCHED_TAG);
 
+	public static final Color UNUSED_TAG = new Color(0, 15, 47);
+	public static final String UNUSED_TAG_HTML = toHTMLColor(UNUSED_TAG);
+
 	public static final Color IGNORED_TAG = new Color(191, 127, 63);
 	public static final String IGNORED_TAG_HTML = toHTMLColor(IGNORED_TAG);
 
@@ -23,6 +26,8 @@ public final class Colors {
 
 	public static final Color TAG_BG = new Color(230, 230, 255);
 	public static final String TAG_BG_HTML = toHTMLColor(TAG_BG);
+
+	public static final Color HARDCOPY_NUM_BG = new Color(240, 240, 20);
 
 	static String toHTMLColor(Color c) {
 		return "#" + toHex(c.getRed()) + toHex(c.getGreen()) + toHex(c.getBlue());

@@ -3,15 +3,15 @@ package com.metalbeetle.fruitbat.gui;
 import javax.swing.JLabel;
 import javax.swing.JProgressBar;
 
-public class ProgressPanel extends javax.swing.JPanel {
+class SimpleProgressPanel extends javax.swing.JPanel {
 
     /** Creates new form ProgressPanel */
-    public ProgressPanel() {
+    SimpleProgressPanel() {
         initComponents();
     }
 
-	JLabel getInfoLabel() { return infoL; }
-	JProgressBar getProgressBar() { return progressBar; }
+	public JLabel getInfoLabel() { return infoL; }
+	public JProgressBar getProgressBar() { return progressBar; }
 
     /** This method is called from within the constructor to
      * initialize the form.

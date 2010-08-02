@@ -1,8 +1,7 @@
 package com.metalbeetle.fruitbat.gui;
 
-import com.metalbeetle.fruitbat.Fruitbat;
+import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import java.util.HashSet;
-import javax.swing.JTextPane;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultStyledDocument;
@@ -14,20 +13,18 @@ class SearchColorizingDocument extends DefaultStyledDocument {
 	final Style unknownTagStyle;
 	final Style valueStyle;
 	final Style ignoredTagStyle;
-	final JTextPane searchF;
-	final Fruitbat app;
+	final MainFrame mf;
 	final HashSet<String> encounteredKeys = new HashSet<String>();
 
-	SearchColorizingDocument(JTextPane searchF, Fruitbat app) {
-		this.app = app;
-		this.searchF = searchF;
-		tagStyle = searchF.addStyle("Tag", null);
+	SearchColorizingDocument(MainFrame mf) {
+		this.mf = mf;
+		tagStyle = mf.searchF.addStyle("Tag", null);
 		StyleConstants.setForeground(tagStyle, Colors.MATCHED_TAG);
-		unknownTagStyle = searchF.addStyle("Unknown Tag", null);
+		unknownTagStyle = mf.searchF.addStyle("Unknown Tag", null);
 		StyleConstants.setForeground(unknownTagStyle, Colors.UNKNOWN_TAG);
-		valueStyle = searchF.addStyle("Value", null);
+		valueStyle = mf.searchF.addStyle("Value", null);
 		StyleConstants.setForeground(valueStyle, Colors.VALUE);
-		ignoredTagStyle = searchF.addStyle("Ignored Tag", null);
+		ignoredTagStyle = mf.searchF.addStyle("Ignored Tag", null);
 		StyleConstants.setForeground(ignoredTagStyle, Colors.IGNORED_TAG);
 	}
 
@@ -44,37 +41,41 @@ class SearchColorizingDocument extends DefaultStyledDocument {
 	}
 
 	void colorize() {
-		int start = 0;
-		int nextSpace;
-		int nextColon;
-		final String text = searchF.getText();
-		encounteredKeys.clear();
-		do {
-			nextSpace = text.indexOf(" ", start);
-			if (nextSpace == -1) { nextSpace = text.length(); }
-			nextColon = text.indexOf(":", start);
-			if (nextColon == -1) { nextColon = text.length() + 1; }
-			if (nextColon < nextSpace) {
-				String key = text.substring(start, nextColon);
-				if (encounteredKeys.contains(key)) {
-					setCharacterAttributes(start, nextSpace, ignoredTagStyle, true);
+		try {
+			int start = 0;
+			int nextSpace;
+			int nextColon;
+			final String text = mf.searchF.getText();
+			encounteredKeys.clear();
+			do {
+				nextSpace = text.indexOf(" ", start);
+				if (nextSpace == -1) { nextSpace = text.length(); }
+				nextColon = text.indexOf(":", start);
+				if (nextColon == -1) { nextColon = text.length() + 1; }
+				if (nextColon < nextSpace) {
+					String key = text.substring(start, nextColon);
+					if (encounteredKeys.contains(key)) {
+						setCharacterAttributes(start, nextSpace, ignoredTagStyle, true);
+					} else {
+						encounteredKeys.add(key);
+						setCharacterAttributes(start, nextColon,
+								mf.store.getIndex().isKey(key) ? tagStyle : unknownTagStyle, true);
+						setCharacterAttributes(nextColon, nextSpace, valueStyle, true);
+					}
 				} else {
-					encounteredKeys.add(key);
-					setCharacterAttributes(start, nextColon,
-							app.getIndex().isKey(key) ? tagStyle : unknownTagStyle, true);
-					setCharacterAttributes(nextColon, nextSpace, valueStyle, true);
+					String key = text.substring(start, nextSpace);
+					if (encounteredKeys.contains(key)) {
+						setCharacterAttributes(start, nextSpace, ignoredTagStyle, true);
+					} else {
+						encounteredKeys.add(key);
+						setCharacterAttributes(start, nextSpace,
+								mf.store.getIndex().isKey(key) ? tagStyle : unknownTagStyle, true);
+					}
 				}
-			} else {
-				String key = text.substring(start, nextSpace);
-				if (encounteredKeys.contains(key)) {
-					setCharacterAttributes(start, nextSpace, ignoredTagStyle, true);
-				} else {
-					encounteredKeys.add(key);
-					setCharacterAttributes(start, nextSpace,
-							app.getIndex().isKey(key) ? tagStyle : unknownTagStyle, true);
-				}
-			}
-			start = nextSpace + 1;
-		} while (nextSpace != text.length());
+				start = nextSpace + 1;
+			} while (nextSpace != text.length());
+		} catch (FatalStorageException e) {
+			mf.handleException(e);
+		}
 	}
 }

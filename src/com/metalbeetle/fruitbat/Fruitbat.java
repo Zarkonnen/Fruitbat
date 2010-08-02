@@ -1,30 +1,70 @@
 package com.metalbeetle.fruitbat;
 
-import com.metalbeetle.fruitbat.atrstorage.ATRDocIndex;
-import com.metalbeetle.fruitbat.atrstorage.ATRStore;
-import com.metalbeetle.fruitbat.gui.ProgressMonitor;
-import com.metalbeetle.fruitbat.storage.DocIndex;
-import com.metalbeetle.fruitbat.storage.Store;
-import java.io.File;
+import com.metalbeetle.fruitbat.gui.Dialogs;
+import com.metalbeetle.fruitbat.gui.DummyProgressMonitor;
+import com.metalbeetle.fruitbat.gui.MainFrame;
+import com.metalbeetle.fruitbat.gui.setup.ConfigsListFrame;
+import com.metalbeetle.fruitbat.storage.ProgressMonitor;
+import com.metalbeetle.fruitbat.storage.StoreConfig;
+import com.metalbeetle.fruitbat.util.StringPool;
+import java.util.HashMap;
 
 /** Application instance. */
 public class Fruitbat {
-	private final Store store;
-	private final DocIndex index;
+	public static final String VERSION = "0.2.0";
+	public static final String HIDDEN_KEY_PREFIX = ":";
+	public static final String DATE_KEY = "d";
+	public static final String CREATION_DATE_KEY = HIDDEN_KEY_PREFIX + "cd";
+	static final int POOL_CUTOFF = 128;
 
-	public DocIndex getIndex() { return index; }
-	public Store getStore() { return store; }
+	ProgressMonitor pm;
+	final StringPool stringPool = new StringPool(POOL_CUTOFF);
+	final HashMap<StoreConfig, MainFrame> configToMainframe = new HashMap<StoreConfig, MainFrame>();
+	final ConfigsListFrame configsList;
+	boolean shuttingDown = false;
 
-	public Fruitbat(File storeLocation, ProgressMonitor pm) {
-		store = new ATRStore(storeLocation);
-		index = new ATRDocIndex((ATRStore) store, pm);
+	public void openStore(StoreConfig sc) {
+		if (!configToMainframe.containsKey(sc)) {
+			try {
+				MainFrame mf = new MainFrame(this, sc.init(pm), pm, sc);
+				configToMainframe.put(sc, mf);
+			} catch (Exception e) {
+				pm.handleException(e, null);
+			}
+		}
+		if (!configToMainframe.get(sc).isVisible()) {
+			configToMainframe.get(sc).setLocationRelativeTo(null);
+			configToMainframe.get(sc).setVisible(true);
+		}
+		configToMainframe.get(sc).toFront();
+	}
+
+	public void storeClosed(MainFrame mf) {
+		configToMainframe.remove(mf.getConfig());
+		if (configToMainframe.size() == 0 && !shuttingDown) {
+			configsList.setVisible(true);
+		}
+	}
+
+	void setProgressMonitor(ProgressMonitor pm) {
+		for (MainFrame mf : configToMainframe.values()) {
+			mf.setProgressMonitor(pm);
+		}
+	}
+
+	public Fruitbat() {
+		pm = new Dialogs();
+		configsList = new ConfigsListFrame(this, pm);
+		configsList.setLocationRelativeTo(null);
+		configsList.setVisible(true);
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {
-				close();
+				shuttingDown = true;
+				for (MainFrame mf : configToMainframe.values()) {
+					mf.close();
+				}
 			}
 		});
 	}
-
-	public void close() { index.close(); store.close(); }
 }

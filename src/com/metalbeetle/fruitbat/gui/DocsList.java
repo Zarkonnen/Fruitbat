@@ -22,9 +22,9 @@ class DocsList extends JList {
 		super(m);
 		this.m = m;
 		this.mf = mf;
-		final DocsList self = this;
-
+		
 		setCellRenderer(new DocCellRenderer(mf));
+
 		addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyPressed(KeyEvent e) {

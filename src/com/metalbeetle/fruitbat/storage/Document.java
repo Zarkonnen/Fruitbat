@@ -1,24 +1,20 @@
 package com.metalbeetle.fruitbat.storage;
 
-import java.io.File;
 import java.net.URI;
 import java.util.List;
 
 /** Stores key/value string data and pages as files. */
 public interface Document {
-	public String getID();
+	public int getID() throws FatalStorageException;
+	public long getVersion() throws FatalStorageException;
 
-	public boolean has(String key);
-	public String get(String key);
-	public void put(String key, String value);
-	public void remove(String key);
-	public void move(String srcKey, String dstKey);
-	public List<String> keys();
+	public void change(List<Change> changes) throws FatalStorageException;
 
-	public boolean hasPage(String key);
-	public URI getPage(String key);
-	public List<String> pageKeys();
-	public void putPage(String key, File f);
-	public void removePage(String key);
-	public void movePage(String srcKey, String dstKey);
+	public boolean has(String key) throws FatalStorageException;
+	public String get(String key) throws FatalStorageException;
+	public List<String> keys() throws FatalStorageException;
+
+	public boolean hasPage(String key) throws FatalStorageException;
+	public URI getPage(String key) throws FatalStorageException;
+	public List<String> pageKeys() throws FatalStorageException;
 }
