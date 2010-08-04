@@ -1,6 +1,7 @@
 package com.metalbeetle.fruitbat.atrio;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import org.junit.Test;
@@ -35,4 +36,15 @@ public class SimpleReaderTest {
 		assertNull(rec);
 	}
 
+	@Test
+	public void testBackslashBackslash() throws IOException {
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		ATRWriter w = new ATRWriter(out);
+		w.startRecord();
+		w.write("\\");
+		w.endRecord();
+		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+		SimpleATRReader r = new SimpleATRReader(in);
+		assertEquals("\\", r.readRecord().get(0));
+	}
 }

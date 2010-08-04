@@ -30,6 +30,8 @@ public class SplashWindow extends JWindow implements ProgressMonitor {
 	int step;
 	long appearance;
 
+	int progressBarLevel = 0;
+
     public SplashWindow() {
 		pack();
 		setSize(400, 320);
@@ -58,10 +60,12 @@ public class SplashWindow extends JWindow implements ProgressMonitor {
 
 	public void hideProgressBar() {
 		progress("", NO_BAR);
-		if (System.currentTimeMillis() - appearance < 1000) {
-			try { Thread.sleep(1000 - System.currentTimeMillis() + appearance); } catch (InterruptedException e) {}
+		if (--progressBarLevel == 0) {
+			if (System.currentTimeMillis() - appearance < 1000) {
+				try { Thread.sleep(1000 - System.currentTimeMillis() + appearance); } catch (InterruptedException e) {}
+			}
+			setVisible(false);
 		}
-		setVisible(false);
 	}
 
 	public void progress(String detail, int step) {
@@ -73,9 +77,11 @@ public class SplashWindow extends JWindow implements ProgressMonitor {
 	public void showProgressBar(String title, String detail, int numSteps) {
 		changeNumSteps(numSteps);
 		this.detail = detail;
-		setLocationRelativeTo(null);
-		setVisible(true);
-		appearance = System.currentTimeMillis();
+		if (progressBarLevel++ == 0) {
+			setLocationRelativeTo(null);
+			setVisible(true);
+			appearance = System.currentTimeMillis();
+		}
 	}
 
 	public void changeNumSteps(int numSteps) {

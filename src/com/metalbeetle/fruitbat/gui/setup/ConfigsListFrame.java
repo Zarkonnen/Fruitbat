@@ -100,8 +100,9 @@ public class ConfigsListFrame extends JFrame {
 
 	void open() {
 		if (configsList.getSelectedIndex() != -1) {
-			app.openStore((StoreConfig) configsListM.getElementAt(
-								configsList.getSelectedIndex()));
+			final StoreConfig sc = (StoreConfig) configsListM.getElementAt(
+								configsList.getSelectedIndex());
+			new Thread() { @Override public void run() { app.openStore(sc); }}.start();
 		}
 	}
 
@@ -112,11 +113,11 @@ public class ConfigsListFrame extends JFrame {
 				Utils.getAvailableStorageSystems().toArray(),
 				Utils.getAvailableStorageSystems().get(0));
 		if (ss != null) {
-			StoreConfig sc = ConfigDialog.newConfig(ss, this);
+			final StoreConfig sc = ConfigDialog.newConfig(ss, this);
 			if (sc != null) {
 				configs.add(sc);
 				updateAndSave();
-				app.openStore(sc);
+				new Thread() { @Override public void run() { app.openStore(sc); }}.start();
 			}
 		}
 	}

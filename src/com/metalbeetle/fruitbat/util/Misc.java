@@ -1,10 +1,15 @@
 package com.metalbeetle.fruitbat.util;
 
 import com.metalbeetle.fruitbat.Fruitbat;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.URL;
 import java.util.GregorianCalendar;
 
 /** Misc utilities. */
@@ -51,5 +56,23 @@ public final class Misc {
 		String day = string(d.get(GregorianCalendar.DAY_OF_MONTH));
 		ds += day.length() == 1 ? "-0" + day : "-" + day;
 		return ds;
+	}
+
+	static int BLOCK_SIZE = 2048;
+	public static void download(URL url, File target) throws IOException {
+		BufferedInputStream in = null;
+		BufferedOutputStream out = null;
+		try {
+			in = new BufferedInputStream(url.openStream());
+			out = new BufferedOutputStream(new FileOutputStream(target));
+			int bytesRead = -1;
+			byte[] buffer = new byte[BLOCK_SIZE];
+			while ((bytesRead = in.read(buffer)) != -1) {
+				out.write(buffer, 0, bytesRead);
+			}
+		} finally {
+			try { in.close(); } catch (Exception e) {}
+			try { out.close(); } catch (Exception e) {}
+		}
 	}
 }

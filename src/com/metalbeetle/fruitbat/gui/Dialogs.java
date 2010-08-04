@@ -15,6 +15,7 @@ public class Dialogs implements ProgressMonitor {
 
 	final JDialog progressDialog;
 		final SimpleProgressPanel2 progressPanel;
+	volatile int progressBarLevel = 0;
 
 	public Dialogs() {
 		progressDialog = new JDialog((Frame) null, "Progress", /*modal*/ true);
@@ -23,24 +24,26 @@ public class Dialogs implements ProgressMonitor {
 		progressDialog.setSize(400, progressDialog.getHeight());
 		progressDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
 		progressDialog.setResizable(false);
+		progressDialog.setModal(false);
 	}
 
 	public void showProgressBar(final String title, final String detail, final int numSteps) {
-		showProgressBar(title, detail, numSteps, /*modal*/true);
-	}
-
-	public void showProgressBar(final String title, final String detail, final int numSteps, boolean modal) {
 		if (SwingUtilities.isEventDispatchThread()) { return; }
-		progressDialog.setModal(modal);
+		progressBarLevel++;
 		progressDialog.setTitle(title);
 		progressPanel.getInfoLabel().setText(detail);
 		changeNumSteps(numSteps);
-		progressDialog.setLocationRelativeTo(null);
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				progressDialog.setVisible(true);
-			}
-		});
+		if (progressBarLevel == 1) {
+			progressDialog.setLocationRelativeTo(null);
+			progressDialog.setVisible(true);
+			/*SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					if (visible) {
+						progressDialog.setVisible(true);
+					}
+				}
+			});*/
+		}
 	}
 
 	public void progress(final String detail, final int step) {
@@ -51,7 +54,10 @@ public class Dialogs implements ProgressMonitor {
 	}
 
 	public void hideProgressBar() {
-		progressDialog.setVisible(false);
+		if (SwingUtilities.isEventDispatchThread()) { return; }
+		if (--progressBarLevel == 0) {
+			progressDialog.setVisible(false);
+		}
 	}
 
 	public void changeNumSteps(final int numSteps) {

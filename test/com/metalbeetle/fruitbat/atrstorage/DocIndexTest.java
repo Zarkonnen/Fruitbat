@@ -1,5 +1,6 @@
 package com.metalbeetle.fruitbat.atrstorage;
 
+import com.metalbeetle.fruitbat.Util;
 import com.metalbeetle.fruitbat.gui.DummyProgressMonitor;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.DocIndex;
@@ -13,7 +14,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 
-public class KeyIndexTest {
+public class DocIndexTest {
 	public static final String SCARY = "\"\n\r\u0026\u0416\u4E2D\uD800\uDF46\n\n\"\n\"\"\"\t\r\"\n";
 
 	ATRStore s;
@@ -175,16 +176,52 @@ public class KeyIndexTest {
 		assertTrue(result.narrowingTags.contains("c"));
 	}
 
+	@Test
+	public void postDelete() throws FatalStorageException {
+		Document d1 = s.create();
+		d1.change(l(DataChange.put(SCARY, SCARY)));
+
+		SearchResult result;
+		result = index.search(m(p(SCARY, "")), DocIndex.ALL_DOCS);
+		assertEquals(1, result.docs.size());
+
+		s.delete(d1);
+
+		result = index.search(m(p(SCARY, "")), DocIndex.ALL_DOCS);
+		assertEquals(0, result.docs.size());
+
+		rebootStore();
+
+		result = index.search(m(p(SCARY, "")), DocIndex.ALL_DOCS);
+		assertEquals(0, result.docs.size());
+	}
+
+	@Test
+	public void postUnDelete() throws FatalStorageException {
+		Document d1 = s.create();
+		int id1 = d1.getID();
+		d1.change(l(DataChange.put(SCARY, SCARY)));
+		s.delete(d1);
+
+		rebootStore();
+
+		s.undelete(id1);
+
+		SearchResult result;
+		result = index.search(m(p(SCARY, "")), DocIndex.ALL_DOCS);
+		assertEquals(1, result.docs.size());
+	}
+
 	void rebootStore() throws FatalStorageException {
 		index.close();
 		s = new ATRStore(s.getLocation(), new DummyProgressMonitor());
-		index = new ATRDocIndex(s, new DummyProgressMonitor(), new StringPool(128));
+		index = (ATRDocIndex) s.getIndex();
 	}
 
     @Before
     public void setUp() throws FatalStorageException {
 		s = new ATRStore(Util.createTempFolder(), new DummyProgressMonitor());
-		index = new ATRDocIndex(s, new DummyProgressMonitor(), new StringPool(128));
+		index = (ATRDocIndex) s.getIndex();
     }
 
     @After

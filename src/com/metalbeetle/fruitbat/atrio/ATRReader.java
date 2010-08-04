@@ -141,19 +141,22 @@ public class ATRReader {
 					}
 					break;
 				}
-				// Same thing with an unexpected escape character.
-				case ESCAPE: {
-					if (expecting != Expecting.FIELD_CONTENTS) {
-						resetField();
-					} else {
-						expecting = Expecting.ESCAPE_CODE;
-					}
-					break;
-				}
 				// If we find any unescaped carriage returns, we assume someone has been using
 				// Windows again, and we just discard them.
 				case CR: {
 					break;
+				}
+				// Same thing with an unexpected escape character.
+				case ESCAPE: {
+					if (expecting == Expecting.FIELD_CONTENTS) {
+						expecting = Expecting.ESCAPE_CODE;
+						break;
+					}
+					if (expecting != Expecting.ESCAPE_CODE) {
+						resetField();
+						break;
+					}
+					// Otherwise WE FALL THROUGH TO DEFAULT!!!
 				}
 				default: {
 					// It's not a control character. What we do with it depends on what we're

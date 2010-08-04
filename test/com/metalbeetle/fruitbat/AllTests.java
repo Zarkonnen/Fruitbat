@@ -10,7 +10,12 @@ import com.metalbeetle.fruitbat.atrio.ATRWriterTest;
 import com.metalbeetle.fruitbat.atrio.SimpleReaderTest;
 import com.metalbeetle.fruitbat.atrstorage.DataStorageTest;
 import com.metalbeetle.fruitbat.atrstorage.FileStorageTest;
-import com.metalbeetle.fruitbat.atrstorage.KeyIndexTest;
+import com.metalbeetle.fruitbat.atrstorage.DocIndexTest;
+import com.metalbeetle.fruitbat.atrstorage.NecromancyTest;
+import com.metalbeetle.fruitbat.multiplexstorage.MultiplexTest;
+import com.metalbeetle.fruitbat.multiplexstorage.SyncTest;
+import com.metalbeetle.fruitbat.storage.StoreConfigTest;
+import com.metalbeetle.fruitbat.util.MiscTest;
 import com.metalbeetle.fruitbat.util.PrefixBTree;
 import com.metalbeetle.fruitbat.util.PrefixBTreeTest;
 import org.junit.After;
@@ -31,8 +36,13 @@ import org.junit.runners.Suite;
 	SimpleReaderTest.class,
 	DataStorageTest.class,
 	FileStorageTest.class,
-	KeyIndexTest.class,
-	PrefixBTreeTest.class})
+	DocIndexTest.class,
+	PrefixBTreeTest.class,
+	NecromancyTest.class,
+	MiscTest.class,
+	MultiplexTest.class,
+	SyncTest.class,
+	StoreConfigTest.class})
 public class AllTests {
 
 	@BeforeClass

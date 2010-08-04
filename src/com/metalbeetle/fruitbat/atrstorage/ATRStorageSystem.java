@@ -44,4 +44,12 @@ public class ATRStorageSystem implements StorageSystem {
 		Utils.checkConfigValues(new StoreConfig(this, configValues));
 		return new ATRStore((File) configValues.get(0), pm);
 	}
+
+	@Override
+	public boolean equals(Object o2) {
+		return o2 instanceof ATRStorageSystem;
+	}
+
+	@Override
+	public int hashCode() { return 42; }
 }

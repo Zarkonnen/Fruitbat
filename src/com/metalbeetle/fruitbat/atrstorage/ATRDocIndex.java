@@ -23,6 +23,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.util.Iterator;
 import java.util.Map;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 import static com.metalbeetle.fruitbat.util.Collections.*;
@@ -31,8 +32,6 @@ import static com.metalbeetle.fruitbat.util.Collections.*;
 class ATRDocIndex implements DocIndex {
 	/** Map of documents to keys they have. */
 	final HashMap<ATRDocument, HashSet<String>> documentToKeys = new HashMap<ATRDocument, HashSet<String>>();
-	/** Map of documents to their version. */
-	final HashMap<ATRDocument, Long> documentToVersion = new HashMap<ATRDocument, Long>();
 	/**
 	 * Map of cached values to pairs of Document/String Hashmaps for lookup and PrefixBTrees for
 	 * fast indexing.
@@ -43,11 +42,13 @@ class ATRDocIndex implements DocIndex {
 	boolean closed = false;
 	ProgressMonitor pm;
 	final StringPool stringPool;
+	final boolean forDeleteds;
 
-	ATRDocIndex(ATRStore s, ProgressMonitor pm, StringPool stringPool) throws FatalStorageException {
+	ATRDocIndex(ATRStore s, ProgressMonitor pm, StringPool stringPool, boolean forDeleteds) throws FatalStorageException {
 		this.s = s;
 		this.pm = pm;
 		this.stringPool = stringPool;
+		this.forDeleteds = forDeleteds;
 		load();
 	}
 
@@ -62,7 +63,7 @@ class ATRDocIndex implements DocIndex {
 	public SearchResult search(Map<String, String> searchKV, int maxDocs) {
 		if (closed) { throw new RuntimeException("Key index has been closed."); }
 		// Search keys
-		List<ATRDocument> docs = new LinkedList<ATRDocument>(s.docs);
+		List<ATRDocument> docs = new LinkedList<ATRDocument>(forDeleteds ? s.deletedDocs : s.docs);
 		for (String k : searchKV.keySet()) {
 			if (valueCache.containsKey(k)) {
 				docs.retainAll(valueCache.get(k).a.keySet());
@@ -71,12 +72,13 @@ class ATRDocIndex implements DocIndex {
 		// Search values
 		for (Entry<String, String> e : searchKV.entrySet()) {
 			if (e.getValue() != null && e.getValue().length() > 0) {
-				docs.retainAll(valueCache.get(e.getKey()).b.get(e.getValue()));
+				Pair<HashMap<Document, String>, PrefixBTree<Document>> cached = valueCache.get(e.getKey());
+				if (cached != null) { docs.retainAll(cached.b.get(e.getValue())); }
 			}
 		}
 		// Determine co-keys
 		List<String> coKeyList = new ArrayList<String>();
-		if (docs.size() == s.idToDoc.size()) {
+		if (docs.size() == (forDeleteds ? s.idToDeletedDoc : s.idToDoc).size()) {
 			coKeyList.addAll(valueCache.keySet());
 		} else {
 			int loop = 0;
@@ -116,19 +118,30 @@ class ATRDocIndex implements DocIndex {
 		return keys;
 	}
 
-	void documentDeleted(ATRDocument d) {
+	void removeDocument(ATRDocument d) {
 		documentToKeys.remove(d);
-		documentToVersion.remove(d);
-		for (Map.Entry<String, Pair<HashMap<Document, String>, PrefixBTree<Document>>> e :
-				valueCache.entrySet())
+		for (Iterator<Map.Entry<String, Pair<HashMap<Document, String>, PrefixBTree<Document>>>> it =
+				valueCache.entrySet().iterator(); it.hasNext();)
 		{
+			Map.Entry<String, Pair<HashMap<Document, String>, PrefixBTree<Document>>> e = it.next();
 			e.getValue().a.remove(d);
 			e.getValue().b.remove(e.getKey(), d);
+			if (e.getValue().a.size() == 0) {
+				it.remove();
+			}
+		}
+	}
+
+	void addDocument(ATRDocument d) throws FatalStorageException {
+		for (String key : d.data.keys()) {
+			if (key.startsWith(ATRDocument.DATA_PREFIX)) {
+				keyAdded(d, key.substring(ATRDocument.DATA_PREFIX.length()), d.data.get(key));
+			}
 		}
 	}
 
 	/** Called when a key is added to a document. */
-	void keyAdded(ATRDocument d, String key, String value) {
+	void keyAdded(ATRDocument d, String key, String value) throws FatalStorageException {
 		// Put it into the index of documents to keys
 		if (!documentToKeys.containsKey(d)) {
 			documentToKeys.put(d, new HashSet<String>());
@@ -187,59 +200,42 @@ class ATRDocIndex implements DocIndex {
 				: null;
 	}
 
-	void nextVersion(ATRDocument d) {
-		documentToVersion.put(d, getCachedVersion(d) + 1);
-	}
-
-	long getCachedVersion(ATRDocument d) {
-		return documentToVersion.containsKey(d) ? documentToVersion.get(d) : 0;
-	}
-
 	/** Create fresh index from documents in store. */
 	void reindex() throws FatalStorageException {
-		pm.showProgressBar("Rebuilding index", "Starting...", s.docs.size());
-		documentToKeys.clear();
-		documentToVersion.clear();
-		valueCache.clear();
-		int loops = 0;
-		for (ATRDocument d : s.docs) {
-			if (loops++ % 10 == 0) {
-				pm.progress(loops + " documents of " + s.docs.size(), loops);
-			}
-			for (Map.Entry<String, String> kv : d.data.kv().entrySet()) {
-				if (kv.getKey().startsWith(ATRDocument.DATA_PREFIX)) {
-					keyAdded(d, kv.getKey().substring(ATRDocument.DATA_PREFIX.length()),
-							kv.getValue());
+		int numDocs = forDeleteds ? s.deletedDocs.size() : s.docs.size();
+		pm.showProgressBar("Rebuilding index", "Starting...", numDocs);
+		try {
+			documentToKeys.clear();
+			valueCache.clear();
+			int loops = 0;
+			for (ATRDocument d : (forDeleteds ? s.deletedDocs : s.docs)) {
+				if (loops++ % 10 == 0) {
+					pm.progress(loops + " documents of " + numDocs, loops);
+				}
+				for (Map.Entry<String, String> kv : d.data.kv().entrySet()) {
+					if (kv.getKey().startsWith(ATRDocument.DATA_PREFIX)) {
+						keyAdded(d, kv.getKey().substring(ATRDocument.DATA_PREFIX.length()),
+								kv.getValue());
+					}
 				}
 			}
-			documentToVersion.put(d, d.data.version());
+		} finally {
+			pm.hideProgressBar();
 		}
-		pm.hideProgressBar();
 	}
 
 	/** Saves the index into an ATR file. */
 	void save() {
 		pm.showProgressBar("Saving index", "", valueCache.size());
-		File f = new File(s.location, "index.atr");
-		mkAncestors(f);
+		File f = new File(s.location, forDeleteds ? "deletedsindex.atr" : "index.atr");
 		ATRWriter w = null;
 		try {
+			mkAncestors(f);
 			w = new ATRWriter(new BufferedOutputStream(new FileOutputStream(f, /*append*/false)));
 			int progress = 0;
 			// First, just say how many keys there are for better progress metering.
 			w.startRecord();
 			w.write(string(valueCache.size() + 1));
-			w.endRecord();
-			// Save version info
-			pm.progress("Saving version info", progress++);
-			for (Entry<ATRDocument, Long> e : documentToVersion.entrySet()) {
-				w.startRecord();
-				w.write(string(e.getKey().getID()));
-				w.write(string(e.getValue()));
-				w.endRecord();
-			}
-			// End version info with empty record
-			w.startRecord();
 			w.endRecord();
 			for (Entry<String, Pair<HashMap<Document, String>, PrefixBTree<Document>>> e : valueCache.entrySet()) {
 				pm.progress("Saving tag \"" + e.getKey() + "\"", progress++);
@@ -269,73 +265,70 @@ class ATRDocIndex implements DocIndex {
 			throw new RuntimeException("Couldn't write index to " + f + ".", e);
 		} finally {
 			try { w.close(); } catch (Exception e) {}
+			pm.hideProgressBar();
 		}
-		pm.hideProgressBar();
 	}
 
 	/** Loads the index from an ATR file. */
 	void load() throws FatalStorageException {
 		pm.showProgressBar("Loading index", "", -1);
-		documentToKeys.clear();
-		documentToVersion.clear();
-		valueCache.clear();
-		File f = new File(s.location, "index.atr");
-		if (f.exists()) {
-			ATRReader r = null;
-			try {
-				r = new ATRReader(new BufferedInputStream(new FileInputStream(f)));
-				String[] rec = new String[2];
-				r.readRecord(rec, 0, 1);
-				int numKeys = integer(rec[0]);
-				pm.showProgressBar("Loading index", "", numKeys);
-				// Load versions
-				pm.progress("Loading version info", 0);
-				while (r.readRecord(rec, 0, 2) > 0) {
-					ATRDocument d = (ATRDocument) s.get(integer(rec[0]));
-					if (d == null) {
-						throw new RuntimeException("Document " + rec[0] + " doesn't exist.");
-					}
-					documentToVersion.put(d, Long.valueOf(rec[1]));
-				}
-				int keyNum = 1;
-				while (r.readRecord(rec, 0, 1) > 0) {
-					String key = stringPool.poolNoCutoff(rec[0]);
-					pm.progress("Loading tag \"" + key + "\"", keyNum++);
-					Pair<HashMap<Document, String>, PrefixBTree<Document>> cache =
-							p(new HashMap<Document, String>(), new PrefixBTree<Document>());
-					valueCache.put(key, cache);
-					while (r.readRecord(rec, 0, 2) > 0) {
-						ATRDocument d = (ATRDocument) s.get(integer(rec[0]));
-						if (d == null) {
-							throw new RuntimeException("Document " + rec[0] + " doesn't exist.");
+		try {
+			documentToKeys.clear();
+			valueCache.clear();
+			File f = new File(s.location, forDeleteds ? "deletedsindex.atr" : "index.atr");
+			if (f.exists()) {
+				ATRReader r = null;
+				try {
+					r = new ATRReader(new BufferedInputStream(new FileInputStream(f)));
+					String[] rec = new String[2];
+					r.readRecord(rec, 0, 1);
+					int numKeys = integer(rec[0]);
+					pm.changeNumSteps(numKeys);
+					int keyNum = 1;
+					while (r.readRecord(rec, 0, 1) > 0) {
+						String key = stringPool.poolNoCutoff(rec[0]);
+						pm.progress("Loading tag \"" + key + "\"", keyNum++);
+						Pair<HashMap<Document, String>, PrefixBTree<Document>> cache =
+								p(new HashMap<Document, String>(), new PrefixBTree<Document>());
+						valueCache.put(key, cache);
+						while (r.readRecord(rec, 0, 2) > 0) {
+							ATRDocument d =
+									forDeleteds
+									? (ATRDocument) s.getDeleted(integer(rec[0]))
+									: (ATRDocument) s.get(integer(rec[0]));
+							if (d == null) {
+								throw new RuntimeException("Document " + rec[0] + " doesn't " +
+										"exist.");
+							}
+							String value = stringPool.pool(rec[1]);
+							cache.a.put(d, value);
+							cache.b.put(value, d);
+							HashSet<String> docKeys;
+							if (!documentToKeys.containsKey(d)) {
+								docKeys = new HashSet<String>();
+								documentToKeys.put(d, docKeys);
+							} else {
+								docKeys = documentToKeys.get(d);
+							}
+							docKeys.add(key);
 						}
-						String value = stringPool.pool(rec[1]);
-						cache.a.put(d, value);
-						cache.b.put(value, d);
-						HashSet<String> docKeys;
-						if (!documentToKeys.containsKey(d)) {
-							docKeys = new HashSet<String>();
-							documentToKeys.put(d, docKeys);
-						} else {
-							docKeys = documentToKeys.get(d);
-						}
-						docKeys.add(key);
 					}
+				} catch (Exception e) {
+					// Something went wrong, so we just ignore this index and reindex. In the future
+					// we may want to log what went wrong, or tell the user why this is taking so long.
+					reindex();
+				} finally {
+					try { r.close(); } catch (Exception e) {}
 				}
-			} catch (Exception e) {
-				// Something went wrong, so we just ignore this index and reindex. In the future we
-				// may want to log what went wrong, or tell the user why this is taking so long.
+
+				// Since we'd rather have to reindex than have an outdated index, delete the index.
+				f.delete();
+			} else {
+				// No index file, so index from scratch.
 				reindex();
-			} finally {
-				try { r.close(); } catch (Exception e) {}
 			}
-			
-			// Since we'd rather have to reindex than have an outdated index, delete the index file.
-			f.delete();
-		} else {
-			// No index file, so index from scratch.
-			reindex();
+		} finally {
+			pm.hideProgressBar();
 		}
-		pm.hideProgressBar();
 	}
 }

@@ -19,15 +19,30 @@ class MultiplexDocument implements Document, Comparable<MultiplexDocument> {
 	
 	public int getID() { return id; }
 
-	public long getVersion() throws FatalStorageException { return master.getVersion(); }
-
-	public void change(List<Change> changes) throws FatalStorageException {
+	public String change(List<Change> changes) throws FatalStorageException {
+		String changeID;
 		try {
-			master.change(changes);
+			changeID = master.change(changes);
 		} catch (FatalStorageException e) {
 			throw new FatalStorageException("Unable to write data to the master document store.",
 					e);
 		}
+		changeSlaves(changeID, changes);
+		return changeID;
+	}
+	
+	public String change(String changeID, List<Change> changes) throws FatalStorageException {
+		try {
+			master.change(changeID, changes);
+		} catch (FatalStorageException e) {
+			throw new FatalStorageException("Unable to write data to the master document store.",
+					e);
+		}
+		changeSlaves(changeID, changes);
+		return changeID;
+	}
+	
+	private void changeSlaves(String changeID, List<Change> changes) {
 		for (int slaveIndex = 1; slaveIndex < s.storeEnabled.size(); slaveIndex++) {
 			if (s.storeEnabled.get(slaveIndex)) {
 				try {
@@ -36,7 +51,7 @@ class MultiplexDocument implements Document, Comparable<MultiplexDocument> {
 						throw new FatalStorageException("Document with ID " + id + " could not " +
 								"be found in " + s.stores.get(slaveIndex) + ".");
 					}
-					d.change(changes);
+					d.change(changeID, changes);
 				} catch (FatalStorageException e) {
 					s.handleSlaveStorageException(slaveIndex, e);
 				}
@@ -44,16 +59,18 @@ class MultiplexDocument implements Document, Comparable<MultiplexDocument> {
 		}
 	}
 
+	public boolean isDeleted() throws FatalStorageException { return master.isDeleted(); }
 	public boolean has(String key) throws FatalStorageException { return master.has(key); }
 	public String get(String key) throws FatalStorageException { return master.get(key); }
 	public List<String> keys() throws FatalStorageException { return master.keys(); }
 	public boolean hasPage(String key) throws FatalStorageException { return master.hasPage(key); }
 	public URI getPage(String key) throws FatalStorageException { return master.getPage(key); }
+	public String getPageChecksum(String key) throws FatalStorageException { return master.getPageChecksum(key); }
 	public List<String> pageKeys() throws FatalStorageException { return master.pageKeys(); }
 
 	@Override
 	public String toString() {
-		return "Multiplexed Document with ID " + id;
+		return "Multiplexed document with ID " + id;
 	}
 
 	public int compareTo(MultiplexDocument d2) {

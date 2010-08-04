@@ -12,6 +12,18 @@ import static com.metalbeetle.fruitbat.util.Collections.*;
 public class ATRTest {
 
 	@Test
+	public void testBackslashBackslash() throws IOException {
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		ATRWriter w = new ATRWriter(out);
+		w.startRecord();
+		w.write("\\");
+		w.endRecord();
+		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+		ATRReader r = new ATRReader(in);
+		assertEquals("\\", r.read());
+	}
+
+	@Test
 	public void testSingleField() throws IOException {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		ATRWriter w = new ATRWriter(out);

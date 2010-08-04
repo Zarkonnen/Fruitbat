@@ -49,4 +49,12 @@ public class MultiplexStorageSystem implements StorageSystem {
 
 	@Override
 	public String toString() { return "Multiplexed Storage"; }
+
+	@Override
+	public boolean equals(Object o2) {
+		return o2 instanceof MultiplexStorageSystem;
+	}
+
+	@Override
+	public int hashCode() { return -123; }
 }

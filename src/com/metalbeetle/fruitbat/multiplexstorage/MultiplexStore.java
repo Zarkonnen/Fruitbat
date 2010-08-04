@@ -1,15 +1,25 @@
 package com.metalbeetle.fruitbat.multiplexstorage;
 
+import com.metalbeetle.fruitbat.storage.Change;
+import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.storage.ProgressMonitor;
 import com.metalbeetle.fruitbat.storage.DocIndex;
 import com.metalbeetle.fruitbat.storage.Document;
+import com.metalbeetle.fruitbat.storage.PageChange;
 import com.metalbeetle.fruitbat.storage.Store;
+import java.io.File;
+import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import static com.metalbeetle.fruitbat.util.Collections.*;
+import static com.metalbeetle.fruitbat.util.Misc.*;
+import static com.metalbeetle.fruitbat.storage.Document.CHANGE_ID_KEY;
+
 
 class MultiplexStore implements Store {
 	static final String SLAVE_FAILURE = "SLAVE_FAILURE";
@@ -18,6 +28,8 @@ class MultiplexStore implements Store {
 	final ProgressMonitor pm;
 	final HashMap<Integer, Document> idToDoc = new HashMap<Integer, Document>();
 	final ArrayList<Document> docs = new ArrayList<Document>();
+	final HashMap<Integer, Document> idToDeletedDoc = new HashMap<Integer, Document>();
+	final ArrayList<Document> deletedDocs = new ArrayList<Document>();
 	final BitSet storeEnabled;
 
 	Store master() {
@@ -31,6 +43,7 @@ class MultiplexStore implements Store {
 	}
 	
 	public MultiplexStore(List<Store> stores, ProgressMonitor pm) throws FatalStorageException {
+		pm.showProgressBar("Loading Multiplex Store", "", -1);
 		try {
 			this.stores = immute(stores);
 			this.pm = pm;
@@ -41,8 +54,132 @@ class MultiplexStore implements Store {
 				idToDoc.put(myD.getID(), myD);
 				docs.add(myD);
 			}
+			for (Document d : master().deletedDocs()) {
+				Document myD = new MultiplexDocument(d, this);
+				idToDeletedDoc.put(myD.getID(), myD);
+				deletedDocs.add(myD);
+			}
+			synchronize();
 		} catch (FatalStorageException e) {
 			throw new FatalStorageException("Cannot communicate with master store.", e);
+		} finally {
+			pm.hideProgressBar();
+		}
+	}
+
+	int maxID(Store s) throws FatalStorageException {
+		return Math.max(
+				s.docs().size() > 0 ? s.docs().get(0).getID() : -1,
+				s.deletedDocs().size() > 0 ? s.deletedDocs().get(0).getID() : -1
+				);
+	}
+
+	void synchronize() throws FatalStorageException {
+		pm.showProgressBar("Synchronizing stores", "", stores.size());
+		try {
+			List<Document> masterDocs = master().docs();
+			List<Document> masterDeletedDocs = master().deletedDocs();
+			if (masterDocs.size() == 0 && masterDeletedDocs.size() == 0) {
+				if (stores.get(1).docs().size() > 0 || stores.get(1).deletedDocs().size() > 0) {
+					pm.showWarning("storeRecovery", "Recovering data",
+							"Since the master store is empty, Fruitbat will now restore it from " +
+							"backup.");
+					syncStores(stores.get(1), master(), -1);
+				}
+			}
+			for (int i = 1; i < stores.size(); i++) {
+				pm.progress("Backup " + stores.get(i), i);
+				try {
+					syncStores(master(), stores.get(i), i);
+				} catch (FatalStorageException e) {
+					handleSlaveStorageException(i, e);
+				}
+			}
+		} finally {
+			pm.hideProgressBar();
+		}
+	}
+
+	void syncStores(Store from, Store to, int storeIndex) throws FatalStorageException {
+		// Make sure the stores have the same number of documents.
+		final int fromMaxID = maxID(from);
+		int toMaxID = maxID(to);
+		if (toMaxID > fromMaxID) {
+			throw new FatalStorageException("Target store " + to + " has been " +
+					"modified, and cannot be synchronized to.");
+		}
+		while (toMaxID++ < fromMaxID) {
+			to.create();
+		}
+		// Now ensure that the documents have the same level of deletedness.
+		for (Document d : from.docs()) {
+			if (to.get(d.getID()) == null) {
+				to.undelete(d.getID());
+			}
+		}
+		for (Document d : from.deletedDocs()) {
+			if (to.getDeleted(d.getID()) == null) {
+				to.delete(to.get(d.getID()));
+			}
+		}
+		// Now ensure they have the same data.
+		for (Document d : from.docs()) {
+			Document d2 = to.get(d.getID());
+			syncDocs(d, d2, storeIndex);
+		}
+		for (Document d : from.deletedDocs()) {
+			Document d2 = to.getDeleted(d.getID());
+			syncDocs(d, d2, storeIndex);
+		}
+	}
+
+	void syncDocs(Document from, Document to, int i) throws FatalStorageException {
+		if (!from.get(CHANGE_ID_KEY).equals(to.get(CHANGE_ID_KEY))) {
+			pm.progress("Synchronizing " + from, i);
+			ArrayList<Change> syncChanges = new ArrayList<Change>();
+			// First, the data changes.
+			// Changed and added keys.
+			for (String key : from.keys()) {
+				if (!to.has(key) || !from.get(key).equals(to.get(key))) {
+					syncChanges.add(DataChange.put(key, from.get(key)));
+				}
+			}
+			// Removed keys.
+			for (String key : to.keys()) {
+				if (!from.has(key)) {
+					syncChanges.add(DataChange.remove(key));
+				}
+			}
+			// Now the file changes.
+			// Changed and added pages.
+			HashSet<File> toDelete = new HashSet<File>();
+			for (String key : from.pageKeys()) {
+				if (!to.hasPage(key) || !from.getPageChecksum(key).equals(to.getPageChecksum(key))) {
+					URI uri = from.getPage(key);
+					File pageF;
+					if (uri.getScheme().equals("file")) {
+						pageF = new File(uri.getPath());
+					} else {
+						try {
+							String name = uri.getPath().replaceAll("[^a-zA-Z0-9.]", "");
+							download(uri.toURL(), pageF = File.createTempFile("", name));
+							toDelete.add(pageF);
+						} catch (Exception e) {
+							throw new FatalStorageException("Cannot read page file at " + uri + ".",
+									e);
+						}
+					}
+					syncChanges.add(PageChange.put(key, pageF));
+				}
+			}
+			for (String key : to.pageKeys()) {
+				if (!from.hasPage(key)) {
+					syncChanges.add(PageChange.remove(key));
+				}
+			}
+
+			to.change(from.get(CHANGE_ID_KEY), syncChanges);
+			for (File f : toDelete) { f.delete(); }
 		}
 	}
 
@@ -112,8 +249,10 @@ class MultiplexStore implements Store {
 	}
 
 	public List<Document> docs() { return immute(docs); }
+	public List<Document> deletedDocs() { return immute(deletedDocs); }
 
 	public Document get(int id) { return idToDoc.get(id); }
+	public Document getDeleted(int id) { return idToDeletedDoc.get(id); }
 
 	public void setProgressMonitor(ProgressMonitor pm) {
 		for (Store s : stores) { s.setProgressMonitor(pm); }
@@ -173,4 +312,7 @@ class MultiplexStore implements Store {
 				e.getFullMessage().replace("\n", "<br>"));
 		storeEnabled.clear(slaveIndex);
 	}
+
+	@Override
+	public String toString() { return "Multiplex Store of " + Arrays.toString(stores.toArray()); }
 }
