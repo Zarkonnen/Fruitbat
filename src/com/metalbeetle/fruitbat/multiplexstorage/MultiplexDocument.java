@@ -28,6 +28,7 @@ class MultiplexDocument implements Document, Comparable<MultiplexDocument> {
 					e);
 		}
 		changeSlaves(changeID, changes);
+		s.updateMasterID();
 		return changeID;
 	}
 	
@@ -39,11 +40,12 @@ class MultiplexDocument implements Document, Comparable<MultiplexDocument> {
 					e);
 		}
 		changeSlaves(changeID, changes);
+		s.updateMasterID();
 		return changeID;
 	}
 	
 	private void changeSlaves(String changeID, List<Change> changes) {
-		for (int slaveIndex = 1; slaveIndex < s.storeEnabled.size(); slaveIndex++) {
+		for (int slaveIndex = 1; slaveIndex < s.stores.size(); slaveIndex++) {
 			if (s.storeEnabled.get(slaveIndex)) {
 				try {
 					Document d = s.stores.get(slaveIndex).get(id);

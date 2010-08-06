@@ -56,6 +56,7 @@ class ATRDocument implements Comparable<ATRDocument>, Document {
 	}
 
 	public String change(String changeID, List<Change> changes) throws FatalStorageException {
+		s.updateMasterID();
 		// Transduce into changes for data.atr.
 		ArrayList<Change> dataChanges = new ArrayList<Change>(changes.size());
 		dataChanges.add(DataChange.put(DATA_PREFIX + CHANGE_ID_KEY, changeID));

@@ -18,8 +18,6 @@ import java.util.HashSet;
 import java.util.List;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 import static com.metalbeetle.fruitbat.util.Misc.*;
-import static com.metalbeetle.fruitbat.storage.Document.CHANGE_ID_KEY;
-
 
 class MultiplexStore implements Store {
 	static final String SLAVE_FAILURE = "SLAVE_FAILURE";
@@ -31,6 +29,7 @@ class MultiplexStore implements Store {
 	final HashMap<Integer, Document> idToDeletedDoc = new HashMap<Integer, Document>();
 	final ArrayList<Document> deletedDocs = new ArrayList<Document>();
 	final BitSet storeEnabled;
+	boolean masterIDUpdated = false;
 
 	Store master() {
 		return stores.get(0);
@@ -49,6 +48,7 @@ class MultiplexStore implements Store {
 			this.pm = pm;
 			storeEnabled = new BitSet(stores.size());
 			for (int i = 0; i < stores.size(); i++) { storeEnabled.set(i); }
+			synchronize();
 			for (Document d : master().docs()) {
 				Document myD = new MultiplexDocument(d, this);
 				idToDoc.put(myD.getID(), myD);
@@ -59,7 +59,6 @@ class MultiplexStore implements Store {
 				idToDeletedDoc.put(myD.getID(), myD);
 				deletedDocs.add(myD);
 			}
-			synchronize();
 		} catch (FatalStorageException e) {
 			throw new FatalStorageException("Cannot communicate with master store.", e);
 		} finally {
@@ -101,25 +100,33 @@ class MultiplexStore implements Store {
 	}
 
 	void syncStores(Store from, Store to, int storeIndex) throws FatalStorageException {
+		if (from.hasMetaData(MASTER_ID_KEY) && to.hasMetaData(MASTER_ID_KEY)) {
+			if (!from.getMetaData(MASTER_ID_KEY).equals(to.getMetaData(MASTER_ID_KEY))) {
+				throw new FatalStorageException("Cannot synchronize stores from " + from + " to " +
+						to + ". The latter store is a backup for a different store, and " +
+						"synchronizing them would overwrite that backup!");
+			}
+		}
+
 		// Make sure the stores have the same number of documents.
-		final int fromMaxID = maxID(from);
-		int toMaxID = maxID(to);
-		if (toMaxID > fromMaxID) {
-			throw new FatalStorageException("Target store " + to + " has been " +
-					"modified, and cannot be synchronized to.");
-		}
-		while (toMaxID++ < fromMaxID) {
-			to.create();
-		}
 		// Now ensure that the documents have the same level of deletedness.
 		for (Document d : from.docs()) {
 			if (to.get(d.getID()) == null) {
-				to.undelete(d.getID());
+				to.getCreateOrUndelete(d.getID());
 			}
 		}
 		for (Document d : from.deletedDocs()) {
 			if (to.getDeleted(d.getID()) == null) {
+				if (to.get(d.getID()) == null) {
+					to.getCreateOrUndelete(d.getID());
+				}
 				to.delete(to.get(d.getID()));
+			}
+		}
+		// Oh, and delete any documents that aren't supposed to be there.
+		for (Document d2 : to.docs()) {
+			if (from.get(d2.getID()) == null) {
+				to.delete(d2);
 			}
 		}
 		// Now ensure they have the same data.
@@ -134,7 +141,7 @@ class MultiplexStore implements Store {
 	}
 
 	void syncDocs(Document from, Document to, int i) throws FatalStorageException {
-		if (!from.get(CHANGE_ID_KEY).equals(to.get(CHANGE_ID_KEY))) {
+		if (!from.get(Document.CHANGE_ID_KEY).equals(to.get(Document.CHANGE_ID_KEY))) {
 			pm.progress("Synchronizing " + from, i);
 			ArrayList<Change> syncChanges = new ArrayList<Change>();
 			// First, the data changes.
@@ -178,7 +185,7 @@ class MultiplexStore implements Store {
 				}
 			}
 
-			to.change(from.get(CHANGE_ID_KEY), syncChanges);
+			to.change(from.get(Document.CHANGE_ID_KEY), syncChanges);
 			for (File f : toDelete) { f.delete(); }
 		}
 	}
@@ -190,7 +197,7 @@ class MultiplexStore implements Store {
 			for (int i = 1; i < stores.size(); i++) {
 				if (storeEnabled.get(i)) {
 					try {
-						stores.get(i).create();
+						syncDocs(d, stores.get(i).getCreateOrUndelete(d.getID()), i);
 					} catch (FatalStorageException e) {
 						handleSlaveStorageException(i, e);
 					}
@@ -202,6 +209,30 @@ class MultiplexStore implements Store {
 		} catch (FatalStorageException e) {
 			throw new FatalStorageException("Could not create a new document in the master store.",
 					e);
+		}
+	}
+
+	public Document getCreateOrUndelete(int id) throws FatalStorageException {
+		try {
+			if (idToDoc.containsKey(id)) { return idToDoc.get(id); }
+			if (idToDeletedDoc.containsKey(id)) { return undelete(id); }
+			Document d = master().getCreateOrUndelete(id);
+			for (int i = 1; i < stores.size(); i++) {
+				if (storeEnabled.get(i)) {
+					try {
+						syncDocs(d, stores.get(i).getCreateOrUndelete(id), i);
+					} catch (FatalStorageException e) {
+						handleSlaveStorageException(i, e);
+					}
+				}
+			}
+			MultiplexDocument md = new MultiplexDocument(d, this);
+			idToDoc.put(md.getID(), md);
+			docs.add(md);
+			return md;
+		} catch (FatalStorageException e) {
+			throw new FatalStorageException("Could not get/create/delete a document from the " +
+					"master store.", e);
 		}
 	}
 
@@ -232,7 +263,7 @@ class MultiplexStore implements Store {
 			for (int i = 1; i < stores.size(); i++) {
 				if (storeEnabled.get(i)) {
 					try {
-						stores.get(i).undelete(docID);
+						syncDocs(d, stores.get(i).undelete(docID), i);
 					} catch (FatalStorageException e) {
 						handleSlaveStorageException(i, e);
 					}
@@ -308,11 +339,44 @@ class MultiplexStore implements Store {
 				"<html>Unable to communicate with backup store " + stores.get(slaveIndex) +
 				". You can continue working, and your changes will be pushed into the backup " +
 				"when communication is restored.<br><br>" +
-				"(The backup store gave the following reason for its failure:<br>" +
+				"The backup store gave the following reason for its failure:<br>" +
 				e.getFullMessage().replace("\n", "<br>"));
 		storeEnabled.clear(slaveIndex);
 	}
 
 	@Override
 	public String toString() { return "Multiplex Store of " + Arrays.toString(stores.toArray()); }
+
+	public String getMetaData(String key) throws FatalStorageException {
+		return master().getMetaData(key);
+	}
+
+	public void changeMetaData(List<Change> changes) throws FatalStorageException {
+		try {
+			master().changeMetaData(changes);
+			for (int i = 1; i < stores.size(); i++) {
+				if (storeEnabled.get(i)) {
+					try {
+						stores.get(i).changeMetaData(changes);
+					} catch (FatalStorageException e) {
+						handleSlaveStorageException(i, e);
+					}
+				}
+			}
+		} catch (FatalStorageException e) {
+			throw new FatalStorageException("Cannot communicate with master store.", e);
+		}
+	}
+
+	public boolean hasMetaData(String key) throws FatalStorageException {
+		return master().hasMetaData(key);
+	}
+
+	void updateMasterID() throws FatalStorageException {
+		if (!masterIDUpdated) {
+			changeMetaData(l(DataChange.put(MASTER_ID_KEY,
+					master().getMetaData(MASTER_ID_KEY))));
+			masterIDUpdated = true;
+		}
+	}
 }
