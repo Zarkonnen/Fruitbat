@@ -13,6 +13,7 @@ import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Cursor;
 import java.awt.FlowLayout;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
@@ -35,6 +36,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTextPane;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 
@@ -54,6 +56,7 @@ public class MainFrame extends JFrame implements Closeable {
 	HashMap<String, String> lastSearchKV = new HashMap<String, String>();
 	List<String> lastSearchKeys = new ArrayList<String>();
 	String lastSearch = "";
+	int lastMaxDocs = DEFAULT_MAX_DOCS;
 	
 	SearchTagCompleteMenu completeMenu = null;
 
@@ -214,6 +217,7 @@ public class MainFrame extends JFrame implements Closeable {
 	void search(String searchText, final int maxDocs, boolean force) {
 		try {
 			lastSearch = searchText;
+			lastMaxDocs = maxDocs;
 			String[] terms = searchText.split(" +");
 			final HashMap<String, String> searchKV = new HashMap<String, String>();
 			for (String t : terms) {
@@ -268,21 +272,39 @@ public class MainFrame extends JFrame implements Closeable {
 	public void writePrefs(Preferences p) throws BackingStoreException, FatalStorageException {
 		if (isVisible()) {
 			p.putInt("x", getX());
-			p.putInt("x", getY());
+			p.putInt("y", getY());
 			p.putInt("width", getWidth());
 			p.putInt("height", getHeight());
 			p.putBoolean("focused", isFocused());
+			p.put("searchTerms", searchF.getText());
+			p.putInt("searchCaret", searchF.getCaretPosition());
+			p.putInt("maxDocs", lastMaxDocs);
+			p.putInt("selectedDoc", docsList.getSelectedIndex());
+			p.putInt("docScrollX", docsListSP.getViewport().getViewPosition().x);
+			p.putInt("docScrollY", docsListSP.getViewport().getViewPosition().y);
+			p.putInt("tagScrollX", tagsListSP.getViewport().getViewPosition().x);
+			p.putInt("tagScrollY", tagsListSP.getViewport().getViewPosition().y);
 		}
 		openDocManager.writePrefs(p.node("openDocs"));
 		p.flush();
 	}
 
-	public void readPrefs(Preferences p) throws BackingStoreException, FatalStorageException {
+	public void readPrefs(final Preferences p) throws BackingStoreException, FatalStorageException {
 		setLocation(p.getInt("x", getX()), p.getInt("y", getY()));
 		setSize(p.getInt("width", getWidth()), p.getInt("height", getHeight()));
+		searchF.setText(p.get("searchTerms", ""));
+		search(p.get("searchTerms", ""), p.getInt("maxDocs", DEFAULT_MAX_DOCS), /*force*/ true);
+		searchF.setCaretPosition(p.getInt("searchCaret", searchF.getText().length()));
+		try { docsList.setSelectedIndex(p.getInt("selectedDoc", -1)); } catch (Exception e) {}
+		SwingUtilities.invokeLater(new Runnable() { public void run() {
+			docsListSP.getViewport().setViewPosition(
+					new Point(p.getInt("docScrollX", 0), p.getInt("docScrollY", 0)));
+			tagsListSP.getViewport().setViewPosition(
+					new Point(p.getInt("tagScrollX", 0), p.getInt("tagScrollY", 0)));
+		}});
+		openDocManager.readPrefs(p.node("openDocs"));
 		if (p.getBoolean("focused", false)) {
 			toFront();
 		}
-		openDocManager.readPrefs(p.node("openDocs"));
 	}
 }

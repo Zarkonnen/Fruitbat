@@ -12,6 +12,7 @@ import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.HeadlessException;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
@@ -24,6 +25,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.prefs.BackingStoreException;
+import java.util.prefs.Preferences;
 import javax.imageio.ImageIO;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -36,13 +39,13 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTextPane;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileFilter;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 import static com.metalbeetle.fruitbat.util.Misc.*;
-
 
 class DocumentFrame extends JFrame {
 	static final List<String> ACCEPTED_EXTENSIONS = l(".jpg", ".tiff", ".tif", ".bmp", ".png");
@@ -344,5 +347,32 @@ class DocumentFrame extends JFrame {
 		} catch (FatalStorageException e) {
 			mf.handleException(e); return -1;
 		}
+	}
+
+	public void writePrefs(Preferences p) throws BackingStoreException, FatalStorageException {
+		if (isVisible()) {
+			p.putInt("x", getX());
+			p.putInt("y", getY());
+			p.putInt("width", getWidth());
+			p.putInt("height", getHeight());
+			p.putBoolean("focused", isFocused());
+			p.putInt("pageNum", viewer.getPage());
+			p.putInt("suggestedTagsScrollX", suggestedTagsListSP.getViewport().getViewPosition().x);
+			p.putInt("suggestedTagsScrollY", suggestedTagsListSP.getViewport().getViewPosition().y);
+			p.putInt("allTagsScrollX", allTagsListSP.getViewport().getViewPosition().x);
+			p.putInt("allTagsScrollY", allTagsListSP.getViewport().getViewPosition().y);
+		}
+	}
+
+	public void readPrefs(final Preferences p) throws BackingStoreException, FatalStorageException {
+		setLocation(p.getInt("x", getX()), p.getInt("y", getY()));
+		setSize(p.getInt("width", getWidth()), p.getInt("height", getHeight()));
+		viewer.setPage(p.getInt("pageNum", 0));
+		SwingUtilities.invokeLater(new Runnable() { public void run() {
+			suggestedTagsListSP.getViewport().setViewPosition(
+					new Point(p.getInt("suggestedTagsScrollX", 0), p.getInt("suggestedTagsScrollY", 0)));
+			allTagsListSP.getViewport().setViewPosition(
+					new Point(p.getInt("allTagsScrollX", 0), p.getInt("allTagsScrollY", 0)));
+		}});
 	}
 }

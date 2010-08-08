@@ -143,6 +143,10 @@ class PagesViewer extends JPanel {
 		pv.repaint();
 	}
 
+	int getPage() {
+		return pv.pageIndex;
+	}
+
 	void updateMenuEnabledStates() {
 		prevButton.setEnabled(hasPrevPage());
 		nextButton.setEnabled(hasNextPage());

@@ -16,7 +16,7 @@ class OpenDocManager {
 		this.mf = mf;
 	}
 
-	void open(Document d) {
+	DocumentFrame open(Document d) {
 		if (!openFrames.containsKey(d)) {
 			DocumentFrame df = new DocumentFrame(d, mf);
 			df.setLocation(mf.getLocation().x + DOC_WIN_OFFSET,
@@ -24,18 +24,9 @@ class OpenDocManager {
 			df.setVisible(true);
 			openFrames.put(d, df);
 		}
-		openFrames.get(d).toFront();
-	}
-
-	DocumentFrame open(Document d, int x, int y, int w, int h) {
-		if (!openFrames.containsKey(d)) {
-			DocumentFrame df = new DocumentFrame(d, mf);
-			df.setLocation(x, y);
-			df.setSize(w, h);
-			df.setVisible(true);
-			openFrames.put(d, df);
-		}
-		return openFrames.get(d);
+		DocumentFrame df = openFrames.get(d);
+		df.toFront();
+		return df;
 	}
 
 	void close(Document d) {
@@ -52,12 +43,7 @@ class OpenDocManager {
 	void writePrefs(Preferences node) throws BackingStoreException, FatalStorageException {
 		node.clear();
 		for (DocumentFrame df : openFrames.values()) {
-			Preferences dfn = node.node(string(df.d.getID()));
-			dfn.putInt("x", df.getX());
-			dfn.putInt("y", df.getY());
-			dfn.putInt("width", df.getWidth());
-			dfn.putInt("height", df.getHeight());
-			dfn.putBoolean("focused", df.isFocused());
+			df.writePrefs(node.node(string(df.d.getID())));
 		}
 	}
 
@@ -67,13 +53,9 @@ class OpenDocManager {
 			int id = integer(ids);
 			Document d = mf.store.get(id);
 			if (d != null) {
-				Preferences dfn = node.node(ids);
-				int x = dfn.getInt("x", mf.getLocation().x + DOC_WIN_OFFSET);
-				int y = dfn.getInt("y", mf.getLocation().y + DOC_WIN_OFFSET);
-				int w = dfn.getInt("width", DocumentFrame.WIDTH);
-				int h = dfn.getInt("height", DocumentFrame.HEIGHT);
-				DocumentFrame df = open(d, x, y, w, h);
-				if (dfn.getBoolean("focused", false)) {
+				DocumentFrame df = open(d);
+				df.readPrefs(node.node(ids));;
+				if (node.node(ids).getBoolean("focused", false)) {
 					toFocus = df;
 				}
 			}
