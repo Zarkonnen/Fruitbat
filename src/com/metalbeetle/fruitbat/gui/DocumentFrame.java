@@ -155,7 +155,7 @@ class DocumentFrame extends JFrame {
 		});
 
 		updateTags();
-		mf.shortcutOverlay.attachTo(this);
+		mf.app.shortcutOverlay.attachTo(this);
 		pack();
 		setSize(800, 800);
 	}
@@ -245,6 +245,7 @@ class DocumentFrame extends JFrame {
 				sb.append(" ");
 			}
 			tagsF.setText(sb.length() == 0 ? "" : sb.substring(0, sb.length() - 1));
+			tagsF.setCaretPosition(tagsF.getText().length());
 		} catch (FatalStorageException e) {
 			mf.handleException(e);
 		}

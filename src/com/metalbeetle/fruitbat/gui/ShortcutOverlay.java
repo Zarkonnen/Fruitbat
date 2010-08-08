@@ -5,7 +5,6 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.DisplayMode;
-import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.GraphicsEnvironment;
@@ -21,7 +20,6 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -48,6 +46,13 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 	public ShortcutOverlay() {
 		t = new Timer("ShortcutOverlay", /*isDaemon*/ true);
 		t.schedule(tt = new OverlayTT(), TICK_LENGTH, TICK_LENGTH);
+	}
+
+	public void shutdown() {
+		t.cancel();
+		if (helpWindow != null) {
+			helpWindow.dispose();
+		}
 	}
 
 	public void attachTo(Component c) {

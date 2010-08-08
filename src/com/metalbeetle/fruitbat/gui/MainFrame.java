@@ -25,6 +25,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.prefs.BackingStoreException;
+import java.util.prefs.Preferences;
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -46,9 +48,8 @@ public class MainFrame extends JFrame implements Closeable {
 	ProgressMonitor pm;
 	boolean isEmergencyShutdown = false;
 
-	final OpenDocManager openDocManager = new OpenDocManager();
-	final ShortcutOverlay shortcutOverlay = new ShortcutOverlay();
-
+	final OpenDocManager openDocManager = new OpenDocManager(this);
+	
 	SearchResult currentSearchResult;
 	HashMap<String, String> lastSearchKV = new HashMap<String, String>();
 	List<String> lastSearchKeys = new ArrayList<String>();
@@ -144,7 +145,7 @@ public class MainFrame extends JFrame implements Closeable {
 				searchF.requestFocusInWindow();
 			}
 		});
-		shortcutOverlay.attachTo(this);
+		app.shortcutOverlay.attachTo(this);
 		pack();
 		setSize(800, 700);
 		split.setDividerLocation(500);
@@ -245,7 +246,7 @@ public class MainFrame extends JFrame implements Closeable {
 		try {
 			Document d = store.create();
 			search(lastSearch, DEFAULT_MAX_DOCS, /*force*/ true);
-			openDocManager.open(d, this);
+			openDocManager.open(d);
 		} catch (FatalStorageException e) {
 			pm.handleException(e, this);
 		}
@@ -262,5 +263,26 @@ public class MainFrame extends JFrame implements Closeable {
 
 	void setIsEmergencyShutdown() {
 		isEmergencyShutdown = true;
+	}
+
+	public void writePrefs(Preferences p) throws BackingStoreException, FatalStorageException {
+		if (isVisible()) {
+			p.putInt("x", getX());
+			p.putInt("x", getY());
+			p.putInt("width", getWidth());
+			p.putInt("height", getHeight());
+			p.putBoolean("focused", isFocused());
+		}
+		openDocManager.writePrefs(p.node("openDocs"));
+		p.flush();
+	}
+
+	public void readPrefs(Preferences p) throws BackingStoreException, FatalStorageException {
+		setLocation(p.getInt("x", getX()), p.getInt("y", getY()));
+		setSize(p.getInt("width", getWidth()), p.getInt("height", getHeight()));
+		if (p.getBoolean("focused", false)) {
+			toFront();
+		}
+		openDocManager.readPrefs(p.node("openDocs"));
 	}
 }
