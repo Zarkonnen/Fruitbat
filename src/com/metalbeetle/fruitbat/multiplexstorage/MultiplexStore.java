@@ -340,7 +340,7 @@ class MultiplexStore implements Store {
 				". You can continue working, and your changes will be pushed into the backup " +
 				"when communication is restored.<br><br>" +
 				"The backup store gave the following reason for its failure:<br>" +
-				e.getFullMessage().replace("\n", "<br>"));
+				getFullMessage(e).replace("\n", "<br>"));
 		storeEnabled.clear(slaveIndex);
 	}
 

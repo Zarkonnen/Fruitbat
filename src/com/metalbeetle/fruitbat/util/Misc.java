@@ -75,4 +75,13 @@ public final class Misc {
 			try { out.close(); } catch (Exception e) {}
 		}
 	}
+
+	public static String getFullMessage(Throwable t) {
+		StringBuilder sb = new StringBuilder();
+		while (t != null) {
+			if (t.getMessage() != null) { sb.append(t.getMessage()); sb.append("\n"); }
+			t = t.getCause();
+		}
+		return sb.toString();
+	}
 }

@@ -6,6 +6,7 @@ import java.awt.Frame;
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
+import static com.metalbeetle.fruitbat.util.Misc.*;
 
 public class Dialogs implements ProgressMonitor {
 	public String askQuestion(String title, String question, String initialValue) {
@@ -72,11 +73,8 @@ public class Dialogs implements ProgressMonitor {
 	}
 
 	public void handleException(Exception e, MainFrame affectedStore) {
-		String msg = (e instanceof FatalStorageException)
-				? ((FatalStorageException) e).getFullMessage()
-				: e.getMessage();
 		JOptionPane.showMessageDialog(null,
-				"<html>" + msg.replace("\n", "<br>") + "</html>",
+				"<html>" + getFullMessage(e).replace("\n", "<br>") + "</html>",
 				"Storage System Error", JOptionPane.ERROR_MESSAGE);
 		if (affectedStore != null) {
 			affectedStore.setIsEmergencyShutdown();
