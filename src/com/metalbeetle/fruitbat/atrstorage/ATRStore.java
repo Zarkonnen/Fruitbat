@@ -158,6 +158,16 @@ class ATRStore implements Store {
 		metaF.change(mdc);
 	}
 
+	public List<String> metaDataKeys() throws FatalStorageException {
+		ArrayList<String> keys = new ArrayList<String>();
+		for (String k : metaF.keys()) {
+			if (k.startsWith(METADATA_PREFIX)) {
+				keys.add(k.substring(METADATA_PREFIX.length()));
+			}
+		}
+		return keys;
+	}
+
 	static final class DocFilter implements FilenameFilter {
 		public boolean accept(File dir, String name) { return name.matches("[0-9]+"); }
 	}

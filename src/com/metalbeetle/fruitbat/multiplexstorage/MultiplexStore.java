@@ -79,7 +79,10 @@ class MultiplexStore implements Store {
 			List<Document> masterDocs = master().docs();
 			List<Document> masterDeletedDocs = master().deletedDocs();
 			if (masterDocs.size() == 0 && masterDeletedDocs.size() == 0) {
-				if (stores.get(1).docs().size() > 0 || stores.get(1).deletedDocs().size() > 0) {
+				if (stores.get(1).docs().size() > 0 ||
+				    stores.get(1).deletedDocs().size() > 0 ||
+				    stores.get(1).metaDataKeys().size() > 0)
+				{
 					pm.showWarning("storeRecovery", "Recovering data",
 							"Since the master store is empty, Fruitbat will now restore it from " +
 							"backup.");
@@ -107,6 +110,8 @@ class MultiplexStore implements Store {
 						"synchronizing them would overwrite that backup!");
 			}
 		}
+
+		syncMetaData(from, to);
 
 		// Make sure the stores have the same number of documents.
 		// Now ensure that the documents have the same level of deletedness.
@@ -138,6 +143,25 @@ class MultiplexStore implements Store {
 			Document d2 = to.getDeleted(d.getID());
 			syncDocs(d, d2, storeIndex);
 		}
+	}
+
+	void syncMetaData(Store from, Store to) throws FatalStorageException {
+		pm.progress("Synchronizing metadata", -1);
+		ArrayList<Change> syncChanges = new ArrayList<Change>();
+		// First, the data changes.
+		// Changed and added keys.
+		for (String key : from.metaDataKeys()) {
+			if (!to.hasMetaData(key) || !from.getMetaData(key).equals(to.getMetaData(key))) {
+				syncChanges.add(DataChange.put(key, from.getMetaData(key)));
+			}
+		}
+		// Removed keys.
+		for (String key : to.metaDataKeys()) {
+			if (!from.hasMetaData(key)) {
+				syncChanges.add(DataChange.remove(key));
+			}
+		}
+		to.changeMetaData(syncChanges);
 	}
 
 	void syncDocs(Document from, Document to, int i) throws FatalStorageException {
@@ -370,6 +394,14 @@ class MultiplexStore implements Store {
 
 	public boolean hasMetaData(String key) throws FatalStorageException {
 		return master().hasMetaData(key);
+	}
+
+	public List<String> metaDataKeys() throws FatalStorageException {
+		try {
+			return master().metaDataKeys();
+		} catch (FatalStorageException e) {
+			throw new FatalStorageException("Cannot communicate with master store.", e);
+		}
 	}
 
 	void updateMasterID() throws FatalStorageException {

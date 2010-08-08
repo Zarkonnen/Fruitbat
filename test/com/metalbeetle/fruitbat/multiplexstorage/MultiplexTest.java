@@ -17,12 +17,62 @@ import static org.junit.Assert.*;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 
 public class MultiplexTest {
+	public static final String SCARY = "\"\n\r\u0026\u0416\u4E2D\uD800\uDF46\n\n\"\n\"\"\"\t\r\"\n";
+	
 	File sf1;
 	File sf2;
 	Store s1;
 	Store s2;
 	Store ms;
 	File p;
+
+	@Test
+	public void metaDataStoreAndRetrieve() throws FatalStorageException, StoreConfigInvalidException {
+		sf1 = Util.createTempFolder();
+		sf2 = Util.createTempFolder();
+		StoreConfig sc1 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf1));
+		StoreConfig sc2 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf2));
+		StoreConfig msc = new StoreConfig(new MultiplexStorageSystem(), typedL(Object.class, l(sc1, sc2)));
+		ms = msc.init(new DummyProgressMonitor());
+		ms.changeMetaData(l(DataChange.put(SCARY, SCARY), DataChange.put(SCARY + "2", SCARY)));
+		ms.changeMetaData(l(DataChange.remove(SCARY + "2")));
+		ms.close();
+		ms = msc.init(new DummyProgressMonitor());
+		assertTrue(ms.hasMetaData(SCARY));
+		assertFalse(ms.hasMetaData(SCARY + "2"));
+		assertEquals(SCARY, ms.getMetaData(SCARY));
+		ms.changeMetaData(l(DataChange.move(SCARY, "foo")));
+		ms.close();
+		ms = msc.init(new DummyProgressMonitor());
+		assertEquals(SCARY, ms.getMetaData("foo"));
+		ms.close();
+		Util.deleteRecursively(sf1);
+		Util.deleteRecursively(sf2);
+	}
+
+	@Test
+	public void metaDataSync() throws FatalStorageException, StoreConfigInvalidException {
+		sf1 = Util.createTempFolder();
+		sf2 = Util.createTempFolder();
+		StoreConfig sc1 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf1));
+		StoreConfig sc2 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf2));
+		StoreConfig msc = new StoreConfig(new MultiplexStorageSystem(), typedL(Object.class, l(sc1, sc2)));
+		s1 = sc1.init(new DummyProgressMonitor());
+		s1.changeMetaData(l(DataChange.put(SCARY, SCARY), DataChange.put(SCARY + "2", SCARY)));
+		s1.changeMetaData(l(DataChange.remove(SCARY + "2")));
+		s1.close();
+		ms = msc.init(new DummyProgressMonitor());
+		assertTrue(ms.hasMetaData(SCARY));
+		assertFalse(ms.hasMetaData(SCARY + "2"));
+		assertEquals(SCARY, ms.getMetaData(SCARY));
+		ms.changeMetaData(l(DataChange.move(SCARY, "foo")));
+		ms.close();
+		s2 = sc2.init(new DummyProgressMonitor());
+		assertEquals(SCARY, s2.getMetaData("foo"));
+		s2.close();
+		Util.deleteRecursively(sf1);
+		Util.deleteRecursively(sf2);
+	}
 
 	@Test
 	public void testMultiplexPut() throws FatalStorageException, StoreConfigInvalidException, IOException {

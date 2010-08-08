@@ -103,11 +103,12 @@ final class KVFile {
 							}
 							if (rec.get(i).equals(MOVE)) {
 								String value = keyValueMap.get(rec.get(i + 1));
-								if (value == null) { continue; }
-								keyValueMap.put(rec.get(i + 2), value);
-								keys.add(rec.get(i + 2));
-								keyValueMap.remove(rec.get(i + 1));
-								keys.remove(rec.get(i + 1));
+								if (value != null) {
+									keyValueMap.put(rec.get(i + 2), value);
+									keys.add(rec.get(i + 2));
+									keyValueMap.remove(rec.get(i + 1));
+									keys.remove(rec.get(i + 1));
+								}
 								i += 3;
 								continue;
 							}

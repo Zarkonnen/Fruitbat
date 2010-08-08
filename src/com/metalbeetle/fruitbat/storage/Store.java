@@ -28,4 +28,5 @@ public interface Store {
 	public String getMetaData(String key) throws FatalStorageException;
 	public void changeMetaData(List<Change> changes) throws FatalStorageException;
 	public boolean hasMetaData(String key) throws FatalStorageException;
+	public List<String> metaDataKeys() throws FatalStorageException;
 }

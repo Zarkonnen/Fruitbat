@@ -5,7 +5,6 @@ import com.metalbeetle.fruitbat.gui.DummyProgressMonitor;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
-import com.metalbeetle.fruitbat.util.StringPool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -17,6 +16,19 @@ public class DataStorageTest {
 
 	ATRStore s;
 	ATRDocIndex i;
+
+	@Test
+	public void metaDataStoreAndRetrieve() throws FatalStorageException {
+		s.changeMetaData(l(DataChange.put(SCARY, SCARY), DataChange.put(SCARY + "2", SCARY)));
+		s.changeMetaData(l(DataChange.remove(SCARY + "2")));
+		rebootStore();
+		assertTrue(s.hasMetaData(SCARY));
+		assertFalse(s.hasMetaData(SCARY + "2"));
+		assertEquals(SCARY, s.getMetaData(SCARY));
+		s.changeMetaData(l(DataChange.move(SCARY, "foo")));
+		rebootStore();
+		assertEquals(SCARY, s.getMetaData("foo"));
+	}
 
 	@Test
 	public void storeAndRetrieve() throws FatalStorageException {

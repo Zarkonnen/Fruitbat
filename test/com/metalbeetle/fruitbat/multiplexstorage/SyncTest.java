@@ -17,6 +17,8 @@ import static org.junit.Assert.*;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 
 public class SyncTest {
+	public static final String SCARY = "\"\n\r\u0026\u0416\u4E2D\uD800\uDF46\n\n\"\n\"\"\"\t\r\"\n";
+	
 	File sf1;
 	File sf2;
 	Store s1;
@@ -139,6 +141,31 @@ public class SyncTest {
 		assertFalse(ms2.storeEnabled.get(1));
 		ms2.close();
 		p.delete();
+		Util.deleteRecursively(sf1);
+		Util.deleteRecursively(sf2);
+	}
+
+	@Test
+	public void pulldownMetaDataFromBackup() throws FatalStorageException, StoreConfigInvalidException {
+		sf1 = Util.createTempFolder();
+		sf2 = Util.createTempFolder();
+		StoreConfig sc1 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf1));
+		StoreConfig sc2 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf2));
+		StoreConfig msc = new StoreConfig(new MultiplexStorageSystem(), typedL(Object.class, l(sc1, sc2)));
+		s2 = sc2.init(new DummyProgressMonitor());
+		s2.changeMetaData(l(DataChange.put(SCARY, SCARY), DataChange.put(SCARY + "2", SCARY)));
+		s2.changeMetaData(l(DataChange.remove(SCARY + "2")));
+		s2.close();
+		ms = msc.init(new DummyProgressMonitor());
+		assertTrue(ms.hasMetaData(SCARY));
+		assertFalse(ms.hasMetaData(SCARY + "2"));
+		assertEquals(SCARY, ms.getMetaData(SCARY));
+		ms.close();
+		s2 = sc2.init(new DummyProgressMonitor());
+		assertTrue(s2.hasMetaData(SCARY));
+		assertFalse(s2.hasMetaData(SCARY + "2"));
+		assertEquals(SCARY, s2.getMetaData(SCARY));
+		s2.close();
 		Util.deleteRecursively(sf1);
 		Util.deleteRecursively(sf2);
 	}
