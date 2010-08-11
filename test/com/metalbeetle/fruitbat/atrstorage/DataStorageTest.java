@@ -18,9 +18,30 @@ public class DataStorageTest {
 	ATRDocIndex i;
 
 	@Test
+	public void testCleanStoreValues() throws FatalStorageException, InterruptedException {
+		String rev = s.getRevision();
+		String uuid = s.getUUID();
+		assertTrue(s.isEmptyStore());
+		assertEquals(1, s.getNextRetainedPageNumber());
+		rebootStore();
+		assertEquals(rev, s.getRevision());
+		assertEquals(uuid, s.getUUID());
+		assertTrue(s.isEmptyStore());
+		assertEquals(1, s.getNextRetainedPageNumber());
+		rebootStore();
+		assertEquals(rev, s.getRevision());
+		assertEquals(uuid, s.getUUID());
+		assertTrue(s.isEmptyStore());
+		assertEquals(1, s.getNextRetainedPageNumber());
+	}
+
+	@Test
 	public void metaDataStoreAndRetrieve() throws FatalStorageException {
+		String rev = s.getRevision();
 		s.changeMetaData(l(DataChange.put(SCARY, SCARY), DataChange.put(SCARY + "2", SCARY)));
 		s.changeMetaData(l(DataChange.remove(SCARY + "2")));
+		assertFalse(s.getRevision().equals(rev));
+		assertFalse(s.isEmptyStore());
 		rebootStore();
 		assertTrue(s.hasMetaData(SCARY));
 		assertFalse(s.hasMetaData(SCARY + "2"));
@@ -32,7 +53,9 @@ public class DataStorageTest {
 
 	@Test
 	public void storeAndRetrieve() throws FatalStorageException {
+		String rev = s.getRevision();
 		Document d = s.create();
+		assertFalse(s.getRevision().equals(rev));
 		d.change(l(DataChange.put(SCARY, SCARY)));
 		assertEquals(SCARY, d.get(SCARY));
 		d.change(l(DataChange.put(SCARY, SCARY + "2")));

@@ -11,12 +11,14 @@ import com.metalbeetle.fruitbat.storage.Store;
 import com.metalbeetle.fruitbat.util.StringPool;
 import java.io.File;
 import java.io.FilenameFilter;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 
@@ -26,8 +28,14 @@ class ATRStore implements Store {
 	static final String _DELETED = "_deleted";
 	static final String NEXT_DOC_ID = "next_doc_id";
 	static final String NEXT_RETAINED_PAGE_NUMBER = "next_retained_page_id";
-	static final Map<String, String> META_DEFAULTS = m(p(NEXT_DOC_ID, "0"),
-			p(NEXT_RETAINED_PAGE_NUMBER, "1"));
+	static final String EMPTY_STORE = "empty_store";
+	static final String REVISION = "revision";
+	static final String STORE_UUID = "uuid";
+	static final Map<String, String> META_DEFAULTS = m(
+			p(NEXT_DOC_ID, "0"),
+			p(NEXT_RETAINED_PAGE_NUMBER, "1"),
+			p(EMPTY_STORE, "true"),
+			p(REVISION, "0"));
 
 	final File location;
 	final File docsF;
@@ -38,15 +46,17 @@ class ATRStore implements Store {
 	final HashMap<Integer, ATRDocument> idToDeletedDoc = new HashMap<Integer, ATRDocument>();
 	final List<ATRDocument> deletedDocs = new LinkedList<ATRDocument>();
 	final ATRDocIndex deletedIndex;
-	boolean masterIDUpdated = false;
+	boolean revisionUpdated = false;
 
 	public ATRStore(File location, ProgressMonitor pm) throws FatalStorageException {
 		pm.showProgressBar("Loading documents", "", -1);
 		try {
 			this.location = location;
 			docsF = new File(location, "docs");
+			HashMap<String, String> myMetaDefaults = new HashMap<String, String>(META_DEFAULTS);
+			myMetaDefaults.put(STORE_UUID, UUID.randomUUID().toString());
 			metaF = new KVFile(new File(location, "meta.atr"), new File(location, "meta-cache.atr"),
-					META_DEFAULTS);
+					myMetaDefaults);
 			if (docsF.exists()) {
 				File[] fs = docsF.listFiles(new DocFilter());
 				pm.changeNumSteps(fs.length);
@@ -155,6 +165,7 @@ class ATRStore implements Store {
 				continue;
 			}
 		}
+		mdc.addAll(revisionChanges());
 		metaF.change(mdc);
 	}
 
@@ -166,6 +177,30 @@ class ATRStore implements Store {
 			}
 		}
 		return keys;
+	}
+
+	public String getUUID() throws FatalStorageException {
+		try {
+			return metaF.get(STORE_UUID);
+		} catch (Exception e) {
+			throw new FatalStorageException("Could not get store unique identifier.", e);
+		}
+	}
+
+	public String getRevision() throws FatalStorageException {
+		try {
+			return metaF.get(REVISION);
+		} catch (Exception e) {
+			throw new FatalStorageException("Could not get store revision.", e);
+		}
+	}
+
+	public boolean isEmptyStore() throws FatalStorageException {
+		try {
+			return metaF.get(EMPTY_STORE).equals("true");
+		} catch (Exception e) {
+			throw new FatalStorageException("Could not determine if store is empty.", e);
+		}
 	}
 
 	static final class DocFilter implements FilenameFilter {
@@ -190,14 +225,16 @@ class ATRStore implements Store {
 	Document create(String id) throws FatalStorageException {
 		try {
 			ATRDocument d = new ATRDocument(new File(docsF, id), this, /*deleted*/ false);
-			int maxID = Math.max(integer(metaF.get(NEXT_DOC_ID)), integer(id));
-			metaF.change(l(DataChange.put(NEXT_DOC_ID, string(maxID + 1))));
+			if (integer(id) >= integer(metaF.get(NEXT_DOC_ID))) {
+				metaF.change(l(DataChange.put(NEXT_DOC_ID, string(integer(id) + 1))));
+			}			
 			mkDirs(d.location);
 			idToDoc.put(d.getID(), d);
 			docs.add(0, d);
 			d.change(l(
 					DataChange.put(Fruitbat.CREATION_DATE_KEY, currentDateString()),
 					DataChange.put(Document.CHANGE_ID_KEY, "0")));
+			updateRevision();
 			return d;
 		} catch (Exception e) {
 			throw new FatalStorageException("Unable to create new document in " + location + ".",
@@ -245,12 +282,27 @@ class ATRStore implements Store {
 		return d;
 	}
 
-	void updateMasterID() throws FatalStorageException {
-		if (!masterIDUpdated) {
-			changeMetaData(l(DataChange.put(MASTER_ID_KEY,
-					Long.toHexString(System.currentTimeMillis()))));
-			masterIDUpdated = true;
+	void updateRevision() throws FatalStorageException {
+		metaF.change(revisionChanges());
+	}
+
+	List<Change> revisionChanges() throws FatalStorageException {
+		if (!revisionUpdated) {
+			revisionUpdated = true;
+			BigInteger rev = new BigInteger(metaF.get(REVISION), 16);
+			BigInteger newRev = rev.add(BigInteger.ONE);
+			if (metaF.get(EMPTY_STORE).equals("true")) {
+				return l(
+						DataChange.put(EMPTY_STORE, "false"),
+						DataChange.put(REVISION, newRev.toString(16))
+				);
+			} else {
+				return l(
+						DataChange.put(REVISION, newRev.toString(16))
+				);
+			}
 		}
+		return Collections.emptyList();
 	}
 	
 	@Override

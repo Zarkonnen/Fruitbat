@@ -43,12 +43,20 @@ public class SyncTest {
 		d = ms.get(id);
 		assertEquals("value", d.get("key"));
 		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page").getPath())));
+		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
 		ms.close();
 		s2 = sc2.init(new DummyProgressMonitor());
 		d = s2.get(id);
 		assertEquals("value", d.get("key"));
 		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page").getPath())));
 		s2.close();
+		// Start up ms again to ensure master ID is coherent.
+		ms = msc.init(new DummyProgressMonitor());
+		d = ms.get(id);
+		assertEquals("value", d.get("key"));
+		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page").getPath())));
+		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		ms.close();
 		p.delete();
 		Util.deleteRecursively(sf1);
 		Util.deleteRecursively(sf2);
@@ -74,6 +82,7 @@ public class SyncTest {
 		assertFalse(d.has("key2"));
 		assertFalse(d.hasPage("page"));
 		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page2").getPath())));
+		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
 		ms.close();
 		s2 = sc2.init(new DummyProgressMonitor());
 		d = s2.get(id);
@@ -107,6 +116,7 @@ public class SyncTest {
 		assertFalse(d.has("key2"));
 		assertFalse(d.hasPage("page"));
 		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page2").getPath())));
+		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
 		ms.close();
 		s1 = sc2.init(new DummyProgressMonitor());
 		d = s1.get(id);
@@ -146,6 +156,80 @@ public class SyncTest {
 	}
 
 	@Test
+	public void testDoNothingInMaster() throws FatalStorageException, StoreConfigInvalidException, IOException, InterruptedException {
+		p = Util.createFile("foobar");
+		sf1 = Util.createTempFolder();
+		sf2 = Util.createTempFolder();
+		StoreConfig sc1 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf1));
+		StoreConfig sc2 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf2));
+		StoreConfig msc = new StoreConfig(new MultiplexStorageSystem(), typedL(Object.class, l(sc1, sc2)));
+		ms = msc.init(new DummyProgressMonitor());
+		Document d = ms.create();
+		d.change(l(DataChange.put("key", "value"), DataChange.put("key2", "value"), PageChange.put("page", p)));
+		ms.close();
+
+		ms = msc.init(new DummyProgressMonitor());
+		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		ms.close();
+
+		ms = msc.init(new DummyProgressMonitor());
+		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		ms.close();
+
+		ms = msc.init(new DummyProgressMonitor());
+		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		ms.close();
+
+		ms = msc.init(new DummyProgressMonitor());
+		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		ms.close();
+
+		ms = msc.init(new DummyProgressMonitor());
+		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		ms.close();
+
+		Thread.sleep(1200);
+
+		ms = msc.init(new DummyProgressMonitor());
+		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		ms.close();
+
+		ms = msc.init(new DummyProgressMonitor());
+		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		ms.close();
+
+		p.delete();
+		Util.deleteRecursively(sf1);
+		Util.deleteRecursively(sf2);
+	}
+
+	@Test
+	public void allowSyncToPreExistingBackup() throws FatalStorageException, StoreConfigInvalidException, IOException {
+		p = Util.createFile("foobar");
+		sf1 = Util.createTempFolder();
+		sf2 = Util.createTempFolder();
+		StoreConfig sc1 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf1));
+		StoreConfig sc2 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf2));
+		StoreConfig msc = new StoreConfig(new MultiplexStorageSystem(), typedL(Object.class, l(sc1, sc2)));
+		ms = msc.init(new DummyProgressMonitor());
+		Document d = ms.create();
+		int id = d.getID();
+		d.change(l(DataChange.put("key", "value"), DataChange.put("key2", "value"), PageChange.put("page", p)));
+		d.change(l(DataChange.put("key", "value2"), DataChange.remove("key2"), PageChange.move("page", "page2")));
+		ms.close();
+		s1 = sc2.init(new DummyProgressMonitor());
+		d = s1.get(id);
+		d.change(l(DataChange.put("another", "change")));
+		s1.close();
+		ms = msc.init(new DummyProgressMonitor());
+		assertFalse(((MultiplexStore) ms).storeEnabled.get(1));
+		ms.close();
+		p.delete();
+		Util.deleteRecursively(sf1);
+		Util.deleteRecursively(sf2);
+	}
+
+	@Test
 	public void pulldownMetaDataFromBackup() throws FatalStorageException, StoreConfigInvalidException {
 		sf1 = Util.createTempFolder();
 		sf2 = Util.createTempFolder();
@@ -160,6 +244,7 @@ public class SyncTest {
 		assertTrue(ms.hasMetaData(SCARY));
 		assertFalse(ms.hasMetaData(SCARY + "2"));
 		assertEquals(SCARY, ms.getMetaData(SCARY));
+		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
 		ms.close();
 		s2 = sc2.init(new DummyProgressMonitor());
 		assertTrue(s2.hasMetaData(SCARY));

@@ -1,7 +1,7 @@
 package com.metalbeetle.fruitbat.gui;
 
-import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.storage.ProgressMonitor;
+import java.awt.Component;
 import java.awt.Frame;
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
@@ -18,6 +18,8 @@ public class Dialogs implements ProgressMonitor {
 		final SimpleProgressPanel2 progressPanel;
 	volatile int progressBarLevel = 0;
 
+	Component dialogParentC;
+
 	public Dialogs() {
 		progressDialog = new JDialog((Frame) null, "Progress", /*modal*/ true);
 			progressDialog.setContentPane(progressPanel = new SimpleProgressPanel2());
@@ -26,6 +28,8 @@ public class Dialogs implements ProgressMonitor {
 		progressDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
 		progressDialog.setResizable(false);
 		progressDialog.setModal(false);
+		progressDialog.setAlwaysOnTop(true);
+		dialogParentC = progressDialog;
 	}
 
 	public void showProgressBar(final String title, final String detail, final int numSteps) {
@@ -37,13 +41,6 @@ public class Dialogs implements ProgressMonitor {
 		if (progressBarLevel == 1) {
 			progressDialog.setLocationRelativeTo(null);
 			progressDialog.setVisible(true);
-			/*SwingUtilities.invokeLater(new Runnable() {
-				public void run() {
-					if (visible) {
-						progressDialog.setVisible(true);
-					}
-				}
-			});*/
 		}
 	}
 
@@ -68,17 +65,48 @@ public class Dialogs implements ProgressMonitor {
 		progressPanel.getProgressBar().setValue(0);
 	}
 
+	Component dialogParent() {
+		if (dialogParentC != null && dialogParentC.isVisible()) {
+			return dialogParentC;
+		} else {
+			return null;
+		}
+	}
+
 	public void showWarning(String type, String title, String message) {
-		JOptionPane.showMessageDialog(null, message, title, JOptionPane.WARNING_MESSAGE);
+		JOptionPane.showMessageDialog(dialogParent(), toExceptionMsg(message), title,
+				JOptionPane.WARNING_MESSAGE);
 	}
 
 	public void handleException(Exception e, MainFrame affectedStore) {
-		JOptionPane.showMessageDialog(null,
-				"<html>" + getFullMessage(e).replace("\n", "<br>") + "</html>",
-				"Storage System Error", JOptionPane.ERROR_MESSAGE);
+		JOptionPane.showMessageDialog(dialogParent(), toExceptionMsg(getFullMessage(e)),
+				"Error Message", JOptionPane.ERROR_MESSAGE);
 		if (affectedStore != null) {
 			affectedStore.setIsEmergencyShutdown();
 			affectedStore.dispose();
 		}
+	}
+
+	static String toExceptionMsg(String m) {
+		String[] lines = m.split("\\n");
+		StringBuilder m2 = new StringBuilder("<html>");
+		int linel = 0;
+		for (String l : lines) {
+			for (String w : l.split(" ")) {
+				if (linel > 0 && (linel + w.length()) > 80) {
+					m2.append("<br>");
+					linel = 0;
+				}
+				m2.append(w);
+				m2.append(" ");
+				linel = linel + w.length() + 1;
+			}
+			if (linel > 0) {
+				m2.append("<br>");
+				linel = 0;
+			}
+		}
+		m2.append("</html>");
+		return m2.toString();
 	}
 }

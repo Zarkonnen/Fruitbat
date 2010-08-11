@@ -84,7 +84,7 @@ class PagesViewer extends JPanel {
 
 	void gotoInputPage() {
 		try {
-			setPage(Integer.valueOf(pageField.getText()), /*setPageFieldText*/ false);
+			setPage(Integer.valueOf(pageField.getText()) - 1, /*setPageFieldText*/ false);
 		} catch (NumberFormatException e) {}
 	}
 
@@ -111,7 +111,7 @@ class PagesViewer extends JPanel {
 			df.mf.store.setNextRetainedPageNumber(nextRetN + 1);
 			df.d.change(l(DataChange.put(DocumentFrame.HARDCOPY_NUMBER_PREFIX + pv.pageIndex,
 					string(nextRetN))));
-			updateMenuEnabledStates();
+			updateButtonAndMenuEnabledStates();
 			pv.repaint();
 		} catch (FatalStorageException e) {
 			df.mf.handleException(e);
@@ -121,7 +121,7 @@ class PagesViewer extends JPanel {
 	void removeHardcopyNumber() {
 		try {
 			df.d.change(l(DataChange.remove(DocumentFrame.HARDCOPY_NUMBER_PREFIX + pv.pageIndex)));
-			updateMenuEnabledStates();
+			updateButtonAndMenuEnabledStates();
 			pv.repaint();
 		} catch (FatalStorageException e) {
 			df.mf.handleException(e);
@@ -135,7 +135,7 @@ class PagesViewer extends JPanel {
 		if (pageIndex < 0) { pageIndex = 0; }
 		if (pageIndex >= numPages) { pageIndex = numPages - 1; }
 		pv.pageIndex = pageIndex;
-		updateMenuEnabledStates();
+		updateButtonAndMenuEnabledStates();
 		if (setPageFieldText) {
 			pageField.setText(string(pv.pageIndex + 1));
 		}
@@ -147,7 +147,7 @@ class PagesViewer extends JPanel {
 		return pv.pageIndex;
 	}
 
-	void updateMenuEnabledStates() {
+	void updateButtonAndMenuEnabledStates() {
 		prevButton.setEnabled(hasPrevPage());
 		nextButton.setEnabled(hasNextPage());
 		openButton.setEnabled(validPage());
@@ -194,6 +194,8 @@ class PagesViewer extends JPanel {
 		@Override
 		public void paint(Graphics g) {
 			try {
+				g.setColor(Color.WHITE);
+				g.fillRect(0, 0, getWidth(), getHeight());
 				URI pageURI = pv.df.d.getPage(DocumentFrame.PREVIEW_PREFIX + pageIndex);
 				File f = new File(pageURI.getPath());
 				if (!f.equals(imgFile)) {

@@ -74,14 +74,17 @@ final class KVFile {
 							break;
 						}
 						keyValueMap.put(fields[0], fields[1]);
-						keys.add(fields[1]);
+						keys.add(fields[0]);
 					}
 				} catch (Exception e) {
 					// Who cares?
 				} finally {
 					try { r.close(); } catch (Exception e) {}
 				}
-				loaded = cacheF.delete() && loaded;
+				if (!cacheF.delete()) {
+					throw new FatalStorageException("Cannot delete temporary cache file at " +
+							cacheF + ".");
+				}
 			}
 			if (!loaded && f.exists()) {
 				keyValueMap.clear();
@@ -179,6 +182,11 @@ final class KVFile {
 	}
 
 	void change(List<Change> changes) throws FatalStorageException {
+		// If there is a cache file, we must load it in to prevent it from hanging around with old
+		// data while we blithely write newer data to the non-cache file, getting them out of sync.
+		if (cacheF != null) {
+			load();
+		}
 		if (loaded) {
 			for (Change c : changes) {
 				if (c instanceof DataChange.Put) {

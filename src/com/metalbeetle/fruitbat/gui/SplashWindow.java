@@ -36,6 +36,7 @@ public class SplashWindow extends JWindow implements ProgressMonitor {
 		pack();
 		setSize(400, 320);
 		setPreferredSize(new Dimension(400, 320));
+		dialogs.dialogParentC = this;
     }
 
 	@Override
