@@ -5,14 +5,13 @@
 
 package com.metalbeetle.fruitbat.util;
 
+import com.metalbeetle.fruitbat.io.UrlSrc;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -22,7 +21,7 @@ import static org.junit.Assert.*;
  */
 public class MiscTest {
 	@Test
-	public void testDownload() throws IOException {
+	public void testDownloadFromURL() throws IOException {
 		File f = File.createTempFile("foo", "bar");
 		BufferedWriter bw = new BufferedWriter(new FileWriter(f));
 		StringBuilder longStringB = new StringBuilder();
@@ -31,7 +30,7 @@ public class MiscTest {
 		bw.write(longString);
 		bw.close();
 		File f2 = File.createTempFile("foo", "quux");
-		Misc.download(f.toURL(), f2);
+		Misc.srcToFile(new UrlSrc(f.toURL()), f2);
 		BufferedReader r = new BufferedReader(new FileReader(f2));
 		assertEquals(longString, r.readLine());
 		r.close();

@@ -1,4 +1,6 @@
 package com.metalbeetle.fruitbat.atrstorage;
+import com.metalbeetle.fruitbat.io.DataSrc;
+import com.metalbeetle.fruitbat.io.FileSrc;
 import com.metalbeetle.fruitbat.storage.Change;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.Document;
@@ -9,16 +11,15 @@ import static com.metalbeetle.fruitbat.util.Collections.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.commons.io.FileUtils;
 
 /** Document stored on file system, using ATR files, which guarantees atomicity. */
 class ATRDocument implements Comparable<ATRDocument>, Document {
 	static final String DATA_PREFIX = "d ";
 	static final String FILE_PREFIX = "f ";
 	static final String CHECKSUM_PREFIX = "c ";
+	static final String REVISION_KEY = "rev";
 
 	final int id;
 	final File location;
@@ -44,6 +45,15 @@ class ATRDocument implements Comparable<ATRDocument>, Document {
 	public int getID() { return id; }
 	public boolean isDeleted() throws FatalStorageException { return deleted; }
 
+	public String getRevision() throws FatalStorageException {
+		try {
+			return data.get(REVISION_KEY);
+		} catch (Exception e) {
+			throw new FatalStorageException("Could not find revision information for document " +
+					"with ID " + id + ". The document's data may be corrupt.", e);
+		}
+	}
+
 	ATRDocIndex myIndex() {
 		return deleted ? s.deletedIndex : s.index;
 	}
@@ -59,7 +69,7 @@ class ATRDocument implements Comparable<ATRDocument>, Document {
 		s.updateRevision();
 		// Transduce into changes for data.atr.
 		ArrayList<Change> dataChanges = new ArrayList<Change>(changes.size());
-		dataChanges.add(DataChange.put(DATA_PREFIX + CHANGE_ID_KEY, changeID));
+		dataChanges.add(DataChange.put(REVISION_KEY, changeID));
 		for (Change c : changes) {
 			if (c instanceof DataChange.Put) {
 				DataChange.Put p = (DataChange.Put) c;
@@ -80,7 +90,7 @@ class ATRDocument implements Comparable<ATRDocument>, Document {
 				PageChange.Put p = (PageChange.Put) c;
 				String checksum;
 				try {
-					checksum = Long.toHexString(FileUtils.checksumCRC32(p.value));
+					checksum = checksum(p.value);
 				} catch (IOException e) {
 					throw new FatalStorageException("Could not checksum " + p.value + ".", e);
 				}
@@ -88,7 +98,7 @@ class ATRDocument implements Comparable<ATRDocument>, Document {
 				File newF = new File(location, name);
 				mkAncestors(newF);
 				try {
-					FileUtils.copyFile(p.value, newF);
+					srcToFile(p.value, newF);
 				} catch (IOException e) {
 					throw new FatalStorageException("Couldn't store page at " + p.key + ".\n" +
 							"Can't copy " + p.value + " to " + newF + ".", e);
@@ -113,7 +123,6 @@ class ATRDocument implements Comparable<ATRDocument>, Document {
 		// Commit the changes to disk.
 		data.change(dataChanges);
 		// Inform the index of data changes.
-		myIndex().keyAdded(this, CHANGE_ID_KEY, changeID);
 		for (Change c : changes) {
 			if (c instanceof DataChange.Put) {
 				DataChange.Put p = (DataChange.Put) c;
@@ -147,16 +156,20 @@ class ATRDocument implements Comparable<ATRDocument>, Document {
 		return myIndex().getKeys(this);
 	}
 
-	public URI getPage(String key) throws FatalStorageException {
-		return new File(location, data.get(FILE_PREFIX + key)).toURI();
+	public DataSrc getPage(String key) throws FatalStorageException {
+		return new FileSrc(new File(location, data.get(FILE_PREFIX + key)));
 	}
 
 	public String getPageChecksum(String key) throws FatalStorageException {
 		return data.get(CHECKSUM_PREFIX + key);
 	}
 
-	private String findFreePageName(File f) {
-		String name = f.getName();
+	private String findFreePageName(DataSrc src) {
+		// Replace all nonword non-period chars.
+		String name = src.getName().replaceAll("[^\\w.]", "");
+		if (name.length() > 30) {
+			name = name.substring(name.length() - 30, name.length());
+		}
 		int i = 2;
 		int dotIndex = name.lastIndexOf(".");
 		String preDot  = dotIndex == -1 ? name : name.substring(0, dotIndex);

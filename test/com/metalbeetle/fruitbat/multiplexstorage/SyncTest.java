@@ -3,6 +3,8 @@ package com.metalbeetle.fruitbat.multiplexstorage;
 import com.metalbeetle.fruitbat.Util;
 import com.metalbeetle.fruitbat.atrstorage.ATRStorageSystem;
 import com.metalbeetle.fruitbat.gui.DummyProgressMonitor;
+import com.metalbeetle.fruitbat.io.DataSrc;
+import com.metalbeetle.fruitbat.io.FileSrc;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
@@ -25,10 +27,12 @@ public class SyncTest {
 	Store s2;
 	Store ms;
 	File p;
+	DataSrc pSrc;
 
 	@Test
-	public void testPutSync() throws FatalStorageException, StoreConfigInvalidException, IOException {
+	public void testPutSync() throws FatalStorageException, StoreConfigInvalidException, IOException, Exception {
 		p = Util.createFile("foobar");
+		pSrc = new FileSrc(p);
 		sf1 = Util.createTempFolder();
 		sf2 = Util.createTempFolder();
 		StoreConfig sc1 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf1));
@@ -37,24 +41,24 @@ public class SyncTest {
 		s1 = sc1.init(new DummyProgressMonitor());
 		Document d = s1.create();
 		int id = d.getID();
-		d.change(l(DataChange.put("key", "value"), PageChange.put("page", p)));
+		d.change(l(DataChange.put("key", "value"), PageChange.put("page", pSrc)));
 		s1.close();
 		ms = msc.init(new DummyProgressMonitor());
 		d = ms.get(id);
 		assertEquals("value", d.get("key"));
-		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page").getPath())));
+		assertTrue(Util.hasFirstLine(d.getPage("page"), "foobar"));
 		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
 		ms.close();
 		s2 = sc2.init(new DummyProgressMonitor());
 		d = s2.get(id);
 		assertEquals("value", d.get("key"));
-		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page").getPath())));
+		assertTrue(Util.hasFirstLine(d.getPage("page"), "foobar"));
 		s2.close();
 		// Start up ms again to ensure master ID is coherent.
 		ms = msc.init(new DummyProgressMonitor());
 		d = ms.get(id);
 		assertEquals("value", d.get("key"));
-		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page").getPath())));
+		assertTrue(Util.hasFirstLine(d.getPage("page"), "foobar"));
 		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
 		ms.close();
 		p.delete();
@@ -63,8 +67,9 @@ public class SyncTest {
 	}
 
 	@Test
-	public void testChangeAndRemoveSync() throws FatalStorageException, StoreConfigInvalidException, IOException {
+	public void testChangeAndRemoveSync() throws FatalStorageException, StoreConfigInvalidException, IOException, Exception {
 		p = Util.createFile("foobar");
+		pSrc = new FileSrc(p);
 		sf1 = Util.createTempFolder();
 		sf2 = Util.createTempFolder();
 		StoreConfig sc1 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf1));
@@ -73,7 +78,7 @@ public class SyncTest {
 		s1 = sc1.init(new DummyProgressMonitor());
 		Document d = s1.create();
 		int id = d.getID();
-		d.change(l(DataChange.put("key", "value"), DataChange.put("key2", "value"), PageChange.put("page", p)));
+		d.change(l(DataChange.put("key", "value"), DataChange.put("key2", "value"), PageChange.put("page", pSrc)));
 		d.change(l(DataChange.put("key", "value2"), DataChange.remove("key2"), PageChange.move("page", "page2")));
 		s1.close();
 		ms = msc.init(new DummyProgressMonitor());
@@ -81,7 +86,7 @@ public class SyncTest {
 		assertEquals("value2", d.get("key"));
 		assertFalse(d.has("key2"));
 		assertFalse(d.hasPage("page"));
-		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page2").getPath())));
+		assertTrue(Util.hasFirstLine(d.getPage("page2"), "foobar"));
 		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
 		ms.close();
 		s2 = sc2.init(new DummyProgressMonitor());
@@ -89,7 +94,7 @@ public class SyncTest {
 		assertEquals("value2", d.get("key"));
 		assertFalse(d.has("key2"));
 		assertFalse(d.hasPage("page"));
-		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page2").getPath())));
+		assertTrue(Util.hasFirstLine(d.getPage("page2"), "foobar"));
 		s2.close();
 		p.delete();
 		Util.deleteRecursively(sf1);
@@ -97,8 +102,9 @@ public class SyncTest {
 	}
 
 	@Test
-	public void testPulldownFromBackup() throws FatalStorageException, StoreConfigInvalidException, IOException {
+	public void testPulldownFromBackup() throws FatalStorageException, StoreConfigInvalidException, IOException, Exception {
 		p = Util.createFile("foobar");
+		pSrc = new FileSrc(p);
 		sf1 = Util.createTempFolder();
 		sf2 = Util.createTempFolder();
 		StoreConfig sc1 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf1));
@@ -107,7 +113,7 @@ public class SyncTest {
 		s2 = sc2.init(new DummyProgressMonitor());
 		Document d = s2.create();
 		int id = d.getID();
-		d.change(l(DataChange.put("key", "value"), DataChange.put("key2", "value"), PageChange.put("page", p)));
+		d.change(l(DataChange.put("key", "value"), DataChange.put("key2", "value"), PageChange.put("page", pSrc)));
 		d.change(l(DataChange.put("key", "value2"), DataChange.remove("key2"), PageChange.move("page", "page2")));
 		s2.close();
 		ms = msc.init(new DummyProgressMonitor());
@@ -115,7 +121,7 @@ public class SyncTest {
 		assertEquals("value2", d.get("key"));
 		assertFalse(d.has("key2"));
 		assertFalse(d.hasPage("page"));
-		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page2").getPath())));
+		assertTrue(Util.hasFirstLine(d.getPage("page2"), "foobar"));
 		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
 		ms.close();
 		s1 = sc2.init(new DummyProgressMonitor());
@@ -123,7 +129,7 @@ public class SyncTest {
 		assertEquals("value2", d.get("key"));
 		assertFalse(d.has("key2"));
 		assertFalse(d.hasPage("page"));
-		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page2").getPath())));
+		assertTrue(Util.hasFirstLine(d.getPage("page2"), "foobar"));
 		s1.close();
 		p.delete();
 		Util.deleteRecursively(sf1);
@@ -133,6 +139,7 @@ public class SyncTest {
 	@Test
 	public void testRefuseToOverwriteBackup() throws FatalStorageException, StoreConfigInvalidException, IOException {
 		p = Util.createFile("foobar");
+		pSrc = new FileSrc(p);
 		sf1 = Util.createTempFolder();
 		sf2 = Util.createTempFolder();
 		StoreConfig sc1 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf1));
@@ -140,7 +147,7 @@ public class SyncTest {
 		StoreConfig msc = new StoreConfig(new MultiplexStorageSystem(), typedL(Object.class, l(sc1, sc2)));
 		ms = msc.init(new DummyProgressMonitor());
 		Document d = ms.create();
-		d.change(l(DataChange.put("key", "value"), DataChange.put("key2", "value"), PageChange.put("page", p)));
+		d.change(l(DataChange.put("key", "value"), DataChange.put("key2", "value"), PageChange.put("page", pSrc)));
 		d.change(l(DataChange.put("key", "value2"), DataChange.remove("key2"), PageChange.move("page", "page2")));
 		ms.close();
 		s2 = sc2.init(new DummyProgressMonitor());
@@ -158,6 +165,7 @@ public class SyncTest {
 	@Test
 	public void testDoNothingInMaster() throws FatalStorageException, StoreConfigInvalidException, IOException, InterruptedException {
 		p = Util.createFile("foobar");
+		pSrc = new FileSrc(p);
 		sf1 = Util.createTempFolder();
 		sf2 = Util.createTempFolder();
 		StoreConfig sc1 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf1));
@@ -165,7 +173,7 @@ public class SyncTest {
 		StoreConfig msc = new StoreConfig(new MultiplexStorageSystem(), typedL(Object.class, l(sc1, sc2)));
 		ms = msc.init(new DummyProgressMonitor());
 		Document d = ms.create();
-		d.change(l(DataChange.put("key", "value"), DataChange.put("key2", "value"), PageChange.put("page", p)));
+		d.change(l(DataChange.put("key", "value"), DataChange.put("key2", "value"), PageChange.put("page", pSrc)));
 		ms.close();
 
 		ms = msc.init(new DummyProgressMonitor());
@@ -206,6 +214,7 @@ public class SyncTest {
 	@Test
 	public void allowSyncToPreExistingBackup() throws FatalStorageException, StoreConfigInvalidException, IOException {
 		p = Util.createFile("foobar");
+		pSrc = new FileSrc(p);
 		sf1 = Util.createTempFolder();
 		sf2 = Util.createTempFolder();
 		StoreConfig sc1 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf1));
@@ -214,7 +223,7 @@ public class SyncTest {
 		ms = msc.init(new DummyProgressMonitor());
 		Document d = ms.create();
 		int id = d.getID();
-		d.change(l(DataChange.put("key", "value"), DataChange.put("key2", "value"), PageChange.put("page", p)));
+		d.change(l(DataChange.put("key", "value"), DataChange.put("key2", "value"), PageChange.put("page", pSrc)));
 		d.change(l(DataChange.put("key", "value2"), DataChange.remove("key2"), PageChange.move("page", "page2")));
 		ms.close();
 		s1 = sc2.init(new DummyProgressMonitor());

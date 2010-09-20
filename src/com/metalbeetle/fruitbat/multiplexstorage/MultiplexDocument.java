@@ -1,9 +1,9 @@
 package com.metalbeetle.fruitbat.multiplexstorage;
 
+import com.metalbeetle.fruitbat.io.DataSrc;
 import com.metalbeetle.fruitbat.storage.Change;
 import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
-import java.net.URI;
 import java.util.List;
 
 class MultiplexDocument implements Document, Comparable<MultiplexDocument> {
@@ -61,12 +61,13 @@ class MultiplexDocument implements Document, Comparable<MultiplexDocument> {
 		}
 	}
 
+	public String getRevision() throws FatalStorageException { return master.getRevision(); }
 	public boolean isDeleted() throws FatalStorageException { return master.isDeleted(); }
 	public boolean has(String key) throws FatalStorageException { return master.has(key); }
 	public String get(String key) throws FatalStorageException { return master.get(key); }
 	public List<String> keys() throws FatalStorageException { return master.keys(); }
 	public boolean hasPage(String key) throws FatalStorageException { return master.hasPage(key); }
-	public URI getPage(String key) throws FatalStorageException { return master.getPage(key); }
+	public DataSrc getPage(String key) throws FatalStorageException { return master.getPage(key); }
 	public String getPageChecksum(String key) throws FatalStorageException { return master.getPageChecksum(key); }
 	public List<String> pageKeys() throws FatalStorageException { return master.pageKeys(); }
 

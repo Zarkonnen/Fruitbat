@@ -1,12 +1,12 @@
 package com.metalbeetle.fruitbat.storage;
 
-import java.io.File;
+import com.metalbeetle.fruitbat.io.DataSrc;
 
 public abstract class PageChange implements Change {
 	public static final class Put extends PageChange {
 		public final String key;
-		public final File value;
-		Put(String key, File value) { this.key = key; this.value = value; }
+		public final DataSrc value;
+		Put(String key, DataSrc value) { this.key = key; this.value = value; }
 	}
 	public static final class Move extends PageChange {
 		public final String srcKey;
@@ -18,7 +18,7 @@ public abstract class PageChange implements Change {
 		Remove(String key) { this.key = key; }
 	}
 
-	public static Change put(String key, File value) {
+	public static Change put(String key, DataSrc value) {
 		return new Put(key, value);
 	}
 	public static Change move(String srcKey, String dstKey) {

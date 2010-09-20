@@ -1,6 +1,7 @@
 package com.metalbeetle.fruitbat.multiplexstorage;
 
 import com.metalbeetle.fruitbat.Fruitbat;
+import com.metalbeetle.fruitbat.io.DataSrc;
 import com.metalbeetle.fruitbat.storage.Change;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
@@ -104,7 +105,7 @@ class MultiplexStore implements Store {
 		// unchanged - otherwise someone modified the backup independently, which is BAD.
 		String slaveRevKey = getSlaveRevKey(from, to);
 		if (secondStoreIsBackupOfFirst &&
-			!to.isEmptyStore() &&
+		    !to.isEmptyStore() &&
 		    from.hasMetaData(slaveRevKey) &&
 		    !from.getMetaData(slaveRevKey).equals(to.getRevision()))
 		{
@@ -174,7 +175,7 @@ class MultiplexStore implements Store {
 	}
 
 	void syncDocs(Document from, Document to, int i) throws FatalStorageException {
-		if (!from.get(Document.CHANGE_ID_KEY).equals(to.get(Document.CHANGE_ID_KEY))) {
+		if (!from.getRevision().equals(to.getRevision())) {
 			pm.progress("Synchronizing " + from, i);
 			ArrayList<Change> syncChanges = new ArrayList<Change>();
 			// First, the data changes.
@@ -195,21 +196,7 @@ class MultiplexStore implements Store {
 			HashSet<File> toDelete = new HashSet<File>();
 			for (String key : from.pageKeys()) {
 				if (!to.hasPage(key) || !from.getPageChecksum(key).equals(to.getPageChecksum(key))) {
-					URI uri = from.getPage(key);
-					File pageF;
-					if (uri.getScheme().equals("file")) {
-						pageF = new File(uri.getPath());
-					} else {
-						try {
-							String name = uri.getPath().replaceAll("[^a-zA-Z0-9.]", "");
-							download(uri.toURL(), pageF = File.createTempFile("", name));
-							toDelete.add(pageF);
-						} catch (Exception e) {
-							throw new FatalStorageException("Cannot read page file at " + uri + ".",
-									e);
-						}
-					}
-					syncChanges.add(PageChange.put(key, pageF));
+					syncChanges.add(PageChange.put(key, from.getPage(key)));
 				}
 			}
 			for (String key : to.pageKeys()) {
@@ -218,7 +205,7 @@ class MultiplexStore implements Store {
 				}
 			}
 
-			to.change(from.get(Document.CHANGE_ID_KEY), syncChanges);
+			to.change(from.getRevision(), syncChanges);
 			for (File f : toDelete) { f.delete(); }
 		}
 	}

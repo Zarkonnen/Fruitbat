@@ -1,6 +1,7 @@
 package com.metalbeetle.fruitbat.gui;
 
 import com.metalbeetle.fruitbat.Fruitbat;
+import com.metalbeetle.fruitbat.io.FileSrc;
 import com.metalbeetle.fruitbat.storage.Change;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.Document;
@@ -286,8 +287,8 @@ class DocumentFrame extends JFrame {
 						ImageIO.write(preview, "jpg", tmp);
 						int nextIndex = numPages();
 						List<Change> cs = new ArrayList<Change>();
-						cs.add(PageChange.put(string(nextIndex), f));
-						cs.add(PageChange.put(PREVIEW_PREFIX + string(nextIndex), tmp));
+						cs.add(PageChange.put(string(nextIndex), new FileSrc(f)));
+						cs.add(PageChange.put(PREVIEW_PREFIX + string(nextIndex), new FileSrc(tmp)));
 						if (nextIndex == 0) {
 							String cprof1 = ColorProfiler.profile1(preview);
 							String cprof2 = ColorProfiler.profile2(preview);

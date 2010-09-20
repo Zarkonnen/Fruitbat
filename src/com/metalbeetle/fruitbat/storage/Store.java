@@ -13,7 +13,9 @@ public interface Store {
 	public String getRevision() throws FatalStorageException;
 	/** True when store is freshly created, false as soon as the revision changes the first time. */
 	public boolean isEmptyStore() throws FatalStorageException;
+
 	public void setProgressMonitor(ProgressMonitor pm);
+
 	public int getNextRetainedPageNumber() throws FatalStorageException;
 	public void setNextRetainedPageNumber(int nextRetainedPageNumber) throws FatalStorageException;
 	public DocIndex getIndex();

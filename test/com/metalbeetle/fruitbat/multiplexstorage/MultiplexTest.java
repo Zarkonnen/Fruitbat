@@ -3,6 +3,8 @@ package com.metalbeetle.fruitbat.multiplexstorage;
 import com.metalbeetle.fruitbat.Util;
 import com.metalbeetle.fruitbat.atrstorage.ATRStorageSystem;
 import com.metalbeetle.fruitbat.gui.DummyProgressMonitor;
+import com.metalbeetle.fruitbat.io.DataSrc;
+import com.metalbeetle.fruitbat.io.FileSrc;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
@@ -25,6 +27,7 @@ public class MultiplexTest {
 	Store s2;
 	Store ms;
 	File p;
+	DataSrc pSrc;
 
 	@Test
 	public void testCleanStoreValues() throws FatalStorageException, StoreConfigInvalidException {
@@ -107,8 +110,9 @@ public class MultiplexTest {
 	}
 
 	@Test
-	public void testMultiplexPut() throws FatalStorageException, StoreConfigInvalidException, IOException {
+	public void testMultiplexPut() throws FatalStorageException, StoreConfigInvalidException, IOException, Exception {
 		p = Util.createFile("foobar");
+		pSrc = new FileSrc(p);
 		sf1 = Util.createTempFolder();
 		sf2 = Util.createTempFolder();
 		StoreConfig sc1 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf1));
@@ -119,20 +123,20 @@ public class MultiplexTest {
 		Document d = ms.create();
 		assertFalse(ms.isEmptyStore());
 		int id = d.getID();
-		d.change(l(DataChange.put("key", "value"), PageChange.put("page", p)));
+		d.change(l(DataChange.put("key", "value"), PageChange.put("page", pSrc)));
 		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
 		ms.close();
 		s1 = sc1.init(new DummyProgressMonitor());
 		assertFalse(s1.isEmptyStore());
 		d = s1.get(id);
 		assertEquals("value", d.get("key"));
-		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page").getPath())));
+		assertTrue(Util.hasFirstLine(d.getPage("page"), "foobar"));
 		s1.close();
 		s2 = sc2.init(new DummyProgressMonitor());
 		assertFalse(s2.isEmptyStore());
 		d = s2.get(id);
 		assertEquals("value", d.get("key"));
-		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page").getPath())));
+		assertTrue(Util.hasFirstLine(d.getPage("page"), "foobar"));
 		s2.close();
 		p.delete();
 		Util.deleteRecursively(sf1);
@@ -140,8 +144,9 @@ public class MultiplexTest {
 	}
 
 	@Test
-	public void testMultiplexChangeAndRemove() throws FatalStorageException, StoreConfigInvalidException, IOException {
+	public void testMultiplexChangeAndRemove() throws FatalStorageException, StoreConfigInvalidException, IOException, Exception {
 		p = Util.createFile("foobar");
+		pSrc = new FileSrc(p);
 		sf1 = Util.createTempFolder();
 		sf2 = Util.createTempFolder();
 		StoreConfig sc1 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf1));
@@ -152,7 +157,7 @@ public class MultiplexTest {
 		Document d = ms.create();
 		assertFalse(ms.isEmptyStore());
 		int id = d.getID();
-		d.change(l(DataChange.put("key", "value"), DataChange.put("key2", "value"), PageChange.put("page", p)));
+		d.change(l(DataChange.put("key", "value"), DataChange.put("key2", "value"), PageChange.put("page", pSrc)));
 		d.change(l(DataChange.put("key", "value2"), DataChange.remove("key2"), PageChange.move("page", "page2")));
 		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
 		ms.close();
@@ -162,7 +167,7 @@ public class MultiplexTest {
 		assertEquals("value2", d.get("key"));
 		assertFalse(d.has("key2"));
 		assertFalse(d.hasPage("page"));
-		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page2").getPath())));
+		assertTrue(Util.hasFirstLine(d.getPage("page2"), "foobar"));
 		s1.close();
 		s2 = sc2.init(new DummyProgressMonitor());
 		assertFalse(s2.isEmptyStore());
@@ -170,7 +175,7 @@ public class MultiplexTest {
 		assertEquals("value2", d.get("key"));
 		assertFalse(d.has("key2"));
 		assertFalse(d.hasPage("page"));
-		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page2").getPath())));
+		assertTrue(Util.hasFirstLine(d.getPage("page2"), "foobar"));
 		s2.close();
 		p.delete();
 		Util.deleteRecursively(sf1);
@@ -178,8 +183,9 @@ public class MultiplexTest {
 	}
 
 	@Test
-	public void testMultiplexDeleteUndeleteSync() throws FatalStorageException, StoreConfigInvalidException, IOException {
+	public void testMultiplexDeleteUndeleteSync() throws FatalStorageException, StoreConfigInvalidException, IOException, Exception {
 		p = Util.createFile("foobar");
+		pSrc = new FileSrc(p);
 		sf1 = Util.createTempFolder();
 		sf2 = Util.createTempFolder();
 		StoreConfig sc1 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf1));
@@ -190,7 +196,7 @@ public class MultiplexTest {
 		Document d = ms.create();
 		assertFalse(ms.isEmptyStore());
 		int id = d.getID();
-		d.change(l(DataChange.put("key", "value"), DataChange.put("key2", "value"), PageChange.put("page", p)));
+		d.change(l(DataChange.put("key", "value"), DataChange.put("key2", "value"), PageChange.put("page", pSrc)));
 		d.change(l(DataChange.put("key", "value2"), DataChange.remove("key2"), PageChange.move("page", "page2")));
 		ms.delete(d);
 		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
@@ -202,7 +208,7 @@ public class MultiplexTest {
 		assertEquals("value2", d.get("key"));
 		assertFalse(d.has("key2"));
 		assertFalse(d.hasPage("page"));
-		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page2").getPath())));
+		assertTrue(Util.hasFirstLine(d.getPage("page2"), "foobar"));
 		s1.close();
 
 		s2 = sc2.init(new DummyProgressMonitor());
@@ -211,7 +217,7 @@ public class MultiplexTest {
 		assertEquals("value2", d.get("key"));
 		assertFalse(d.has("key2"));
 		assertFalse(d.hasPage("page"));
-		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page2").getPath())));
+		assertTrue(Util.hasFirstLine(d.getPage("page2"), "foobar"));
 		s2.close();
 
 		s1 = sc1.init(new DummyProgressMonitor());
@@ -220,7 +226,7 @@ public class MultiplexTest {
 		assertEquals("value2", d.get("key"));
 		assertFalse(d.has("key2"));
 		assertFalse(d.hasPage("page"));
-		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page2").getPath())));
+		assertTrue(Util.hasFirstLine(d.getPage("page2"), "foobar"));
 		s1.close();
 
 		ms = msc.init(new DummyProgressMonitor());
@@ -231,7 +237,7 @@ public class MultiplexTest {
 		assertEquals("value2", d.get("key"));
 		assertFalse(d.has("key2"));
 		assertFalse(d.hasPage("page"));
-		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page2").getPath())));
+		assertTrue(Util.hasFirstLine(d.getPage("page2"), "foobar"));
 		ms.close();
 
 		s2 = sc2.init(new DummyProgressMonitor());
@@ -240,7 +246,7 @@ public class MultiplexTest {
 		assertEquals("value2", d.get("key"));
 		assertFalse(d.has("key2"));
 		assertFalse(d.hasPage("page"));
-		assertEquals("foobar", Util.getFirstLine(new File(d.getPage("page2").getPath())));
+		assertTrue(Util.hasFirstLine(d.getPage("page2"), "foobar"));
 		s2.close();
 
 		p.delete();

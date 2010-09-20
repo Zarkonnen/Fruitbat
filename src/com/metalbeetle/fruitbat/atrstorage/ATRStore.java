@@ -7,6 +7,7 @@ import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.DocIndex;
 import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
+import com.metalbeetle.fruitbat.storage.RevisionNotFoundException;
 import com.metalbeetle.fruitbat.storage.Store;
 import com.metalbeetle.fruitbat.util.StringPool;
 import java.io.File;
@@ -203,6 +204,14 @@ class ATRStore implements Store {
 		}
 	}
 
+	public List<Change> getChangesSince(String revision) throws FatalStorageException, RevisionNotFoundException {
+		throw new UnsupportedOperationException("Not supported yet.");
+	}
+
+	public String revert(String toRevision) throws FatalStorageException, RevisionNotFoundException {
+		throw new UnsupportedOperationException("Not supported yet.");
+	}
+
 	static final class DocFilter implements FilenameFilter {
 		public boolean accept(File dir, String name) { return name.matches("[0-9]+"); }
 	}
@@ -231,9 +240,8 @@ class ATRStore implements Store {
 			mkDirs(d.location);
 			idToDoc.put(d.getID(), d);
 			docs.add(0, d);
-			d.change(l(
-					DataChange.put(Fruitbat.CREATION_DATE_KEY, currentDateString()),
-					DataChange.put(Document.CHANGE_ID_KEY, "0")));
+			d.change(/*revision*/ "0", l(
+					DataChange.put(Fruitbat.CREATION_DATE_KEY, currentDateString())));
 			updateRevision();
 			return d;
 		} catch (Exception e) {

@@ -2,13 +2,11 @@ package com.metalbeetle.fruitbat.atrstorage;
 
 import com.metalbeetle.fruitbat.Util;
 import com.metalbeetle.fruitbat.gui.DummyProgressMonitor;
+import com.metalbeetle.fruitbat.io.FileSrc;
 import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.storage.PageChange;
-import com.metalbeetle.fruitbat.util.StringPool;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import org.junit.After;
 import org.junit.Test;
@@ -27,11 +25,10 @@ public class FileStorageTest {
 		File myF = mkTmpFile("foo");
 		Document d = s.create();
 		int id = d.getID();
-		d.change(l(PageChange.put(SCARY, myF)));
+		d.change(l(PageChange.put(SCARY, new FileSrc(myF))));
 		rebootStore();
 		d = s.get(id);
-		myF = new File(d.getPage(SCARY).getPath());
-		assertTrue(hasContents(myF, "foo"));
+		assertTrue(Util.hasFirstLine(d.getPage(SCARY), "foo"));
 	}
 
 	@Test
@@ -39,7 +36,7 @@ public class FileStorageTest {
 		File myF = mkTmpFile("foo");
 		Document d = s.create();
 		int id = d.getID();
-		d.change(l(PageChange.put(SCARY, myF)));
+		d.change(l(PageChange.put(SCARY, new FileSrc(myF))));
 		rebootStore();
 		d = s.get(id);
 		d.change(l(PageChange.remove(SCARY)));
@@ -58,15 +55,6 @@ public class FileStorageTest {
 			fw.close();
 		}
 		return f;
-	}
-
-	boolean hasContents(File f, String contents) throws Exception {
-		BufferedReader r = null;
-		try {
-			return (r = new BufferedReader(new FileReader(f))).readLine().equals(contents);
-		} finally {
-			r.close();
-		}
 	}
 
 	void rebootStore() throws FatalStorageException {

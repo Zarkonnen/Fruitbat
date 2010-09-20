@@ -87,17 +87,17 @@ public class NecromancyTest {
 		d1.change(l(DataChange.put("a", "x")));
 		d1.change(l(DataChange.put("a", "y")));
 		int id1 = d1.getID();
-		String v1 = d1.get(Document.CHANGE_ID_KEY);
+		String v1 = d1.getRevision();
 		Document d2 = s.create();
 		d2.change(l(DataChange.put("a", "x")));
 		d2.change(l(DataChange.put("a", "y")));
 		d2.change(l(DataChange.put("a", "z")));
 		int id2 = d2.getID();
-		String v2 = d2.get(Document.CHANGE_ID_KEY);
+		String v2 = d2.getRevision();
 		s.delete(d1);
 		crashAndRebootStore();
-		assertEquals(v1, s.getDeleted(id1).get(Document.CHANGE_ID_KEY));
-		assertEquals(v2, s.get(id2).get(Document.CHANGE_ID_KEY));
+		assertEquals(v1, s.getDeleted(id1).getRevision());
+		assertEquals(v2, s.get(id2).getRevision());
 	}
 
 	void rebootStore() throws FatalStorageException {

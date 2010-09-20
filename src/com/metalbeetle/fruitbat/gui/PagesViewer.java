@@ -1,5 +1,7 @@
 package com.metalbeetle.fruitbat.gui;
 
+import com.metalbeetle.fruitbat.io.DataSrc;
+import com.metalbeetle.fruitbat.io.FileSrc;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import java.awt.BorderLayout;
@@ -100,7 +102,7 @@ class PagesViewer extends JPanel {
 		try {
 			Runtime.getRuntime().exec(new String[] {
 				"open",
-				df.d.getPage(string(pv.pageIndex)).getPath()
+				((FileSrc) df.d.getPage(string(pv.pageIndex))).f.getPath()
 			});
 		} catch (Exception ex) {}
 	}
@@ -182,7 +184,7 @@ class PagesViewer extends JPanel {
 
 	static class PageViewer extends JPanel {
 		final PagesViewer pv;
-		File imgFile;
+		DataSrc imgSrc;
 		BufferedImage docImg;
 		int pageIndex = 0;
 		String hardcopyNum;
@@ -196,11 +198,10 @@ class PagesViewer extends JPanel {
 			try {
 				g.setColor(Color.WHITE);
 				g.fillRect(0, 0, getWidth(), getHeight());
-				URI pageURI = pv.df.d.getPage(DocumentFrame.PREVIEW_PREFIX + pageIndex);
-				File f = new File(pageURI.getPath());
-				if (!f.equals(imgFile)) {
-					imgFile = f;
-					docImg = ImageIO.read(f);
+				DataSrc src = pv.df.d.getPage(DocumentFrame.PREVIEW_PREFIX + pageIndex);
+				if (!src.equals(imgSrc)) {
+					imgSrc = src;
+					docImg = ImageIO.read(src.getInputStream());
 				}
 				g.drawImage(docImg, 0, 0, getWidth(),
 						docImg.getHeight() * getWidth() / docImg.getWidth(), this);

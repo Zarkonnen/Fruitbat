@@ -1,16 +1,15 @@
 package com.metalbeetle.fruitbat.util;
 
-import com.metalbeetle.fruitbat.Fruitbat;
+import com.metalbeetle.fruitbat.io.DataSrc;
+import com.metalbeetle.fruitbat.io.FileSrc;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Method;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.URL;
 import java.util.GregorianCalendar;
+import java.util.zip.CRC32;
+import org.apache.commons.io.FileUtils;
 
 /** Misc utilities. */
 public final class Misc {
@@ -59,11 +58,17 @@ public final class Misc {
 	}
 
 	static int BLOCK_SIZE = 2048;
-	public static void download(URL url, File target) throws IOException {
+	public static void srcToFile(DataSrc src, File target) throws IOException {
+		if (src instanceof FileSrc) {
+			try {
+				FileUtils.copyFile(((FileSrc) src).f, target);
+				return;
+			} catch (IOException e) { /* try manually */ }
+		}
 		BufferedInputStream in = null;
 		BufferedOutputStream out = null;
 		try {
-			in = new BufferedInputStream(url.openStream());
+			in = new BufferedInputStream(src.getInputStream());
 			out = new BufferedOutputStream(new FileOutputStream(target));
 			int bytesRead = -1;
 			byte[] buffer = new byte[BLOCK_SIZE];
@@ -72,7 +77,23 @@ public final class Misc {
 			}
 		} finally {
 			try { in.close(); } catch (Exception e) {}
-			try { out.close(); } catch (Exception e) {}
+			out.close();
+		}
+	}
+
+	public static String checksum(DataSrc src) throws IOException {
+		CRC32 crc = new CRC32();
+		BufferedInputStream in = null;
+		try {
+			in = new BufferedInputStream(src.getInputStream());
+			int bytesRead = -1;
+			byte[] buffer = new byte[BLOCK_SIZE];
+			while ((bytesRead = in.read(buffer)) != -1) {
+				crc.update(buffer, 0, bytesRead);
+			}
+			return Long.toHexString(crc.getValue());
+		} finally {
+			try { in.close(); } catch (Exception e) {}
 		}
 	}
 
