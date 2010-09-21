@@ -47,7 +47,7 @@ import javax.swing.event.DocumentListener;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 
-class DocumentFrame extends JFrame {
+class DocumentFrame extends JFrame implements FileDrop.Listener {
 	static final List<String> ACCEPTED_EXTENSIONS = l(".jpg", ".tiff", ".tif", ".bmp", ".png",
 			".pdf");
 	static final String PREVIEW_PREFIX = "p";
@@ -157,6 +157,8 @@ class DocumentFrame extends JFrame {
 				saveTags();
 			}
 		});
+
+		new FileDrop(viewer, this);
 
 		updateTags();
 		mf.app.shortcutOverlay.attachTo(this);
@@ -345,6 +347,37 @@ class DocumentFrame extends JFrame {
 				mf.pm.hideProgressBar();
 			}
 		}}.start();
+	}
+
+	/**
+	 * Called when one or several files are dropped into the viewer. Recursively explores
+	 * directories.
+	 */
+	public void filesDropped(File[] files) {
+		ArrayList<File> fs = new ArrayList<File>();
+		for (File f : files) { fs.addAll(getAvailableFiles(f, 0)); }
+		if (fs.size() > 0) {
+			insertPages(fs.toArray(new File[fs.size()]), false, false, numPages());
+		}
+	}
+
+	List<File> getAvailableFiles(File f, int depth) {
+		if (depth == 100) { return l(); }
+		ArrayList<File> fs = new ArrayList<File>();
+		if (f.isDirectory()) {
+			for (File child : f.listFiles()) {
+				fs.addAll(getAvailableFiles(child, depth + 1));
+			}
+		} else {
+			if (f.canRead()) {
+				for (String ext : ACCEPTED_EXTENSIONS) {
+					if (f.getName().toLowerCase().endsWith(ext)) {
+						fs.add(f);
+					}
+				}
+			}
+		}
+		return fs;
 	}
 
 	static class ImportFileAccessory extends Box {

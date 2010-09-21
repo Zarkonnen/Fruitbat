@@ -42,7 +42,7 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 			JLabel l = new JLabel(f.getName() + ":");
 			cs = new GridBagConstraints(
 					     /*gridx*/ 0,
-					     /*gridy*/ y,
+					     /*gridy*/ y * 2,
 					 /*gridwidth*/ 1,
 					/*gridheight*/ 1,
 					   /*weightx*/ 1,
@@ -59,11 +59,31 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 			FieldJComponent fjc = f.getFieldJComponent();
 			((JComponent) fjc).setBorder(new BevelBorder(BevelBorder.LOWERED));
 			fjc.setValueListener(this);
+
+			String err = f.validate(fjc.getValue());
+			JLabel errL = new JLabel(err == null ? "" : err);
+			errL.setForeground(Color.RED);
 			cs = new GridBagConstraints(
-					     /*gridx*/ 1,
-					     /*gridy*/ y,
+					     /*gridx*/ 0,
+					     /*gridy*/ y * 2 + 1,
 					 /*gridwidth*/ 1,
 					/*gridheight*/ 1,
+					   /*weightx*/ 1,
+					   /*weighty*/ 1,
+					    /*anchor*/ WEST,
+					      /*fill*/ NONE,
+					    /*insets*/ new Insets(5, 10, 0, 0),
+					     /*ipadx*/ 0,
+					     /*ipady*/ 0
+					);
+			add(errL, cs);
+			errs.add(errL);
+
+			cs = new GridBagConstraints(
+					     /*gridx*/ 1,
+					     /*gridy*/ y * 2,
+					 /*gridwidth*/ 1,
+					/*gridheight*/ 2,
 					   /*weightx*/ 1,
 					   /*weighty*/ 1,
 					    /*anchor*/ WEST,
@@ -75,31 +95,12 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 			add((JComponent) fjc, cs);
 			fcs.add(fjc);
 
-			String err = f.validate(fjc.getValue());
-			JLabel errL = new JLabel(err == null ? "" : err);
-			errL.setForeground(Color.RED);
-			cs = new GridBagConstraints(
-					     /*gridx*/ 2,
-					     /*gridy*/ y,
-					 /*gridwidth*/ 1,
-					/*gridheight*/ 1,
-					   /*weightx*/ 1,
-					   /*weighty*/ 1,
-					    /*anchor*/ WEST,
-					      /*fill*/ NONE,
-					    /*insets*/ new Insets(5, 0, 0, 10),
-					     /*ipadx*/ 0,
-					     /*ipady*/ 0
-					);
-			add(errL, cs);
-			errs.add(errL);
-
 			y++;
 		}
 
 		GridBagConstraints cs = new GridBagConstraints(
 					     /*gridx*/ 0,
-					     /*gridy*/ y,
+					     /*gridy*/ y * 2,
 					 /*gridwidth*/ 3,
 					/*gridheight*/ 1,
 					   /*weightx*/ 1,

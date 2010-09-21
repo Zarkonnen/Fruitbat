@@ -42,7 +42,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 
-public class MainFrame extends JFrame implements Closeable {
+public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 	static final int DEFAULT_MAX_DOCS = 50;
 
 	final Fruitbat app;
@@ -129,6 +129,7 @@ public class MainFrame extends JFrame implements Closeable {
 					docsL.setCursor(new Cursor(Cursor.HAND_CURSOR));
 				docsP.add(docsListSP = new JScrollPane(), BorderLayout.CENTER);
 					docsListSP.setViewportView(docsList = new DocsList(this));
+					new FileDrop(docsListSP, this);
 			split.setRightComponent(tagsP = new JPanel(new BorderLayout(5, 5)));
 				tagsP.add(tagsL = new JLabel("with these tags"), BorderLayout.NORTH);
 				tagsP.add(tagsListSP = new JScrollPane(), BorderLayout.CENTER);
@@ -251,14 +252,19 @@ public class MainFrame extends JFrame implements Closeable {
 		}
 	}
 
-	void newDocument() {
+	DocumentFrame newDocument() {
 		try {
 			Document d = store.create();
 			search(lastSearch, DEFAULT_MAX_DOCS, /*force*/ true);
-			openDocManager.open(d);
+			return openDocManager.open(d);
 		} catch (FatalStorageException e) {
 			pm.handleException(e, this);
+			return null;
 		}
+	}
+
+	public void filesDropped(File[] files) {
+		newDocument().filesDropped(files);
 	}
 
 	public void setProgressMonitor(ProgressMonitor pm) {

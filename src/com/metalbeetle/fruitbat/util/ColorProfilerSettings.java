@@ -5,37 +5,37 @@ import java.awt.Color;
 public class ColorProfilerSettings {
 	public static final Color DEFAULT_BROWN = new Color(192, 168, 20);
 
-	public static final ColorProfilerSettings DEFAULT_2 = new ColorProfilerSettings(
+	public static final ColorProfilerSettings DEFAULT_1 = new ColorProfilerSettings(
 			/*compress*/          64,
 			/*minSaturation*/    180,
 			/*deBrownIntensity*/   0.08,
 			/*inclusionFraction*/  0.6,
 			/*imgW*/              64,
-			/*minCount*/           12);
+			/*minCount*/           0);
 
-	public static final ColorProfilerSettings SENSITIVE_2 = new ColorProfilerSettings(
+	public static final ColorProfilerSettings SENSITIVE_1 = new ColorProfilerSettings(
 			/*compress*/          64,
 			/*minSaturation*/    160,
 			/*deBrownIntensity*/   0.05,
 			/*inclusionFraction*/  0.75,
 			/*imgW*/              100,
-			/*minCount*/           22);
+			/*minCount*/           0);
 
-	public static final ColorProfilerSettings DEFAULT_1 = new ColorProfilerSettings(
+	public static final ColorProfilerSettings DEFAULT_2 = new ColorProfilerSettings(
 			/*compress*/          48,
 			/*minSaturation*/    170,
 			/*deBrownIntensity*/   0.07,
 			/*inclusionFraction*/  0.55,
 			/*imgW*/              92,
-			/*minCount*/           20);
+			/*minCount*/           0);
 
-	public static final ColorProfilerSettings SENSITIVE_1 = new ColorProfilerSettings(
+	public static final ColorProfilerSettings SENSITIVE_2 = new ColorProfilerSettings(
 			/*compress*/          48,
 			/*minSaturation*/    140,
 			/*deBrownIntensity*/   0.045,
 			/*inclusionFraction*/  0.7,
 			/*imgW*/              150,
-			/*minCount*/           20);
+			/*minCount*/           0);
 
 	public final int compress;
 	public final int minSaturation;
