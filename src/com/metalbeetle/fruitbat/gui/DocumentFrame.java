@@ -48,7 +48,8 @@ import static com.metalbeetle.fruitbat.util.Collections.*;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 
 class DocumentFrame extends JFrame {
-	static final List<String> ACCEPTED_EXTENSIONS = l(".jpg", ".tiff", ".tif", ".bmp", ".png");
+	static final List<String> ACCEPTED_EXTENSIONS = l(".jpg", ".tiff", ".tif", ".bmp", ".png",
+			".pdf");
 	static final String PREVIEW_PREFIX = "p";
 	static final String COLOR_PROFILE_1 = Fruitbat.HIDDEN_KEY_PREFIX + "cprof1";
 	static final String COLOR_PROFILE_2 = Fruitbat.HIDDEN_KEY_PREFIX + "cprof2";
@@ -121,7 +122,7 @@ class DocumentFrame extends JFrame {
 				buttonP.add(addPageB = new JButton("Add Page"));
 					addPageB.setFocusable(false);
 					addPageB.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
-						addPage();
+						insertPagesAt(numPages());
 						tagsF.requestFocusInWindow();
 					}});
 		c.add(split = new JSplitPane(), BorderLayout.CENTER);
@@ -254,9 +255,10 @@ class DocumentFrame extends JFrame {
 		}
 	}
 
-	void addPage() {
+	void insertPagesAt(int atIndex) {
 		JFileChooser c = new JFileChooser(mf.lastDirectory);
-		c.setDialogTitle("Choose one or several pages to add");
+		c.setDialogTitle("Choose one or several pages to " +
+				(atIndex == numPages() ? "add" : "insert"));
 		c.setAcceptAllFileFilterUsed(false);
 		c.setFileFilter(new PageFileFilter());
 		c.setMultiSelectionEnabled(true);
@@ -266,30 +268,48 @@ class DocumentFrame extends JFrame {
 			mf.lastDirectory = c.getCurrentDirectory();
 			File[] fs = c.getSelectedFiles();
 			if (fs != null && fs.length > 0) {
-				addPages(fs, ifa.retainedOriginal.isSelected(), ifa.deleteAfterAdding.isSelected());
+				insertPages(fs, ifa.retainedOriginal.isSelected(), ifa.deleteAfterAdding.isSelected(),
+						atIndex);
 			}
 		}
 	}
 
-	void addPages(final File[] pageFiles, final boolean retainOriginals,
-			final boolean deleteAfterAdding)
+	void insertPages(final File[] pageFiles, final boolean retainOriginals,
+			final boolean deleteAfterAdding, final int atIndex)
 	{
+		final int numPages = pageFiles.length;
 		saveTags();
 		new Thread("Adding page(s)") { @Override public void run() {
 			mf.pm.showProgressBar("Adding pages", "", pageFiles.length * 2);
 			try {
+				List<Change> cs = new ArrayList<Change>();
+				// Shift later pages out of the way.
+				mf.pm.progress("Renumbering pages...", -1);
+				int shiftIndex = numPages() - 1;
+				while (shiftIndex >= atIndex) {
+					cs.add(PageChange.move(string(shiftIndex), string(shiftIndex + numPages)));
+					if (d.hasPage(PREVIEW_PREFIX + string(shiftIndex))) {
+						cs.add(PageChange.move(PREVIEW_PREFIX + string(shiftIndex),
+								PREVIEW_PREFIX + string(shiftIndex + numPages)));
+					}
+					if (d.has(HARDCOPY_NUMBER_PREFIX + string(shiftIndex))) {
+						cs.add(DataChange.move(HARDCOPY_NUMBER_PREFIX + string(shiftIndex),
+								HARDCOPY_NUMBER_PREFIX + string(shiftIndex + numPages)));
+					}
+					shiftIndex--;
+				}
 				int loop = 0;
 				for (File f : pageFiles) {
 					try {
+						// Process page
 						mf.pm.progress("Creating preview image of " + f, loop * 2);
 						BufferedImage preview = PreviewImager.getPreviewImage(f);
 						File tmp = File.createTempFile("preview", f.getName() + ".jpg");
 						ImageIO.write(preview, "jpg", tmp);
-						int nextIndex = numPages();
-						List<Change> cs = new ArrayList<Change>();
-						cs.add(PageChange.put(string(nextIndex), new FileSrc(f)));
-						cs.add(PageChange.put(PREVIEW_PREFIX + string(nextIndex), new FileSrc(tmp)));
-						if (nextIndex == 0) {
+						final int myIndex = atIndex + loop;
+						cs.add(PageChange.put(string(myIndex), new FileSrc(f)));
+						cs.add(PageChange.put(PREVIEW_PREFIX + string(myIndex), new FileSrc(tmp)));
+						if (myIndex == 0) {
 							String cprof1 = ColorProfiler.profile1(preview);
 							String cprof2 = ColorProfiler.profile2(preview);
 							cs.add(DataChange.put(COLOR_PROFILE_1, cprof1));
@@ -299,22 +319,28 @@ class DocumentFrame extends JFrame {
 						if (retainOriginals) {
 							int nextRetN = mf.store.getNextRetainedPageNumber();
 							mf.store.setNextRetainedPageNumber(nextRetN + 1);
-							cs.add(DataChange.put(HARDCOPY_NUMBER_PREFIX + nextIndex,
+							cs.add(DataChange.put(HARDCOPY_NUMBER_PREFIX + myIndex,
 									string(nextRetN)));
 						}
-						mf.pm.progress("Adding page: " + f, loop * 2 + 1);
-						d.change(cs);
-						if (deleteAfterAdding) {
-							f.delete();
-						}
 					} catch (Exception e) {
-						mf.pm.handleException(new Exception("Could not add file " + f + " as a " +
-								"page.", e), null);
+						mf.pm.handleException(new Exception("Could not process " + f + " as " +
+								"a page.", e), null);
+						return;
 					}
 					loop++;
 				}
-				viewer.setPage(numPages() - 1);
+				mf.pm.progress("Committing data to store", -1);
+				d.change(cs);
+				if (deleteAfterAdding) {
+					mf.pm.progress("Deleting originals", -1);
+					for (File f : pageFiles) {
+						try { f.delete(); } catch (Exception e) { /* so what */ }
+					}
+				}
+				viewer.setPage(Math.min(atIndex, numPages() - 1));
 				suggestedTagsList.update();
+			} catch (Exception e) {
+				mf.pm.handleException(new Exception("Could not add page(s).", e), null);
 			} finally {
 				mf.pm.hideProgressBar();
 			}

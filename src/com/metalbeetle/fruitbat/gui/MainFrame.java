@@ -1,5 +1,6 @@
 package com.metalbeetle.fruitbat.gui;
 
+import com.metalbeetle.fruitbat.ByValueComparator;
 import com.metalbeetle.fruitbat.Closeable;
 import com.metalbeetle.fruitbat.Fruitbat;
 import com.metalbeetle.fruitbat.storage.Document;
@@ -24,6 +25,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.prefs.BackingStoreException;
@@ -220,18 +222,21 @@ public class MainFrame extends JFrame implements Closeable {
 			lastMaxDocs = maxDocs;
 			String[] terms = searchText.split(" +");
 			final HashMap<String, String> searchKV = new HashMap<String, String>();
+			final ArrayList<String> sortKeys = new ArrayList<String>();
 			for (String t : terms) {
 				String[] kv = t.split(":", 2);
 				if (kv[0].length() == 0) { continue; }
 				if (searchKV.containsKey(kv[0])) { continue; }
 				if (!store.getIndex().isKey(kv[0])) { continue; }
 				searchKV.put(kv[0], kv.length == 1 ? null : kv[1]);
+				sortKeys.add(kv[0]);
 			}
 			if (force || !lastSearchKV.equals(searchKV)) {
 				lastSearchKV = searchKV;
 				lastSearchKeys.clear();
 				lastSearchKeys.addAll(searchKV.keySet());
 				currentSearchResult = store.getIndex().search(lastSearchKV, maxDocs);
+				Collections.sort(currentSearchResult.docs, new ByValueComparator(sortKeys));
 				if (docsList != null) {
 					docsList.m.changed();
 					docsList.clearSelection();

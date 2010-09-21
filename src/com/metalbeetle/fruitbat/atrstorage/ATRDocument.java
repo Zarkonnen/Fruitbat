@@ -176,6 +176,7 @@ class ATRDocument implements Comparable<ATRDocument>, Document {
 		String postDot = dotIndex == -1 ? ""   : name.substring(dotIndex);
 		while (FORBIDDEN_FILE_NAMES.contains(name) || new File(location, name).exists()) {
 			name = preDot + "_" + i + postDot;
+			i++;
 		}
 		return name;
 	}

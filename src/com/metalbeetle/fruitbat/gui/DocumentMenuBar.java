@@ -46,10 +46,20 @@ class DocumentMenuBar extends JMenuBar {
 			JMenuItem addPageMI = new JMenuItem("Add Page");
 				pageMenu.add(addPageMI);
 				addPageMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
-					df.addPage();
+					df.insertPagesAt(df.numPages());
 				}});
 				addPageMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_COMMA,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+			JMenuItem insertPageBeforeMI = new JMenuItem("Insert Page Before This One");
+				pageMenu.add(insertPageBeforeMI);
+				insertPageBeforeMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
+					df.insertPagesAt(df.viewer.getPage());
+				}});
+			JMenuItem insertPageAfterMI = new JMenuItem("Insert Page After This One");
+				pageMenu.add(insertPageAfterMI);
+				insertPageAfterMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
+					df.insertPagesAt(df.viewer.getPage() + 1);
+				}});
 			assignHCNMI = new JMenuItem("Assign Hardcopy Number");
 				pageMenu.add(assignHCNMI);
 				assignHCNMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
