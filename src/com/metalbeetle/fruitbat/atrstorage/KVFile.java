@@ -32,7 +32,6 @@ final class KVFile {
 	private final TreeSet<String> keys = new TreeSet<String>();
 
 	private boolean loaded = false;
-	private long version = 0;
 
 	KVFile(File f, File cacheF,  Map<String, String> defaults) {
 		this.f = f; this.cacheF = cacheF; this.defaults = new HashMap<String, String>(defaults);
@@ -58,14 +57,12 @@ final class KVFile {
 			keys.clear();
 			keyValueMap.putAll(defaults);
 			keys.addAll(defaults.keySet());
-			version = 0;
 			if (cacheF != null && cacheF.exists()) {
 				ATRReader r = null;
 				try {
 					r = new ATRReader(new BufferedInputStream(new FileInputStream(cacheF)));
 					String[] fields = new String[2];
 					r.readRecord(fields, 0, 1);
-					version = Long.valueOf(fields[0]);
 					int fieldsRead;
 					while ((fieldsRead = r.readRecord(fields, 0, 2)) != -1) {
 						if (fieldsRead == 0) { break; } // Broken cache!
@@ -122,7 +119,6 @@ final class KVFile {
 								continue;
 							}
 						}
-						version++;
 					}
 				} catch (Exception e) {
 					throw new FatalStorageException("Couldn't read data from " + f + ".", e);
@@ -142,9 +138,6 @@ final class KVFile {
 			try {
 				w = new ATRWriter(new BufferedOutputStream(new FileOutputStream(cacheF,
 						/*append*/ false)));
-				w.startRecord();
-				w.write(string(version));
-				w.endRecord();
 				for (Map.Entry<String, String> kv : keyValueMap.entrySet()) {
 					w.startRecord();
 					w.write(kv.getKey());
@@ -161,11 +154,6 @@ final class KVFile {
 				try { w.close(); } catch (Exception e) {}
 			}
 		}
-	}
-
-	long version() throws FatalStorageException {
-		load();
-		return version;
 	}
 
 	String get(String key) throws FatalStorageException {
@@ -249,7 +237,6 @@ final class KVFile {
 			} catch (Exception e) {
 				throw new FatalStorageException("Couldn't append to " + f + ".", e);
 			}
-			version++;
 		}
 	}
 }

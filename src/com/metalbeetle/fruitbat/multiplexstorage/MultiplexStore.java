@@ -1,7 +1,6 @@
 package com.metalbeetle.fruitbat.multiplexstorage;
 
 import com.metalbeetle.fruitbat.Fruitbat;
-import com.metalbeetle.fruitbat.io.DataSrc;
 import com.metalbeetle.fruitbat.storage.Change;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
@@ -11,7 +10,6 @@ import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.PageChange;
 import com.metalbeetle.fruitbat.storage.Store;
 import java.io.File;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;

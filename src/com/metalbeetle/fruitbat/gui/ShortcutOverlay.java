@@ -51,7 +51,7 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 	public void shutdown() {
 		t.cancel();
 		if (helpWindow != null) {
-			helpWindow.dispose();
+			helpWindow.setVisible(false);
 		}
 	}
 
