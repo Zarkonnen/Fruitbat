@@ -31,6 +31,7 @@ abstract class TagsList extends JList {
 	}
 
 	void tagClick(int index) {
+		if (!isEnabled()) { return; }
 		if (index != -1) {
 			String clicked = (String) getModel().getElementAt(index);
 			String[] tags = getTagsField().getText().split(" +");

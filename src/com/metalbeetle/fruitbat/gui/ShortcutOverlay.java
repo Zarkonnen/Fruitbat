@@ -363,9 +363,9 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 			kc.put(KeyEvent.VK_X, "X");
 			kc.put(KeyEvent.VK_Y, "Y");
 			kc.put(KeyEvent.VK_Z, "Z");
-			kc.put(KeyEvent.VK_OPEN_BRACKET, "(");
+			kc.put(KeyEvent.VK_OPEN_BRACKET, "[");
 			kc.put(KeyEvent.VK_BACK_SLASH, "\\");
-			kc.put(KeyEvent.VK_CLOSE_BRACKET, ")");
+			kc.put(KeyEvent.VK_CLOSE_BRACKET, "]");
 			kc.put(KeyEvent.VK_NUMPAD0, "Numpad 0");
 			kc.put(KeyEvent.VK_NUMPAD1, "Numpad 1");
 			kc.put(KeyEvent.VK_NUMPAD2, "Numpad 2");
