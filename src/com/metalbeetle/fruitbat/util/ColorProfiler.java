@@ -63,6 +63,9 @@ public class ColorProfiler {
 		String profString = "";
 
 		for (int i = 0; i < cs.size() && i < 3; i++) {
+			if (cs.get(i).getValue() < s.minCount) {
+				break;
+			}
 			if (cs.get(i).getValue() < cs.get(0).getValue() * s.inclusionFraction) {
 				break;
 			}

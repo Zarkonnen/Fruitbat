@@ -27,6 +27,24 @@ class DocCellRenderer extends DefaultListCellRenderer {
 			Document d = (Document) o;
 			sb.setLength(0);
 			sb.append("<html>");
+			String profile = "ffffff";
+			if (d.has(DocumentFrame.COLOR_PROFILE_1)) {
+				profile = d.get(DocumentFrame.COLOR_PROFILE_1);
+				if (profile.equals("")) {
+					profile = "ffffff";
+				}
+			}
+			String p1 = profile.substring(0, 6);
+			for (int i = 0; i < 2; i++) {
+				sb.append("<font bgcolor=\"");
+				sb.append(p1);
+				sb.append("\" color=\"");
+				sb.append(p1);
+				sb.append("\">i</font>");
+				if (profile.length() > 6) {
+					p1 = profile.substring(6, 12);
+				}
+			}
 			boolean hasKeys = false;
 			for (String key : d.keys()) {
 				if (key.startsWith(Fruitbat.HIDDEN_KEY_PREFIX)) { continue; }
@@ -49,7 +67,7 @@ class DocCellRenderer extends DefaultListCellRenderer {
 				}
 			}
 			if (!hasKeys) {
-				sb.append("<font color=\"");
+				sb.append(" <font color=\"");
 				sb.append(IGNORED_TAG_HTML);
 				sb.append("\">[ no tags ]</font>");
 			}
