@@ -58,8 +58,11 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	final Document d;
 	final MainFrame mf;
 	final DocumentMenuBar menuBar;
+	final boolean editable;
+	final boolean inGraveyard;
 	InputTagCompleteMenu completeMenu;
 	boolean isBeingDeleted = false;
+	boolean tagsChanged = false;
 
 	final Box searchBoxH;
 		final Box searchBoxV;
@@ -78,10 +81,14 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 					final AllTagsList allTagsList;
 		final PagesViewer viewer;
 
-	public DocumentFrame(final Document d, final MainFrame mf) throws HeadlessException {
-		super("Fruitbat Document");
+	public DocumentFrame(final Document d, final MainFrame mf, boolean editable,
+			boolean inGraveyard) throws HeadlessException
+	{
+		super((inGraveyard ? "Deleted " : "") + "Fruitbat Document");
 		this.d = d;
 		this.mf = mf;
+		this.editable = editable;
+		this.inGraveyard = inGraveyard;
 
 		setJMenuBar(menuBar = new DocumentMenuBar(this));
 
@@ -93,19 +100,23 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 			searchBoxH.add(searchBoxV = Box.createVerticalBox());
 				searchBoxV.add(Box.createVerticalStrut(5));
 				searchBoxV.add(tagsF = new FixedTextPane());
+					tagsF.setEditable(editable);
 					tagsF.setDocument(new TagColorizingDocument(tagsF));
 					tagsF.getDocument().addDocumentListener(new DocumentListener() {
 						public void insertUpdate(DocumentEvent e) {
 							allTagsList.update();
 							suggestedTagsList.update();
+							tagsChanged = true;
 						}
 						public void removeUpdate(DocumentEvent e) {
 							allTagsList.update();
 							suggestedTagsList.update();
+							tagsChanged = true;
 						}
 						public void changedUpdate(DocumentEvent e) {
 							allTagsList.update();
 							suggestedTagsList.update();
+							tagsChanged = true;
 						}
 					});
 					tagsF.addKeyListener(new KeyAdapter() {
@@ -125,6 +136,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 						insertPagesAt(numPages());
 						tagsF.requestFocusInWindow();
 					}});
+					addPageB.setEnabled(editable);
 		c.add(split = new JSplitPane(), BorderLayout.CENTER);
 			split.setBorder(new EmptyBorder(0, 5, 5, 5));
 				split.setLeftComponent(tagSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT));
@@ -133,10 +145,12 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 						suggestedTagsP.add(suggestedTagsL = new JLabel("Suggested tags"), BorderLayout.NORTH);
 						suggestedTagsP.add(suggestedTagsListSP = new JScrollPane(), BorderLayout.CENTER);
 							suggestedTagsListSP.setViewportView(suggestedTagsList = new SuggestedTagsList(this));
+								suggestedTagsList.setEnabled(editable);
 					tagSplit.setBottomComponent(allTagsP = new JPanel(new BorderLayout(5, 5)));
 						allTagsP.add(allTagsL = new JLabel("All tags"), BorderLayout.NORTH);
 						allTagsP.add(allTagsListSP = new JScrollPane(), BorderLayout.CENTER);
 							allTagsListSP.setViewportView(allTagsList = new AllTagsList(this));
+								allTagsList.setEnabled(editable);
 					tagSplit.setDividerLocation(200);
 				split.setRightComponent(viewer = new PagesViewer(this));
 				split.setDividerLocation(200);
@@ -158,9 +172,10 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 			}
 		});
 
-		new FileDrop(viewer, this);
+		if (editable) { new FileDrop(viewer, this); }
 
 		updateTags();
+		tagsChanged = false;
 		mf.app.shortcutOverlay.attachTo(this);
 		pack();
 		setSize(800, 800);
@@ -175,6 +190,8 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		isBeingDeleted = true;
 		try {
 			mf.store.delete(d);
+			mf.graveyard.tagsChanged = true;
+			mf.tagsChanged = true;
 		} catch (FatalStorageException e) {
 			mf.handleException(e);
 		}
@@ -183,6 +200,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 
 	/** Show/hide a menu for completing a half-started tag. */
 	void switchCompleteMenu() {
+		if (!editable) { return; }
 		if (completeMenu != null) {
 			completeMenu.setVisible(false);
 			completeMenu = null;
@@ -197,8 +215,9 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	}
 
 	void saveTags() {
+		if (!editable) { return; }
 		try {
-			if (!isBeingDeleted && !mf.isEmergencyShutdown) {
+			if (tagsChanged && !isBeingDeleted && !mf.isEmergencyShutdown) {
 				// Generate a mapping of tags.
 				String[] terms = tagsF.getText().split(" +");
 				HashMap<String, String> tags = new HashMap<String, String>();
@@ -226,7 +245,10 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 					d.change(changes);
 				}
 			}
-			mf.tagsChanged = true;
+			if (tagsChanged) {
+				mf.tagsChanged = true;
+				tagsChanged = false;
+			}
 		} catch (FatalStorageException e) {
 			mf.handleException(e);
 		}

@@ -350,7 +350,8 @@ class MultiplexStore implements Store {
 		}
 	}
 
-	public DocIndex getIndex() { return stores.get(0).getIndex(); }
+	public DocIndex getIndex() { return master().getIndex(); }
+	public DocIndex getDeletedIndex() { return master().getDeletedIndex(); }
 
 	void handleSlaveStorageException(int slaveIndex, FatalStorageException e) {
 		pm.showWarning(SLAVE_FAILURE, "Backup store " + stores.get(slaveIndex) + " disabled",

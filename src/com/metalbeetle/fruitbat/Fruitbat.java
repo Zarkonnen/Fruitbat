@@ -1,7 +1,6 @@
 package com.metalbeetle.fruitbat;
 
 import com.metalbeetle.fruitbat.gui.Dialogs;
-import com.metalbeetle.fruitbat.gui.DummyProgressMonitor;
 import com.metalbeetle.fruitbat.gui.MainFrame;
 import com.metalbeetle.fruitbat.gui.ShortcutOverlay;
 import com.metalbeetle.fruitbat.gui.SplashWindow;

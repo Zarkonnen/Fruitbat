@@ -45,6 +45,9 @@ class DocCellRenderer extends DefaultListCellRenderer {
 					p1 = profile.substring(6, 12);
 				}
 			}
+			if (mf.isGraveyard) {
+				sb.append("<s>");
+			}
 			boolean hasKeys = false;
 			for (String key : d.keys()) {
 				if (key.startsWith(Fruitbat.HIDDEN_KEY_PREFIX)) { continue; }
@@ -70,6 +73,9 @@ class DocCellRenderer extends DefaultListCellRenderer {
 				sb.append(" <font color=\"");
 				sb.append(IGNORED_TAG_HTML);
 				sb.append("\">[ no tags ]</font>");
+			}
+			if (mf.isGraveyard) {
+				sb.append("</s>");
 			}
 			sb.append("</html>");
 			setText(sb.toString());

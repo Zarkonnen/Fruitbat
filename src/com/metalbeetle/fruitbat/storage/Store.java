@@ -19,6 +19,7 @@ public interface Store {
 	public int getNextRetainedPageNumber() throws FatalStorageException;
 	public void setNextRetainedPageNumber(int nextRetainedPageNumber) throws FatalStorageException;
 	public DocIndex getIndex();
+	public DocIndex getDeletedIndex();
 	public void close() throws FatalStorageException;
 
 	public Document create() throws FatalStorageException;

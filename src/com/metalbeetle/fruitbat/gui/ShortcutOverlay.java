@@ -148,6 +148,7 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 
 	static class HelpWindow extends JWindow {
 		static final Color OVERLAY = new Color(160, 240, 140, 220); //new Color(31, 31, 31, 220);
+		static final Color ROW_HILITE = new Color(255, 255, 255, 127);
 		static final Color TEXT_C = Color.BLACK; //new Color(255, 255, 255);
 		static final int LINE_H = 40;
 		static final int SPACING = 40;
@@ -156,6 +157,7 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 		static final int SHORTCUT_TO_TEXT = 20;
 		static final int ROWS = 12;
 		static final float FONT_SIZE = 16f;
+		static final int FUDGE = 7;
 		final BufferedImage bg;
 		final JMenuBar mb;
 		final int width;
@@ -172,6 +174,18 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 			setFocusable(false);
 			// Prevents window shadow on OS X
 			getRootPane().putClientProperty("Window.shadow", Boolean.FALSE);
+		}
+
+		private static boolean isMac = false;
+		private static boolean isMacKnown = false;
+		public static boolean isMac() {
+			if (!isMacKnown) {
+				try {
+					isMac = System.getProperty("os.name").toLowerCase().matches(".*mac.*");
+					isMacKnown = true;
+				} catch (Exception e) { }
+			}
+			return isMac;
 		}
 
 		@Override
@@ -191,17 +205,32 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 					if (ks != null && mi.isEnabled()) {
 						String shortcut = "";
 						int mods = ks.getModifiers();
-						if ((mods & InputEvent.CTRL_MASK) != 0) {
-							shortcut += "ctrl-";
-						}
-						if ((mods & InputEvent.ALT_MASK) != 0) {
-							shortcut += "alt-";
-						}
-						if ((mods & InputEvent.SHIFT_MASK) != 0) {
-							shortcut += "shift-";
-						}
-						if ((mods & InputEvent.META_MASK) != 0) {
-							shortcut += "cmd-";
+						if (isMac()) {
+							if ((mods & InputEvent.CTRL_MASK) != 0) {
+								shortcut += "^";
+							}
+							if ((mods & InputEvent.ALT_MASK) != 0) {
+								shortcut += "\u2325";
+							}
+							if ((mods & InputEvent.SHIFT_MASK) != 0) {
+								shortcut += "\u21E7";
+							}
+							if ((mods & InputEvent.META_MASK) != 0) {
+								shortcut += "\u2318";
+							}
+						} else {
+							if ((mods & InputEvent.CTRL_MASK) != 0) {
+								shortcut += "ctrl-";
+							}
+							if ((mods & InputEvent.ALT_MASK) != 0) {
+								shortcut += "alt-";
+							}
+							if ((mods & InputEvent.SHIFT_MASK) != 0) {
+								shortcut += "shift-";
+							}
+							if ((mods & InputEvent.META_MASK) != 0) {
+								shortcut += "meta-";
+							}
 						}
 						shortcut += keyCodeName(ks.getKeyCode());
 						maxShortcutWidth = Math.max(maxShortcutWidth, fm.stringWidth(shortcut));
@@ -209,6 +238,11 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 						items.add(p(shortcut, mi.getText()));
 					}
 				}
+			}
+			if (isMac()) {
+				maxShortcutWidth = Math.max(maxShortcutWidth, fm.stringWidth("\u2318Q"));
+				maxTextWidth = Math.max(maxTextWidth, fm.stringWidth("Quit"));
+				items.add(p("\u2318Q", "Quit"));
 			}
 			final int cols = items.size() % ROWS == 0 ? items.size() / ROWS : items.size() / ROWS + 1;
 			final int rows = items.size() < ROWS ? items.size() : ROWS;
@@ -225,21 +259,33 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 					rows * LINE_H + SPACING * 2 - HEIGHT_FUDGE,
 					SPACING,
 					SPACING);
-			g.setColor(TEXT_C);
 
 			int itemIndex = 0;
 			for (int column = 0; column < cols; column++) {
 				for (int row = 0; row < ROWS && itemIndex < items.size(); row++) {
+					if (row % 2 == 0) {
+						g.setColor(ROW_HILITE);
+						g.fillRoundRect(
+								    /* left */ fromLeft + column * (colWidth + SPACING) - FUDGE,
+								     /* top */ fromTop + row * LINE_H - FUDGE,
+								   /* width */ colWidth + FUDGE * 2,
+								  /* height */ LINE_H / 2 + FUDGE * 2,
+								/* rounding */ FUDGE,
+								/* rounding */ FUDGE
+						);
+					}
+					g.setColor(TEXT_C);
 					Pair<String, String> item = items.get(itemIndex++);
 					g.drawString(
 							/*shortcut*/ item.a,
-							/*x*/        fromLeft + column * (colWidth + SPACING),
+							/*x*/        fromLeft + column * (colWidth + SPACING) + colWidth -
+												fm.stringWidth(item.a),
 							/*y*/        fromTop + row * LINE_H + TEXT_Y_OFFSET
 					);
 					g.drawString(
 							/*text*/ item.b,
-							/*x*/    fromLeft + column * (colWidth + SPACING) +
-											colWidth - fm.stringWidth(item.b),
+							/*x*/    fromLeft + column * (colWidth + SPACING) + colWidth -
+											fm.stringWidth(item.b) - maxShortcutWidth - FUDGE,
 							/*y*/    fromTop + row * LINE_H + TEXT_Y_OFFSET
 					);
 				}

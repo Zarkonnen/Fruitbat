@@ -22,6 +22,19 @@ class MainMenuBar extends JMenuBar {
 				}});
 				newDocMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+			fileMenu.addSeparator();
+			JMenuItem graveyardMI = new JMenuItem("View Deleted Documents");
+				fileMenu.add(graveyardMI);
+				graveyardMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
+					if (!mf.graveyard.isVisible()) {
+						mf.graveyard.setLocationRelativeTo(null);
+					}
+					mf.graveyard.setVisible(true);
+					mf.graveyard.toFront();
+				}});
+				graveyardMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D,
+						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+			fileMenu.addSeparator();
 			JMenuItem closeMI = new JMenuItem("Close Store");
 				fileMenu.add(closeMI);
 				closeMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
@@ -45,7 +58,7 @@ class MainMenuBar extends JMenuBar {
 							"Which year should these docs be from?",
 							"2009"));
 						TestDataGenerator.generate(mf.store, quantity, year);
-						mf.search(mf.lastSearch, mf.DEFAULT_MAX_DOCS, /*force*/true);
+						mf.search(mf.lastSearch, MainFrame.DEFAULT_MAX_DOCS, /*force*/true);
 					} catch (Exception ex) { ex.printStackTrace(); }
 				}});
 	}

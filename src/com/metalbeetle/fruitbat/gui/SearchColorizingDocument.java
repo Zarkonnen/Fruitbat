@@ -59,7 +59,7 @@ class SearchColorizingDocument extends DefaultStyledDocument {
 					} else {
 						encounteredKeys.add(key);
 						setCharacterAttributes(start, nextColon,
-								mf.store.getIndex().isKey(key) ? tagStyle : unknownTagStyle, true);
+								mf.getIndex().isKey(key) ? tagStyle : unknownTagStyle, true);
 						setCharacterAttributes(nextColon, nextSpace, valueStyle, true);
 					}
 				} else {
@@ -69,7 +69,7 @@ class SearchColorizingDocument extends DefaultStyledDocument {
 					} else {
 						encounteredKeys.add(key);
 						setCharacterAttributes(start, nextSpace,
-								mf.store.getIndex().isKey(key) ? tagStyle : unknownTagStyle, true);
+								mf.getIndex().isKey(key) ? tagStyle : unknownTagStyle, true);
 					}
 				}
 				start = nextSpace + 1;

@@ -16,9 +16,9 @@ class OpenDocManager {
 		this.mf = mf;
 	}
 
-	DocumentFrame open(Document d) {
+	DocumentFrame open(Document d, boolean editable, boolean inGraveyard) {
 		if (!openFrames.containsKey(d)) {
-			DocumentFrame df = new DocumentFrame(d, mf);
+			DocumentFrame df = new DocumentFrame(d, mf, editable, inGraveyard);
 			df.setLocation(mf.getLocation().x + DOC_WIN_OFFSET,
 					mf.getLocation().y + DOC_WIN_OFFSET);
 			df.setVisible(true);
@@ -53,8 +53,8 @@ class OpenDocManager {
 			int id = integer(ids);
 			Document d = mf.store.get(id);
 			if (d != null) {
-				DocumentFrame df = open(d);
-				df.readPrefs(node.node(ids));;
+				DocumentFrame df = open(d, !mf.isGraveyard, mf.isGraveyard);
+				df.readPrefs(node.node(ids));
 				if (node.node(ids).getBoolean("focused", false)) {
 					toFocus = df;
 				}

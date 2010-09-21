@@ -105,6 +105,7 @@ class ATRStore implements Store {
 	}
 
 	public DocIndex getIndex() { return index; }
+	public DocIndex getDeletedIndex() { return deletedIndex; }
 
 	public void close() throws FatalStorageException {
 		metaF.saveToCache();

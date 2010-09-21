@@ -3,6 +3,7 @@ package com.metalbeetle.fruitbat.gui;
 import com.metalbeetle.fruitbat.ByValueComparator;
 import com.metalbeetle.fruitbat.Closeable;
 import com.metalbeetle.fruitbat.Fruitbat;
+import com.metalbeetle.fruitbat.storage.DocIndex;
 import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.storage.ProgressMonitor;
@@ -40,6 +41,8 @@ import javax.swing.JSplitPane;
 import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 
 public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
@@ -48,6 +51,9 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 	final Fruitbat app;
 	final Store store;
 	final StoreConfig config;
+	final boolean isGraveyard;
+	final MainFrame graveyard;
+	final MainFrame nonGraveyard;
 
 	ProgressMonitor pm;
 	boolean isEmergencyShutdown = false;
@@ -66,6 +72,7 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 	boolean tagsChanged = false;
 
 	final MainMenuBar mainMenuBar;
+	final GraveyardMenuBar graveyardMenuBar;
 	final Box searchBoxH;
 		final Box searchBoxV;
 			final JTextPane searchF;
@@ -82,16 +89,23 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 				final NarrowSearchTagsList tagsList;
 
 	public MainFrame(Fruitbat application, Store store, ProgressMonitor pm, StoreConfig config) {
-		super("Fruitbat: " + store);
+		this(application, store, pm, config, /*graveyard*/ false, null);
+	}
+
+	public MainFrame(Fruitbat application, Store store, ProgressMonitor pm, StoreConfig config,
+			final boolean isGraveyard, MainFrame nonGraveyard)
+	{
+		super((isGraveyard ? "Deleted documents in " : "Fruitbat: ") + store);
 		app = application;
 		this.store = store;
 		this.pm = pm;
 		this.config = config;
+		this.isGraveyard = isGraveyard;
+		this.nonGraveyard = nonGraveyard;
 		search("", DEFAULT_MAX_DOCS, /*force*/ true);
 
 		Container c = getContentPane();
 		c.setLayout(new BorderLayout(0, 5));
-		final MainFrame self = this;
 		// This layouting is horrible and should be replaced by a grid bag.
 		c.add(searchBoxH = Box.createHorizontalBox(), BorderLayout.NORTH);
 			searchBoxH.add(Box.createHorizontalStrut(5));
@@ -113,12 +127,22 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 				searchBoxV.add(Box.createVerticalStrut(5));
 			searchBoxH.add(Box.createHorizontalStrut(5));
 			searchBoxH.add(buttonP = new JPanel(new FlowLayout()));
-				buttonP.add(newDocumentB = new JButton("New Document"));
-					newDocumentB.setFocusable(false);
-					newDocumentB.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
-						searchF.requestFocusInWindow();
-						newDocument();
-					}});
+				if (isGraveyard) {
+					buttonP.add(newDocumentB = new JButton("Undelete Document"));
+						newDocumentB.setFocusable(false);
+						newDocumentB.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
+							searchF.requestFocusInWindow();
+							undeleteSelectedDocument();
+						}});
+						newDocumentB.setEnabled(false);
+				} else {
+					buttonP.add(newDocumentB = new JButton("New Document"));
+						newDocumentB.setFocusable(false);
+						newDocumentB.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
+							searchF.requestFocusInWindow();
+							newDocument();
+						}});
+				}
 		c.add(split = new JSplitPane(), BorderLayout.CENTER);
 			split.setBorder(new EmptyBorder(0, 5, 5, 5));
 			split.setLeftComponent(docsP = new JPanel(new BorderLayout(5, 5)));
@@ -129,32 +153,49 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 					docsL.setCursor(new Cursor(Cursor.HAND_CURSOR));
 				docsP.add(docsListSP = new JScrollPane(), BorderLayout.CENTER);
 					docsListSP.setViewportView(docsList = new DocsList(this));
-					new FileDrop(docsListSP, this);
+					if (isGraveyard) {
+						docsList.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+							public void valueChanged(ListSelectionEvent e) {
+								newDocumentB.setEnabled(docsList.getSelectedIndex() != -1);
+								graveyardMenuBar.undeleteMI.setEnabled(docsList.getSelectedIndex() != -1);
+							}
+						});
+					} else {
+						new FileDrop(docsListSP, this);
+					}
 			split.setRightComponent(tagsP = new JPanel(new BorderLayout(5, 5)));
 				tagsP.add(tagsL = new JLabel("with these tags"), BorderLayout.NORTH);
 				tagsP.add(tagsListSP = new JScrollPane(), BorderLayout.CENTER);
 					tagsListSP.setViewportView(tagsList = new NarrowSearchTagsList(this));
-		setJMenuBar(mainMenuBar = new MainMenuBar(this));
+		if (isGraveyard) {
+			setJMenuBar(graveyardMenuBar = new GraveyardMenuBar(this));
+			mainMenuBar = null;
+		} else {
+			setJMenuBar(mainMenuBar = new MainMenuBar(this));
+			graveyardMenuBar = null;
+		}
 		updateDocsLabel();
-		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+		setDefaultCloseOperation(isGraveyard ? HIDE_ON_CLOSE : DISPOSE_ON_CLOSE);
 		addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
-				close();
+				if (!isGraveyard) { close(); }
 			}
 			@Override
 			public void windowActivated(WindowEvent e) {
 				if (tagsChanged) {
+					((SearchColorizingDocument) searchF.getDocument()).colorize();
 					search(searchF.getText(), DEFAULT_MAX_DOCS, /*force*/true);
 					tagsChanged = false;
 				}
-				searchF.requestFocusInWindow();
 			}
 		});
 		app.shortcutOverlay.attachTo(this);
 		pack();
 		setSize(800, 700);
 		split.setDividerLocation(500);
+
+		graveyard = isGraveyard ? null : new MainFrame(application, store, pm, config, true, this);
 	}
 
 	public StoreConfig getConfig() { return config; }
@@ -213,6 +254,8 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 		}
 	}
 
+	DocIndex getIndex() { return isGraveyard ? store.getDeletedIndex() : store.getIndex(); }
+
 	void search() { search(searchF.getText(), DEFAULT_MAX_DOCS); }
 
 	void search(String searchText, int maxDocs) { search(searchText, maxDocs, false); }
@@ -228,7 +271,7 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 				String[] kv = t.split(":", 2);
 				if (kv[0].length() == 0) { continue; }
 				if (searchKV.containsKey(kv[0])) { continue; }
-				if (!store.getIndex().isKey(kv[0])) { continue; }
+				if (!getIndex().isKey(kv[0])) { continue; }
 				searchKV.put(kv[0], kv.length == 1 ? null : kv[1]);
 				sortKeys.add(kv[0]);
 			}
@@ -236,7 +279,7 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 				lastSearchKV = searchKV;
 				lastSearchKeys.clear();
 				lastSearchKeys.addAll(searchKV.keySet());
-				currentSearchResult = store.getIndex().search(lastSearchKV, maxDocs);
+				currentSearchResult = getIndex().search(lastSearchKV, maxDocs);
 				Collections.sort(currentSearchResult.docs, new ByValueComparator(sortKeys));
 				if (docsList != null) {
 					docsList.m.changed();
@@ -256,9 +299,34 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 		try {
 			Document d = store.create();
 			search(lastSearch, DEFAULT_MAX_DOCS, /*force*/ true);
-			return openDocManager.open(d);
+			return openDocManager.open(d, !isGraveyard, isGraveyard);
 		} catch (FatalStorageException e) {
 			pm.handleException(e, this);
+			return null;
+		}
+	}
+
+	DocumentFrame undeleteSelectedDocument() {
+		if (docsList.getSelectedIndex() == -1) { return null; }
+		try {
+			return undeleteDocument(
+					currentSearchResult.docs.get(docsList.getSelectedIndex()).getID());
+		} catch (Exception e) {
+			pm.handleException(new FatalStorageException("Could not undelete document.", e), null);
+			return null;
+		}
+	}
+
+	DocumentFrame undeleteDocument(int id) {
+		try {
+			Document d = store.undelete(id);
+			search(searchF.getText(), DEFAULT_MAX_DOCS, /*force*/ true);
+			nonGraveyard.tagsChanged = true;
+			nonGraveyard.toFront();
+			return nonGraveyard.openDocManager.open(d, true, false);
+		} catch (Exception e) {
+			pm.handleException(new FatalStorageException("Could not undelete document.", e),
+					nonGraveyard);
 			return null;
 		}
 	}
@@ -295,6 +363,7 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 			p.putInt("docScrollY", docsListSP.getViewport().getViewPosition().y);
 			p.putInt("tagScrollX", tagsListSP.getViewport().getViewPosition().x);
 			p.putInt("tagScrollY", tagsListSP.getViewport().getViewPosition().y);
+			p.putBoolean("docListFocused", docsList.isFocusOwner() || docsListSP.isFocusOwner());
 		}
 		openDocManager.writePrefs(p.node("openDocs"));
 		p.flush();
@@ -316,6 +385,11 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 		openDocManager.readPrefs(p.node("openDocs"));
 		if (p.getBoolean("focused", false)) {
 			toFront();
+		}
+		if (p.getBoolean("docListFocused", false)) {
+			docsList.requestFocusInWindow();
+		} else {
+			searchF.requestFocusInWindow();
 		}
 	}
 }
