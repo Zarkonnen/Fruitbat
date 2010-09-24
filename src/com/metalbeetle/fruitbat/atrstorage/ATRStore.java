@@ -26,7 +26,6 @@ import static com.metalbeetle.fruitbat.util.Misc.*;
 /** Stores documents on file system, using ATR files, which guarantees atomicity. */
 class ATRStore implements Store {
 	static final String METADATA_PREFIX = "md ";
-	static final String _DELETED = "_deleted";
 	static final String NEXT_DOC_ID = "next_doc_id";
 	static final String NEXT_RETAINED_PAGE_NUMBER = "next_retained_page_id";
 	static final String EMPTY_STORE = "empty_store";
@@ -44,9 +43,6 @@ class ATRStore implements Store {
 	final HashMap<Integer, ATRDocument> idToDoc = new HashMap<Integer, ATRDocument>();
 	final List<ATRDocument> docs = new LinkedList<ATRDocument>();
 	final ATRDocIndex index;
-	final HashMap<Integer, ATRDocument> idToDeletedDoc = new HashMap<Integer, ATRDocument>();
-	final List<ATRDocument> deletedDocs = new LinkedList<ATRDocument>();
-	final ATRDocIndex deletedIndex;
 	boolean revisionUpdated = false;
 
 	public ATRStore(File location, ProgressMonitor pm) throws FatalStorageException {
@@ -63,7 +59,7 @@ class ATRStore implements Store {
 				pm.changeNumSteps(fs.length);
 				int loop = 0;
 				for (File f : fs) {
-					ATRDocument d = new ATRDocument(f, this, /*deleted*/ false);
+					ATRDocument d = new ATRDocument(f, this);
 					idToDoc.put(d.getID(), d);
 					docs.add(d);
 					if (loop++ % 100 == 0) {
@@ -73,28 +69,8 @@ class ATRStore implements Store {
 				pm.progress("Sorting documents", -1);
 				Collections.sort(docs);
 				Collections.reverse(docs);
-
-				fs = docsF.listFiles(new DeletedDocFilter());
-				pm.showProgressBar("Checking for deleted documents", "", fs.length);
-				try {
-					loop = 0;
-					for (File f : fs) {
-						ATRDocument d = new ATRDocument(f, this, /*deleted*/ true);
-						idToDeletedDoc.put(d.getID(), d);
-						deletedDocs.add(d);
-						if (loop++ % 100 == 0) {
-							pm.progress(deletedDocs.size() + " deleted documents found", loop);
-						}
-					}
-					pm.progress("Sorting deleted documents", -1);
-					Collections.sort(deletedDocs);
-					Collections.reverse(deletedDocs);
-				} finally {
-					pm.hideProgressBar();
-				}
 			}
-			index = new ATRDocIndex(this, pm, new StringPool(4), /*forDeleteds*/ false);
-			deletedIndex = new ATRDocIndex(this, pm, new StringPool(4), /*forDeleteds*/ true);
+			index = new ATRDocIndex(this, pm, new StringPool(4));
 			metaF.saveToCache();
 		} catch (Exception e) {
 			throw new FatalStorageException("Could not start up document store at " + location +
@@ -105,17 +81,14 @@ class ATRStore implements Store {
 	}
 
 	public DocIndex getIndex() { return index; }
-	public DocIndex getDeletedIndex() { return deletedIndex; }
 
 	public void close() throws FatalStorageException {
 		metaF.saveToCache();
 		index.close();
-		deletedIndex.close();
 	}
 
 	public void setProgressMonitor(ProgressMonitor pm) {
 		index.setProgressMonitor(pm);
-		deletedIndex.setProgressMonitor(pm);
 	}
 
 	public int getNextRetainedPageNumber() throws FatalStorageException {
@@ -133,8 +106,6 @@ class ATRStore implements Store {
 			throw new FatalStorageException("Could not set next retained page number.", e);
 		}
 	}
-
-	public List<Document> deletedDocs() { return (List<Document>) (List) immute(deletedDocs); }
 
 	public String getMetaData(String key) throws FatalStorageException {
 		try {
@@ -217,16 +188,11 @@ class ATRStore implements Store {
 		public boolean accept(File dir, String name) { return name.matches("[0-9]+"); }
 	}
 
-	static final class DeletedDocFilter implements FilenameFilter {
-		public boolean accept(File dir, String name) { return name.matches("[0-9]+" + _DELETED); }
-	}
-
 	public File getLocation() { return location; }
 	
 	public List<Document> docs() { return (List<Document>) (List) immute(docs); }
 
 	public Document get(int id) { return idToDoc.get(id); }
-	public Document getDeleted(int id) { return idToDeletedDoc.get(id); }
 
 	public Document create() throws FatalStorageException {
 		return create(metaF.get(NEXT_DOC_ID));
@@ -234,7 +200,7 @@ class ATRStore implements Store {
 
 	Document create(String id) throws FatalStorageException {
 		try {
-			ATRDocument d = new ATRDocument(new File(docsF, id), this, /*deleted*/ false);
+			ATRDocument d = new ATRDocument(new File(docsF, id), this);
 			if (integer(id) >= integer(metaF.get(NEXT_DOC_ID))) {
 				metaF.change(l(DataChange.put(NEXT_DOC_ID, string(integer(id) + 1))));
 			}			
@@ -242,7 +208,8 @@ class ATRStore implements Store {
 			idToDoc.put(d.getID(), d);
 			docs.add(0, d);
 			d.change(/*revision*/ "0", l(
-					DataChange.put(Fruitbat.CREATION_DATE_KEY, currentDateString())));
+					DataChange.put(Fruitbat.CREATION_DATE_KEY, currentDateString()),
+					DataChange.put(Fruitbat.ALIVE_KEY, "")));
 			updateRevision();
 			return d;
 		} catch (Exception e) {
@@ -251,46 +218,11 @@ class ATRStore implements Store {
 		}
 	}
 
-	public Document getCreateOrUndelete(int id) throws FatalStorageException {
+	public Document getOrCreate(int id) throws FatalStorageException {
 		if (idToDoc.containsKey(id)) { return idToDoc.get(id); }
-		if (idToDeletedDoc.containsKey(id)) { return undelete(id); }
 		return create(string(id));
 	}
-
-	public void delete(Document d) throws FatalStorageException {
-		ATRDocument d2 = (ATRDocument) d;
-		File delF = new File(docsF, d2.location.getName() + _DELETED);
-		if (!d2.location.renameTo(delF)) {
-			throw new FatalStorageException("Couldn't delete document.\nUnable to move " +
-					d2.location + " to " + delF + ".");
-		}
-		idToDoc.remove(d2.getID());
-		docs.remove(d2);
-		index.removeDocument(d2);
-		ATRDocument delD = new ATRDocument(delF, this, /*deleted*/ true);
-		idToDeletedDoc.put(delD.getID(), delD);
-		deletedDocs.add(delD);
-		deletedIndex.addDocument(delD);
-	}
-
-	public Document undelete(int docID) throws FatalStorageException {
-		ATRDocument deletedDoc = idToDeletedDoc.get(docID);
-		File delF = new File(docsF, docID + _DELETED);
-		File f = new File(docsF, string(docID));
-		if (!delF.renameTo(f)) {
-			throw new RuntimeException("Couldn't undelete document.\nUnable to move " + f + " to " +
-					delF + ".");
-		}
-		ATRDocument d = new ATRDocument(f, this, /*deleted*/ false);
-		idToDoc.put(d.getID(), d);
-		docs.add(d);
-		index.addDocument(d);
-		deletedDocs.remove(idToDeletedDoc.get(docID));
-		idToDeletedDoc.remove(docID);
-		deletedIndex.removeDocument(deletedDoc);
-		return d;
-	}
-
+	
 	void updateRevision() throws FatalStorageException {
 		metaF.change(revisionChanges());
 	}

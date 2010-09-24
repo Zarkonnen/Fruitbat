@@ -45,7 +45,7 @@ class DocCellRenderer extends DefaultListCellRenderer {
 					p1 = profile.substring(6, 12);
 				}
 			}
-			if (mf.isGraveyard) {
+			if (d.has(Fruitbat.DEAD_KEY)) {
 				sb.append("<s>");
 			}
 			boolean hasKeys = false;
@@ -74,7 +74,7 @@ class DocCellRenderer extends DefaultListCellRenderer {
 				sb.append(IGNORED_TAG_HTML);
 				sb.append("\">[ no tags ]</font>");
 			}
-			if (mf.isGraveyard) {
+			if (mf.showDeletedDocs) {
 				sb.append("</s>");
 			}
 			sb.append("</html>");

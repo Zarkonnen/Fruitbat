@@ -42,13 +42,11 @@ class ATRDocIndex implements DocIndex {
 	boolean closed = false;
 	ProgressMonitor pm;
 	final StringPool stringPool;
-	final boolean forDeleteds;
 
-	ATRDocIndex(ATRStore s, ProgressMonitor pm, StringPool stringPool, boolean forDeleteds) throws FatalStorageException {
+	ATRDocIndex(ATRStore s, ProgressMonitor pm, StringPool stringPool) throws FatalStorageException {
 		this.s = s;
 		this.pm = pm;
 		this.stringPool = stringPool;
-		this.forDeleteds = forDeleteds;
 		load();
 	}
 
@@ -63,10 +61,12 @@ class ATRDocIndex implements DocIndex {
 	public SearchResult search(Map<String, String> searchKV, int maxDocs) {
 		if (closed) { throw new RuntimeException("Key index has been closed."); }
 		// Search keys
-		List<ATRDocument> docs = new LinkedList<ATRDocument>(forDeleteds ? s.deletedDocs : s.docs);
+		List<ATRDocument> docs = new LinkedList<ATRDocument>(s.docs);
 		for (String k : searchKV.keySet()) {
 			if (valueCache.containsKey(k)) {
 				docs.retainAll(valueCache.get(k).a.keySet());
+			} else {
+				docs.clear();
 			}
 		}
 		// Search values
@@ -78,7 +78,7 @@ class ATRDocIndex implements DocIndex {
 		}
 		// Determine co-keys
 		List<String> coKeyList = new ArrayList<String>();
-		if (docs.size() == (forDeleteds ? s.idToDeletedDoc : s.idToDoc).size()) {
+		if (docs.size() == s.idToDoc.size()) {
 			coKeyList.addAll(valueCache.keySet());
 		} else {
 			int loop = 0;
@@ -202,13 +202,13 @@ class ATRDocIndex implements DocIndex {
 
 	/** Create fresh index from documents in store. */
 	void reindex() throws FatalStorageException {
-		int numDocs = forDeleteds ? s.deletedDocs.size() : s.docs.size();
+		int numDocs = s.docs.size();
 		pm.showProgressBar("Rebuilding index", "Starting...", numDocs);
 		try {
 			documentToKeys.clear();
 			valueCache.clear();
 			int loops = 0;
-			for (ATRDocument d : (forDeleteds ? s.deletedDocs : s.docs)) {
+			for (ATRDocument d : s.docs) {
 				if (loops++ % 10 == 0) {
 					pm.progress(loops + " documents of " + numDocs, loops);
 				}
@@ -227,7 +227,7 @@ class ATRDocIndex implements DocIndex {
 	/** Saves the index into an ATR file. */
 	void save() {
 		pm.showProgressBar("Saving index", "", valueCache.size());
-		File f = new File(s.location, forDeleteds ? "deletedsindex.atr" : "index.atr");
+		File f = new File(s.location, "index.atr");
 		ATRWriter w = null;
 		try {
 			mkAncestors(f);
@@ -275,7 +275,7 @@ class ATRDocIndex implements DocIndex {
 		try {
 			documentToKeys.clear();
 			valueCache.clear();
-			File f = new File(s.location, forDeleteds ? "deletedsindex.atr" : "index.atr");
+			File f = new File(s.location, "index.atr");
 			if (f.exists()) {
 				ATRReader r = null;
 				try {
@@ -292,10 +292,7 @@ class ATRDocIndex implements DocIndex {
 								p(new HashMap<Document, String>(), new PrefixBTree<Document>());
 						valueCache.put(key, cache);
 						while (r.readRecord(rec, 0, 2) > 0) {
-							ATRDocument d =
-									forDeleteds
-									? (ATRDocument) s.getDeleted(integer(rec[0]))
-									: (ATRDocument) s.get(integer(rec[0]));
+							ATRDocument d = (ATRDocument) s.get(integer(rec[0]));
 							if (d == null) {
 								throw new RuntimeException("Document " + rec[0] + " doesn't " +
 										"exist.");

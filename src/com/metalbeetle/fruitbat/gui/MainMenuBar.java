@@ -5,6 +5,7 @@ import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
@@ -12,6 +13,8 @@ import javax.swing.KeyStroke;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 
 class MainMenuBar extends JMenuBar {
+	final JMenuItem undeleteMI;
+	final JMenuItem deleteMI;
 	public MainMenuBar(final MainFrame mf) {
 		JMenu fileMenu = new JMenu("File");
 			add(fileMenu);
@@ -22,18 +25,33 @@ class MainMenuBar extends JMenuBar {
 				}});
 				newDocMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+			deleteMI = new JMenuItem("Delete Document");
+				fileMenu.add(deleteMI);
+				deleteMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
+					mf.deleteSelectedDocument();
+				}});
+				deleteMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D,
+						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+				deleteMI.setEnabled(false);
+			undeleteMI = new JMenuItem("Undelete Document");
+				fileMenu.add(undeleteMI);
+				undeleteMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
+					mf.undeleteSelectedDocument();
+				}});
+				undeleteMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_U,
+						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+				undeleteMI.setEnabled(false);
+				undeleteMI.setVisible(false);
 			fileMenu.addSeparator();
-			JMenuItem graveyardMI = new JMenuItem("View Deleted Documents");
+			final JCheckBoxMenuItem graveyardMI = new JCheckBoxMenuItem("Show Deleted Documents");
 				fileMenu.add(graveyardMI);
 				graveyardMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
-					if (!mf.graveyard.isVisible()) {
-						mf.graveyard.setLocationRelativeTo(null);
-					}
-					mf.graveyard.setVisible(true);
-					mf.graveyard.toFront();
+					mf.setShowDeletedDocs(!mf.showDeletedDocs);
+					graveyardMI.setSelected(mf.showDeletedDocs);
 				}});
 				graveyardMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D,
-						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask() | KeyEvent.SHIFT_MASK));
+				graveyardMI.setSelected(mf.showDeletedDocs);
 			fileMenu.addSeparator();
 			JMenuItem closeMI = new JMenuItem("Close Store");
 				fileMenu.add(closeMI);
@@ -43,6 +61,8 @@ class MainMenuBar extends JMenuBar {
 				}});
 				closeMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+
+		// Create temp test data.
 		JMenu testMenu = new JMenu("Test");
 			add(testMenu);
 			JMenuItem createTestDataMI = new JMenuItem("Create Test Data");

@@ -1,5 +1,6 @@
 package com.metalbeetle.fruitbat.multiplexstorage;
 
+import com.metalbeetle.fruitbat.Fruitbat;
 import com.metalbeetle.fruitbat.Util;
 import com.metalbeetle.fruitbat.atrstorage.ATRStorageSystem;
 import com.metalbeetle.fruitbat.gui.DummyProgressMonitor;
@@ -7,9 +8,9 @@ import com.metalbeetle.fruitbat.io.DataSrc;
 import com.metalbeetle.fruitbat.io.FileSrc;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.Document;
+import com.metalbeetle.fruitbat.storage.EnhancedStore;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.storage.PageChange;
-import com.metalbeetle.fruitbat.storage.Store;
 import com.metalbeetle.fruitbat.storage.StoreConfig;
 import com.metalbeetle.fruitbat.storage.StoreConfigInvalidException;
 import java.io.File;
@@ -23,9 +24,9 @@ public class MultiplexTest {
 	
 	File sf1;
 	File sf2;
-	Store s1;
-	Store s2;
-	Store ms;
+	EnhancedStore s1;
+	EnhancedStore s2;
+	EnhancedStore ms;
 	File p;
 	DataSrc pSrc;
 
@@ -37,7 +38,7 @@ public class MultiplexTest {
 		StoreConfig sc2 = new StoreConfig(new ATRStorageSystem(), typedL(Object.class, sf2));
 		StoreConfig msc = new StoreConfig(new MultiplexStorageSystem(), typedL(Object.class, l(sc1, sc2)));
 		ms = msc.init(new DummyProgressMonitor());
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		ms.getUUID();
 		ms.getRevision();
 		assertTrue(ms.isEmptyStore());
@@ -63,11 +64,11 @@ public class MultiplexTest {
 		assertFalse(ms.hasMetaData(SCARY + "2"));
 		assertEquals(SCARY, ms.getMetaData(SCARY));
 		ms.changeMetaData(l(DataChange.move(SCARY, "foo")));
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		assertTrue(ms.hasMetaData("foo"));
 		ms.close();
 		ms = msc.init(new DummyProgressMonitor());
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		assertEquals(SCARY, ms.getMetaData("foo"));
 		ms.close();
 		Util.deleteRecursively(sf1);
@@ -99,7 +100,7 @@ public class MultiplexTest {
 		assertFalse(ms.hasMetaData(SCARY + "2"));
 		assertEquals(SCARY, ms.getMetaData(SCARY));
 		ms.changeMetaData(l(DataChange.move(SCARY, "foo")));
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		ms.close();
 		s2 = sc2.init(new DummyProgressMonitor());
 		assertFalse(s2.isEmptyStore());
@@ -124,7 +125,7 @@ public class MultiplexTest {
 		assertFalse(ms.isEmptyStore());
 		int id = d.getID();
 		d.change(l(DataChange.put("key", "value"), PageChange.put("page", pSrc)));
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		ms.close();
 		s1 = sc1.init(new DummyProgressMonitor());
 		assertFalse(s1.isEmptyStore());
@@ -159,7 +160,7 @@ public class MultiplexTest {
 		int id = d.getID();
 		d.change(l(DataChange.put("key", "value"), DataChange.put("key2", "value"), PageChange.put("page", pSrc)));
 		d.change(l(DataChange.put("key", "value2"), DataChange.remove("key2"), PageChange.move("page", "page2")));
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		ms.close();
 		s1 = sc1.init(new DummyProgressMonitor());
 		assertFalse(s1.isEmptyStore());
@@ -199,12 +200,14 @@ public class MultiplexTest {
 		d.change(l(DataChange.put("key", "value"), DataChange.put("key2", "value"), PageChange.put("page", pSrc)));
 		d.change(l(DataChange.put("key", "value2"), DataChange.remove("key2"), PageChange.move("page", "page2")));
 		ms.delete(d);
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		ms.close();
 
 		s1 = sc1.init(new DummyProgressMonitor());
 		assertFalse(s1.isEmptyStore());
-		d = s1.getDeleted(id);
+		d = s1.get(id);
+		assertTrue(d.has(Fruitbat.DEAD_KEY));
+		assertFalse(d.has(Fruitbat.ALIVE_KEY));
 		assertEquals("value2", d.get("key"));
 		assertFalse(d.has("key2"));
 		assertFalse(d.hasPage("page"));
@@ -213,7 +216,9 @@ public class MultiplexTest {
 
 		s2 = sc2.init(new DummyProgressMonitor());
 		assertFalse(s2.isEmptyStore());
-		d = s2.getDeleted(id);
+		d = s2.get(id);
+		assertTrue(d.has(Fruitbat.DEAD_KEY));
+		assertFalse(d.has(Fruitbat.ALIVE_KEY));
 		assertEquals("value2", d.get("key"));
 		assertFalse(d.has("key2"));
 		assertFalse(d.hasPage("page"));
@@ -222,7 +227,9 @@ public class MultiplexTest {
 
 		s1 = sc1.init(new DummyProgressMonitor());
 		assertFalse(s1.isEmptyStore());
-		d = s1.undelete(id);
+		d = s1.undelete(s1.get(id));
+		assertFalse(d.has(Fruitbat.DEAD_KEY));
+		assertTrue(d.has(Fruitbat.ALIVE_KEY));
 		assertEquals("value2", d.get("key"));
 		assertFalse(d.has("key2"));
 		assertFalse(d.hasPage("page"));
@@ -231,7 +238,7 @@ public class MultiplexTest {
 
 		ms = msc.init(new DummyProgressMonitor());
 		assertFalse(ms.isEmptyStore());
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		d = ms.get(id);
 		assertNotNull(d);
 		assertEquals("value2", d.get("key"));

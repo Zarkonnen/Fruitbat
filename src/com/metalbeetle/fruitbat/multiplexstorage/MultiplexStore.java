@@ -7,6 +7,7 @@ import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.storage.ProgressMonitor;
 import com.metalbeetle.fruitbat.storage.DocIndex;
 import com.metalbeetle.fruitbat.storage.Document;
+import com.metalbeetle.fruitbat.storage.EnhancedStore;
 import com.metalbeetle.fruitbat.storage.PageChange;
 import com.metalbeetle.fruitbat.storage.Store;
 import java.io.File;
@@ -28,20 +29,18 @@ class MultiplexStore implements Store {
 			Fruitbat.HIDDEN_KEY_PREFIX + Fruitbat.HIDDEN_KEY_PREFIX + "slave rev for ";
 	static final String SLAVE_REVISION_KEY_INFIX = " of ";
 
-	final List<Store> stores;
+	final List<EnhancedStore> stores;
 	final ProgressMonitor pm;
 	final HashMap<Integer, Document> idToDoc = new HashMap<Integer, Document>();
 	final ArrayList<Document> docs = new ArrayList<Document>();
-	final HashMap<Integer, Document> idToDeletedDoc = new HashMap<Integer, Document>();
-	final ArrayList<Document> deletedDocs = new ArrayList<Document>();
 	final BitSet storeEnabled;
 	boolean masterIDUpdated = false;
 
-	Store master() {
+	EnhancedStore master() {
 		return stores.get(0);
 	}
 	
-	public MultiplexStore(List<Store> stores, ProgressMonitor pm) throws FatalStorageException {
+	public MultiplexStore(List<EnhancedStore> stores, ProgressMonitor pm) throws FatalStorageException {
 		pm.showProgressBar("Loading Multiplex Store", "", -1);
 		try {
 			this.stores = immute(stores);
@@ -56,11 +55,6 @@ class MultiplexStore implements Store {
 				Document myD = new MultiplexDocument(d, this);
 				idToDoc.put(myD.getID(), myD);
 				docs.add(myD);
-			}
-			for (Document d : master().deletedDocs()) {
-				Document myD = new MultiplexDocument(d, this);
-				idToDeletedDoc.put(myD.getID(), myD);
-				deletedDocs.add(myD);
 			}
 		} catch (FatalStorageException e) {
 			throw new FatalStorageException("Cannot communicate with master store.", e);
@@ -96,8 +90,8 @@ class MultiplexStore implements Store {
 				master.getUUID();
 	}
 
-	void syncStores(Store from, Store to, int storeIndex, boolean secondStoreIsBackupOfFirst)
-			throws FatalStorageException
+	void syncStores(EnhancedStore from, EnhancedStore to, int storeIndex,
+			boolean secondStoreIsBackupOfFirst) throws FatalStorageException
 	{
 		// If "to" is a slave store of "from", check that the revision "from" has for "to" is
 		// unchanged - otherwise someone modified the backup independently, which is BAD.
@@ -114,20 +108,13 @@ class MultiplexStore implements Store {
 
 		syncMetaData(from, to);
 
-		// Ensure that the stores have the same docs and deleted docs.
+		// Ensure that the stores have the same docs.
 		for (Document d : from.docs()) {
 			if (to.get(d.getID()) == null) {
-				to.getCreateOrUndelete(d.getID());
+				to.getOrCreate(d.getID());
 			}
 		}
-		for (Document d : from.deletedDocs()) {
-			if (to.getDeleted(d.getID()) == null) {
-				if (to.get(d.getID()) == null) {
-					to.getCreateOrUndelete(d.getID());
-				}
-				to.delete(to.get(d.getID()));
-			}
-		}
+
 		// And delete any documents that aren't supposed to be there. This isn't perfect, as it will
 		// still leave a residue of deleted documents, but at least it's usually hidden from the
 		// user.
@@ -139,9 +126,6 @@ class MultiplexStore implements Store {
 		// Now ensure the documents have the same data.
 		for (Document d : from.docs()) {
 			syncDocs(d, to.get(d.getID()), storeIndex);
-		}
-		for (Document d : from.deletedDocs()) {
-			syncDocs(d, to.getDeleted(d.getID()), storeIndex);
 		}
 
 		// If there is a master/slave thing going on, store "to"'s revision in the master's
@@ -230,11 +214,10 @@ class MultiplexStore implements Store {
 		}
 	}
 
-	public Document getCreateOrUndelete(int id) throws FatalStorageException {
+	public Document getOrCreate(int id) throws FatalStorageException {
 		try {
 			if (idToDoc.containsKey(id)) { return idToDoc.get(id); }
-			if (idToDeletedDoc.containsKey(id)) { return undelete(id); }
-			Document d = master().getCreateOrUndelete(id);
+			Document d = master().getOrCreate(id);
 			for (int i = 1; i < stores.size(); i++) {
 				if (storeEnabled.get(i)) {
 					try {
@@ -275,33 +258,9 @@ class MultiplexStore implements Store {
 		}
 	}
 
-	public Document undelete(int docID) throws FatalStorageException {
-		try {
-			Document d = master().undelete(docID);
-			for (int i = 1; i < stores.size(); i++) {
-				if (storeEnabled.get(i)) {
-					try {
-						syncDocs(d, stores.get(i).undelete(docID), i);
-					} catch (FatalStorageException e) {
-						handleSlaveStorageException(i, e);
-					}
-				}
-			}
-			Document md =  new MultiplexDocument(d, this);
-			idToDoc.put(md.getID(), md);
-			docs.add(md);
-			return md;
-		} catch (FatalStorageException e) {
-			throw new FatalStorageException("Could not undelete a document from the master store.",
-					e);
-		}
-	}
-
 	public List<Document> docs() { return immute(docs); }
-	public List<Document> deletedDocs() { return immute(deletedDocs); }
 
 	public Document get(int id) { return idToDoc.get(id); }
-	public Document getDeleted(int id) { return idToDeletedDoc.get(id); }
 
 	public void setProgressMonitor(ProgressMonitor pm) {
 		for (Store s : stores) { s.setProgressMonitor(pm); }
@@ -351,7 +310,6 @@ class MultiplexStore implements Store {
 	}
 
 	public DocIndex getIndex() { return master().getIndex(); }
-	public DocIndex getDeletedIndex() { return master().getDeletedIndex(); }
 
 	void handleSlaveStorageException(int slaveIndex, FatalStorageException e) {
 		pm.showWarning(SLAVE_FAILURE, "Backup store " + stores.get(slaveIndex) + " disabled",

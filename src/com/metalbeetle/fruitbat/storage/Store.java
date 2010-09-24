@@ -19,17 +19,12 @@ public interface Store {
 	public int getNextRetainedPageNumber() throws FatalStorageException;
 	public void setNextRetainedPageNumber(int nextRetainedPageNumber) throws FatalStorageException;
 	public DocIndex getIndex();
-	public DocIndex getDeletedIndex();
 	public void close() throws FatalStorageException;
 
 	public Document create() throws FatalStorageException;
-	public Document getCreateOrUndelete(int id) throws FatalStorageException;
-	public void delete(Document d) throws FatalStorageException;
-	public Document undelete(int docID) throws FatalStorageException;
+	public Document getOrCreate(int id) throws FatalStorageException;
 	public List<Document> docs() throws FatalStorageException;
-	public List<Document> deletedDocs() throws FatalStorageException;
 	public Document get(int id) throws FatalStorageException;
-	public Document getDeleted(int id) throws FatalStorageException;
 
 	public String getMetaData(String key) throws FatalStorageException;
 	public void changeMetaData(List<Change> changes) throws FatalStorageException;

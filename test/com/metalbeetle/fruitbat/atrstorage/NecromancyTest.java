@@ -5,11 +5,13 @@
 
 package com.metalbeetle.fruitbat.atrstorage;
 
+import com.metalbeetle.fruitbat.Fruitbat;
 import com.metalbeetle.fruitbat.Util;
 import com.metalbeetle.fruitbat.gui.DummyProgressMonitor;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.DocIndex;
 import com.metalbeetle.fruitbat.storage.Document;
+import com.metalbeetle.fruitbat.storage.EnhancedStore;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.storage.SearchResult;
 import org.junit.After;
@@ -25,8 +27,8 @@ import static com.metalbeetle.fruitbat.util.Collections.*;
 public class NecromancyTest {
 	public static final String SCARY = "\"\n\r\u0026\u0416\u4E2D\uD800\uDF46\n\n\"\n\"\"\"\t\r\"\n";
 
-	ATRStore s;
-	ATRDocIndex i;
+	EnhancedStore s;
+	DocIndex i;
 
 	@Test
 	public void modifyWhileDeleted() throws FatalStorageException {
@@ -37,10 +39,10 @@ public class NecromancyTest {
 
 		rebootStore();
 
-		d1 = s.getDeleted(id);
+		d1 = s.get(id);
 		d1.change(l(DataChange.put("a", "y")));
 
-		d1 = s.undelete(id);
+		d1 = s.undelete(d1);
 
 		assertEquals("y", d1.get("a"));
 	}
@@ -52,7 +54,7 @@ public class NecromancyTest {
 		int id = d1.getID();
 		s.delete(d1);
 		rebootStore();
-		d1 = s.getDeleted(id);
+		d1 = s.get(id);
 		d1.change(l(DataChange.put("a", "y")));
 		assertEquals("y", d1.get("a"));
 	}
@@ -64,20 +66,22 @@ public class NecromancyTest {
 		int id = d1.getID();
 		s.delete(d1);
 		rebootStore();
-		d1 = s.getDeleted(id);
+		d1 = s.get(id);
+		assertTrue(d1.has(Fruitbat.DEAD_KEY));
+		assertFalse(d1.has(Fruitbat.ALIVE_KEY));
 		d1.change(l(DataChange.put("a", "y")));
 
 		SearchResult result;
-		result = i.search(m(p("a", "y")), DocIndex.ALL_DOCS);
+		result = i.search(m(p("a", "y"), p(Fruitbat.ALIVE_KEY, "")), DocIndex.ALL_DOCS);
 		assertEquals(0, result.docs.size());
-		result = i.search(m(p("a", "x")), DocIndex.ALL_DOCS);
+		result = i.search(m(p("a", "x"), p(Fruitbat.ALIVE_KEY, "")), DocIndex.ALL_DOCS);
 		assertEquals(0, result.docs.size());
-		result = i.search(m(p("a", "")), DocIndex.ALL_DOCS);
+		result = i.search(m(p("a", ""), p(Fruitbat.ALIVE_KEY, "")), DocIndex.ALL_DOCS);
 		assertEquals(0, result.docs.size());
 
-		s.undelete(id);
+		s.undelete(s.get(id));
 
-		result = i.search(m(p("a", "y")), DocIndex.ALL_DOCS);
+		result = i.search(m(p("a", "y"), p(Fruitbat.ALIVE_KEY, "")), DocIndex.ALL_DOCS);
 		assertEquals(1, result.docs.size());
 	}
 
@@ -87,7 +91,6 @@ public class NecromancyTest {
 		d1.change(l(DataChange.put("a", "x")));
 		d1.change(l(DataChange.put("a", "y")));
 		int id1 = d1.getID();
-		String v1 = d1.getRevision();
 		Document d2 = s.create();
 		d2.change(l(DataChange.put("a", "x")));
 		d2.change(l(DataChange.put("a", "y")));
@@ -95,30 +98,31 @@ public class NecromancyTest {
 		int id2 = d2.getID();
 		String v2 = d2.getRevision();
 		s.delete(d1);
+		String v1 = d1.getRevision();
 		crashAndRebootStore();
-		assertEquals(v1, s.getDeleted(id1).getRevision());
+		assertEquals(v1, s.get(id1).getRevision());
 		assertEquals(v2, s.get(id2).getRevision());
 	}
 
 	void rebootStore() throws FatalStorageException {
 		i.close();
-		s = new ATRStore(s.getLocation(), new DummyProgressMonitor());
+		s = new EnhancedStore(new ATRStore(((ATRStore) s.s).getLocation(), new DummyProgressMonitor()));
 		i = (ATRDocIndex) s.getIndex();
 	}
 
 	void crashAndRebootStore() throws FatalStorageException {
-		s = new ATRStore(s.getLocation(), new DummyProgressMonitor());
+		s = new EnhancedStore(new ATRStore(((ATRStore) s.s).getLocation(), new DummyProgressMonitor()));
 		i = (ATRDocIndex) s.getIndex();
 	}
 
     @Before
     public void setUp() throws FatalStorageException {
-		s = new ATRStore(Util.createTempFolder(), new DummyProgressMonitor());
+		s = new EnhancedStore(new ATRStore(Util.createTempFolder(), new DummyProgressMonitor()));
 		i = (ATRDocIndex) s.getIndex();
     }
 
     @After
     public void tearDown() {
-		Util.deleteRecursively(s.getLocation());
+		Util.deleteRecursively(((ATRStore) s.s).getLocation());
     }
 }

@@ -157,8 +157,8 @@ class PagesViewer extends JPanel {
 		df.menuBar.gotoPageMI.setEnabled(df.numPages() > 0);
 		df.menuBar.assignHCNMI.setVisible(!hasHCN());
 		df.menuBar.removeHCNMI.setVisible(hasHCN());
-		df.menuBar.assignHCNMI.setEnabled(validPage() && df.editable);
-		df.menuBar.removeHCNMI.setEnabled(df.editable);
+		df.menuBar.assignHCNMI.setEnabled(validPage() && !df.isDeleted());
+		df.menuBar.removeHCNMI.setEnabled(!df.isDeleted());
 	}
 
 	boolean hasPrevPage() {

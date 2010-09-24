@@ -62,7 +62,6 @@ class MultiplexDocument implements Document, Comparable<MultiplexDocument> {
 	}
 
 	public String getRevision() throws FatalStorageException { return master.getRevision(); }
-	public boolean isDeleted() throws FatalStorageException { return master.isDeleted(); }
 	public boolean has(String key) throws FatalStorageException { return master.has(key); }
 	public String get(String key) throws FatalStorageException { return master.get(key); }
 	public List<String> keys() throws FatalStorageException { return master.keys(); }

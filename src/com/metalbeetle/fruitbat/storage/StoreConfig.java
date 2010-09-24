@@ -55,8 +55,8 @@ public class StoreConfig {
 		}
 	}
 
-	public Store init(ProgressMonitor pm) throws FatalStorageException, StoreConfigInvalidException {
-		return system.init(configFieldValues, pm);
+	public EnhancedStore init(ProgressMonitor pm) throws FatalStorageException, StoreConfigInvalidException {
+		return new EnhancedStore(system.init(configFieldValues, pm));
 	}
 
 	@Override

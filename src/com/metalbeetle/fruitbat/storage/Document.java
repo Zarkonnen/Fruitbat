@@ -6,7 +6,6 @@ import java.util.List;
 /** Stores key/value string data and pages as files. */
 public interface Document {
 	public int getID() throws FatalStorageException;
-	public boolean isDeleted() throws FatalStorageException;
 
 	/** @return The ID of the current revision */
 	public String getRevision() throws FatalStorageException;

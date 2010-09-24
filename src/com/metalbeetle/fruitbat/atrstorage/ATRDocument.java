@@ -25,25 +25,18 @@ class ATRDocument implements Comparable<ATRDocument>, Document {
 	final File location;
 	final KVFile data;
 	final ATRStore s;
-	final boolean deleted;
 
 	/** File names in use by internal data that mustn't be used to store pages. */
 	private static final List<String> FORBIDDEN_FILE_NAMES = l("data.atr");
 
-	public ATRDocument(File location, ATRStore s, boolean deleted) {
+	public ATRDocument(File location, ATRStore s) {
 		this.location = location;
 		this.s = s;
-		this.deleted = deleted;
-		String name = location.getName();
-		if (deleted) {
-			name = name.substring(0, name.length() - ATRStore._DELETED.length());
-		}
-		id = integer(name);
+		id = integer(location.getName());
 		data = new KVFile(new File(location, "data.atr"));
 	}
 
 	public int getID() { return id; }
-	public boolean isDeleted() throws FatalStorageException { return deleted; }
 
 	public String getRevision() throws FatalStorageException {
 		try {
@@ -54,9 +47,7 @@ class ATRDocument implements Comparable<ATRDocument>, Document {
 		}
 	}
 
-	ATRDocIndex myIndex() {
-		return deleted ? s.deletedIndex : s.index;
-	}
+	ATRDocIndex myIndex() { return s.index; }
 
 	public String change(List<Change> changes) throws FatalStorageException {
 		return change(

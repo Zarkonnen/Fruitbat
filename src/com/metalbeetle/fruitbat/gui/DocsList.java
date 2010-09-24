@@ -30,7 +30,7 @@ class DocsList extends JList {
 			public void keyPressed(KeyEvent e) {
 				if (e.getKeyCode() == KeyEvent.VK_ENTER && getSelectedIndex() != -1) {
 					Document d = (Document) m.getElementAt(getSelectedIndex());
-					mf.openDocManager.open(d, !mf.isGraveyard, mf.isGraveyard);
+					mf.openDocManager.open(d);
 				}
 			}
 		});
@@ -47,7 +47,7 @@ class DocsList extends JList {
 			public void mousePressed(MouseEvent e) {
 				if (e.getClickCount() == 2) {
 					Document d = (Document) m.getElementAt(locationToIndex(e.getPoint()));
-					mf.openDocManager.open(d, !mf.isGraveyard, mf.isGraveyard);
+					mf.openDocManager.open(d);
 				}
 			}
 		});

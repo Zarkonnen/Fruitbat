@@ -44,6 +44,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.text.Caret;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 
@@ -58,11 +59,9 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	final Document d;
 	final MainFrame mf;
 	final DocumentMenuBar menuBar;
-	final boolean editable;
-	final boolean inGraveyard;
 	InputTagCompleteMenu completeMenu;
-	boolean isBeingDeleted = false;
 	boolean tagsChanged = false;
+	final Caret tagsFCaret;
 
 	final Box searchBoxH;
 		final Box searchBoxV;
@@ -81,14 +80,10 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 					final AllTagsList allTagsList;
 		final PagesViewer viewer;
 
-	public DocumentFrame(final Document d, final MainFrame mf, boolean editable,
-			boolean inGraveyard) throws HeadlessException
-	{
-		super((inGraveyard ? "Deleted " : "") + "Fruitbat Document");
+	public DocumentFrame(final Document d, final MainFrame mf) throws HeadlessException {
+		super("Fruitbat Document ");
 		this.d = d;
 		this.mf = mf;
-		this.editable = editable;
-		this.inGraveyard = inGraveyard;
 
 		setJMenuBar(menuBar = new DocumentMenuBar(this));
 
@@ -100,7 +95,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 			searchBoxH.add(searchBoxV = Box.createVerticalBox());
 				searchBoxV.add(Box.createVerticalStrut(5));
 				searchBoxV.add(tagsF = new FixedTextPane());
-					tagsF.setEditable(editable);
+					tagsFCaret = tagsF.getCaret();
 					tagsF.setDocument(new TagColorizingDocument(tagsF));
 					tagsF.getDocument().addDocumentListener(new DocumentListener() {
 						public void insertUpdate(DocumentEvent e) {
@@ -136,7 +131,6 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 						insertPagesAt(numPages());
 						tagsF.requestFocusInWindow();
 					}});
-					addPageB.setEnabled(editable);
 		c.add(split = new JSplitPane(), BorderLayout.CENTER);
 			split.setBorder(new EmptyBorder(0, 5, 5, 5));
 				split.setLeftComponent(tagSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT));
@@ -145,12 +139,10 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 						suggestedTagsP.add(suggestedTagsL = new JLabel("Suggested tags"), BorderLayout.NORTH);
 						suggestedTagsP.add(suggestedTagsListSP = new JScrollPane(), BorderLayout.CENTER);
 							suggestedTagsListSP.setViewportView(suggestedTagsList = new SuggestedTagsList(this));
-								suggestedTagsList.setEnabled(editable);
 					tagSplit.setBottomComponent(allTagsP = new JPanel(new BorderLayout(5, 5)));
 						allTagsP.add(allTagsL = new JLabel("All tags"), BorderLayout.NORTH);
 						allTagsP.add(allTagsListSP = new JScrollPane(), BorderLayout.CENTER);
 							allTagsListSP.setViewportView(allTagsList = new AllTagsList(this));
-								allTagsList.setEnabled(editable);
 					tagSplit.setDividerLocation(200);
 				split.setRightComponent(viewer = new PagesViewer(this));
 				split.setDividerLocation(200);
@@ -172,13 +164,23 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 			}
 		});
 
-		if (editable) { new FileDrop(viewer, this); }
+		new FileDrop(viewer, this);
 
 		updateTags();
+		updateIsDeletedStatus();
 		tagsChanged = false;
 		mf.app.shortcutOverlay.attachTo(this);
 		pack();
 		setSize(800, 800);
+	}
+
+	boolean isDeleted() {
+		try {
+			return d.has(Fruitbat.DEAD_KEY);
+		} catch (FatalStorageException e) {
+			mf.handleException(e);
+			return false;
+		}
 	}
 
 	void close() {
@@ -186,21 +188,41 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		mf.openDocManager.close(d);
 	}
 
+	public void updateIsDeletedStatus() {
+		boolean isDeleted = isDeleted();
+
+		setTitle(isDeleted ? "Fruitbat Document (Deleted)" : "Fruitbat Document");
+		
+		tagsF.setEditable(!isDeleted);
+		tagsF.setCaret(tagsFCaret);
+		tagsF.setCaretPosition(tagsF.getText().length());
+		addPageB.setEnabled(!isDeleted);
+		suggestedTagsList.setEnabled(!isDeleted);
+		allTagsList.setEnabled(!isDeleted);
+		
+		// Ensure menu items have correct state.
+		menuBar.undeleteMI.setEnabled(isDeleted);
+		menuBar.deleteMI.setEnabled(!isDeleted);
+		menuBar.addPageMI.setEnabled(!isDeleted);
+		menuBar.insertPageBeforeMI.setEnabled(!isDeleted);
+		menuBar.insertPageAfterMI.setEnabled(!isDeleted);
+		viewer.updateButtonAndMenuEnabledStates();
+	}
+
 	void delete() {
-		isBeingDeleted = true;
 		try {
 			mf.store.delete(d);
-			mf.graveyard.tagsChanged = true;
 			mf.tagsChanged = true;
+			close();
+			dispose();
 		} catch (FatalStorageException e) {
 			mf.handleException(e);
 		}
-		dispose();
 	}
 
 	/** Show/hide a menu for completing a half-started tag. */
 	void switchCompleteMenu() {
-		if (!editable) { return; }
+		if (isDeleted()) { return; }
 		if (completeMenu != null) {
 			completeMenu.setVisible(false);
 			completeMenu = null;
@@ -215,9 +237,9 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	}
 
 	void saveTags() {
-		if (!editable) { return; }
+		if (isDeleted()) { return; }
 		try {
-			if (tagsChanged && !isBeingDeleted && !mf.isEmergencyShutdown) {
+			if (tagsChanged && !mf.isEmergencyShutdown) {
 				// Generate a mapping of tags.
 				String[] terms = tagsF.getText().split(" +");
 				HashMap<String, String> tags = new HashMap<String, String>();
@@ -376,6 +398,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	 * directories.
 	 */
 	public void filesDropped(File[] files) {
+		if (isDeleted()) { return; }
 		ArrayList<File> fs = new ArrayList<File>();
 		for (File f : files) { fs.addAll(getAvailableFiles(f, 0)); }
 		if (fs.size() > 0) {

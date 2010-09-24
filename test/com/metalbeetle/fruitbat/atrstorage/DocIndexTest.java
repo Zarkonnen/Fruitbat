@@ -1,13 +1,14 @@
 package com.metalbeetle.fruitbat.atrstorage;
 
+import com.metalbeetle.fruitbat.Fruitbat;
 import com.metalbeetle.fruitbat.Util;
 import com.metalbeetle.fruitbat.gui.DummyProgressMonitor;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.DocIndex;
 import com.metalbeetle.fruitbat.storage.Document;
+import com.metalbeetle.fruitbat.storage.EnhancedStore;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.storage.SearchResult;
-import com.metalbeetle.fruitbat.util.StringPool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -17,19 +18,20 @@ import static com.metalbeetle.fruitbat.util.Collections.*;
 public class DocIndexTest {
 	public static final String SCARY = "\"\n\r\u0026\u0416\u4E2D\uD800\uDF46\n\n\"\n\"\"\"\t\r\"\n";
 
-	ATRStore s;
+	EnhancedStore s;
+	ATRStore atrS;
 	ATRDocIndex index;
 
 	@Test
 	public void search() throws FatalStorageException {
-		Document d1 = s.create();
+		Document d1 = atrS.create();
 		d1.change(l(DataChange.put(SCARY, SCARY)));
 
-		Document d2 = s.create();
+		Document d2 = atrS.create();
 		d2.change(l(DataChange.put(SCARY, SCARY)));
 		d2.change(l(DataChange.put("x", SCARY)));
 
-		Document d3 = s.create();
+		Document d3 = atrS.create();
 		d3.change(l(DataChange.put(SCARY + "not", SCARY)));
 
 		int id1 = d1.getID();
@@ -37,9 +39,9 @@ public class DocIndexTest {
 		int id3 = d3.getID();
 
 		rebootStore();
-		d1 = s.get(id1);
-		d2 = s.get(id2);
-		d3 = s.get(id3);
+		d1 = atrS.get(id1);
+		d2 = atrS.get(id2);
+		d3 = atrS.get(id3);
 
 		// Searching for SCARY should yield d1 and d2.
 		SearchResult result;
@@ -57,20 +59,20 @@ public class DocIndexTest {
 
 	@Test
 	public void searchValuePrefixes() throws FatalStorageException {
-		Document d1 = s.create();
+		Document d1 = atrS.create();
 		d1.change(l(DataChange.put("x", "12345")));
 		d1.change(l(DataChange.put("y", "a")));
-		Document d2 = s.create();
+		Document d2 = atrS.create();
 		d2.change(l(DataChange.put("x", "12345")));
 		d2.change(l(DataChange.put("y", "b")));
-		Document d3 = s.create();
+		Document d3 = atrS.create();
 		d3.change(l(DataChange.put("x", "123456")));
-		Document d4 = s.create();
+		Document d4 = atrS.create();
 		d4.change(l(DataChange.put("x", "1234")));
 		d4.change(l(DataChange.put("y", "a")));
-		Document d5 = s.create();
+		Document d5 = atrS.create();
 		d5.change(l(DataChange.put("x", "1234000")));
-		Document d6 = s.create();
+		Document d6 = atrS.create();
 		d6.change(l(DataChange.put("x", "kqopqfekqpo")));
 		d6.change(l(DataChange.put("y", "a")));
 
@@ -82,12 +84,12 @@ public class DocIndexTest {
 		int id6 = d6.getID();
 
 		rebootStore();
-		d1 = s.get(id1);
-		d2 = s.get(id2);
-		d3 = s.get(id3);
-		d4 = s.get(id4);
-		d5 = s.get(id5);
-		d6 = s.get(id6);
+		d1 = atrS.get(id1);
+		d2 = atrS.get(id2);
+		d3 = atrS.get(id3);
+		d4 = atrS.get(id4);
+		d5 = atrS.get(id5);
+		d6 = atrS.get(id6);
 
 		SearchResult result;
 		result = index.search(m(p("x", "12345")), DocIndex.ALL_DOCS);
@@ -141,14 +143,14 @@ public class DocIndexTest {
 
 	@Test
 	public void coTags() throws FatalStorageException {
-		Document d1 = s.create();
+		Document d1 = atrS.create();
 		d1.change(l(DataChange.put("a", "a")));
 
-		Document d2 = s.create();
+		Document d2 = atrS.create();
 		d2.change(l(DataChange.put("a", "a")));
 		d2.change(l(DataChange.put("b", "b")));
 
-		Document d3 = s.create();
+		Document d3 = atrS.create();
 		d3.change(l(DataChange.put("b", "b")));
 		d3.change(l(DataChange.put("c", "c")));
 
@@ -157,9 +159,9 @@ public class DocIndexTest {
 		int id3 = d3.getID();
 
 		rebootStore();
-		d1 = s.get(id1);
-		d2 = s.get(id2);
-		d3 = s.get(id3);
+		d1 = atrS.get(id1);
+		d2 = atrS.get(id2);
+		d3 = atrS.get(id3);
 
 		SearchResult result;
 
@@ -178,54 +180,59 @@ public class DocIndexTest {
 
 	@Test
 	public void postDelete() throws FatalStorageException {
-		Document d1 = s.create();
+		Document d1 = atrS.create();
 		d1.change(l(DataChange.put(SCARY, SCARY)));
+		assertTrue(d1.has(Fruitbat.ALIVE_KEY));
 
 		SearchResult result;
-		result = index.search(m(p(SCARY, "")), DocIndex.ALL_DOCS);
+		result = index.search(m(p(SCARY, ""), p(Fruitbat.ALIVE_KEY, "")), DocIndex.ALL_DOCS);
 		assertEquals(1, result.docs.size());
 
 		s.delete(d1);
+		assertFalse(d1.has(Fruitbat.ALIVE_KEY));
+		assertTrue(d1.has(Fruitbat.DEAD_KEY));
 
-		result = index.search(m(p(SCARY, "")), DocIndex.ALL_DOCS);
+		result = index.search(m(p(SCARY, ""), p(Fruitbat.ALIVE_KEY, "")), DocIndex.ALL_DOCS);
 		assertEquals(0, result.docs.size());
 
 		rebootStore();
 
-		result = index.search(m(p(SCARY, "")), DocIndex.ALL_DOCS);
+		result = index.search(m(p(SCARY, ""), p(Fruitbat.ALIVE_KEY, "")), DocIndex.ALL_DOCS);
 		assertEquals(0, result.docs.size());
 	}
 
 	@Test
 	public void postUnDelete() throws FatalStorageException {
-		Document d1 = s.create();
+		Document d1 = atrS.create();
 		int id1 = d1.getID();
 		d1.change(l(DataChange.put(SCARY, SCARY)));
 		s.delete(d1);
 
 		rebootStore();
 
-		s.undelete(id1);
+		s.undelete(s.get(id1));
 
 		SearchResult result;
-		result = index.search(m(p(SCARY, "")), DocIndex.ALL_DOCS);
+		result = index.search(m(p(SCARY, ""), p(Fruitbat.ALIVE_KEY, "")), DocIndex.ALL_DOCS);
 		assertEquals(1, result.docs.size());
 	}
 
 	void rebootStore() throws FatalStorageException {
 		index.close();
-		s = new ATRStore(s.getLocation(), new DummyProgressMonitor());
-		index = (ATRDocIndex) s.getIndex();
+		atrS = new ATRStore(atrS.getLocation(), new DummyProgressMonitor());
+		s = new EnhancedStore(atrS);
+		index = (ATRDocIndex) atrS.getIndex();
 	}
 
     @Before
     public void setUp() throws FatalStorageException {
-		s = new ATRStore(Util.createTempFolder(), new DummyProgressMonitor());
-		index = (ATRDocIndex) s.getIndex();
+		atrS = new ATRStore(Util.createTempFolder(), new DummyProgressMonitor());
+		s = new EnhancedStore(atrS);
+		index = (ATRDocIndex) atrS.getIndex();
     }
 
     @After
     public void tearDown() {
-		Util.deleteRecursively(s.getLocation());
+		Util.deleteRecursively(atrS.getLocation());
     }
 }

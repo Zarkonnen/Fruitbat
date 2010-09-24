@@ -1,6 +1,7 @@
 package com.metalbeetle.fruitbat.multiplexstorage;
 
 import com.metalbeetle.fruitbat.storage.ConfigField;
+import com.metalbeetle.fruitbat.storage.EnhancedStore;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.storage.ProgressMonitor;
 import com.metalbeetle.fruitbat.storage.StoreConfig;
@@ -29,11 +30,11 @@ public class MultiplexStorageSystem implements StorageSystem {
 		Utils.checkConfigValues(new StoreConfig(this, configValues));
 		List<StoreConfig> configs = (List<StoreConfig>)(List) configValues.get(0);
 		try {
-			ArrayList<Store> stores = new ArrayList<Store>();
-			stores.add(configs.get(0).system.init(configs.get(0).configFieldValues, pm));
+			ArrayList<EnhancedStore> stores = new ArrayList<EnhancedStore>();
+			stores.add(configs.get(0).init(pm));
 			for (int i = 1; i < configs.size(); i++) {
 				try {
-					stores.add(configs.get(i).system.init(configs.get(i).configFieldValues, pm));
+					stores.add(configs.get(i).init(pm));
 				} catch (Exception e) {
 					pm.showWarning(CANNOT_OPEN_SLAVE, "Unable to open backup store",
 							"Unable to communicate with backup store. You can continue working, " +

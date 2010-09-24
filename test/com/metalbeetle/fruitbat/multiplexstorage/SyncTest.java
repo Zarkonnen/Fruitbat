@@ -7,6 +7,7 @@ import com.metalbeetle.fruitbat.io.DataSrc;
 import com.metalbeetle.fruitbat.io.FileSrc;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.Document;
+import com.metalbeetle.fruitbat.storage.EnhancedStore;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.storage.PageChange;
 import com.metalbeetle.fruitbat.storage.Store;
@@ -25,7 +26,7 @@ public class SyncTest {
 	File sf2;
 	Store s1;
 	Store s2;
-	Store ms;
+	EnhancedStore ms;
 	File p;
 	DataSrc pSrc;
 
@@ -47,7 +48,7 @@ public class SyncTest {
 		d = ms.get(id);
 		assertEquals("value", d.get("key"));
 		assertTrue(Util.hasFirstLine(d.getPage("page"), "foobar"));
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		ms.close();
 		s2 = sc2.init(new DummyProgressMonitor());
 		d = s2.get(id);
@@ -59,7 +60,7 @@ public class SyncTest {
 		d = ms.get(id);
 		assertEquals("value", d.get("key"));
 		assertTrue(Util.hasFirstLine(d.getPage("page"), "foobar"));
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		ms.close();
 		p.delete();
 		Util.deleteRecursively(sf1);
@@ -87,7 +88,7 @@ public class SyncTest {
 		assertFalse(d.has("key2"));
 		assertFalse(d.hasPage("page"));
 		assertTrue(Util.hasFirstLine(d.getPage("page2"), "foobar"));
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		ms.close();
 		s2 = sc2.init(new DummyProgressMonitor());
 		d = s2.get(id);
@@ -122,7 +123,7 @@ public class SyncTest {
 		assertFalse(d.has("key2"));
 		assertFalse(d.hasPage("page"));
 		assertTrue(Util.hasFirstLine(d.getPage("page2"), "foobar"));
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		ms.close();
 		s1 = sc2.init(new DummyProgressMonitor());
 		d = s1.get(id);
@@ -154,9 +155,9 @@ public class SyncTest {
 		d = s2.create();
 		d.change(l(DataChange.put("spoiler", "spoils the master ID!")));
 		s2.close();
-		MultiplexStore ms2 = (MultiplexStore) msc.init(new DummyProgressMonitor());
-		assertFalse(ms2.storeEnabled.get(1));
-		ms2.close();
+		ms = msc.init(new DummyProgressMonitor());
+		assertFalse(((MultiplexStore) ms.s).storeEnabled.get(1));
+		ms.close();
 		p.delete();
 		Util.deleteRecursively(sf1);
 		Util.deleteRecursively(sf2);
@@ -177,33 +178,33 @@ public class SyncTest {
 		ms.close();
 
 		ms = msc.init(new DummyProgressMonitor());
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		ms.close();
 
 		ms = msc.init(new DummyProgressMonitor());
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		ms.close();
 
 		ms = msc.init(new DummyProgressMonitor());
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		ms.close();
 
 		ms = msc.init(new DummyProgressMonitor());
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		ms.close();
 
 		ms = msc.init(new DummyProgressMonitor());
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		ms.close();
 
 		Thread.sleep(1200);
 
 		ms = msc.init(new DummyProgressMonitor());
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		ms.close();
 
 		ms = msc.init(new DummyProgressMonitor());
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		ms.close();
 
 		p.delete();
@@ -231,7 +232,7 @@ public class SyncTest {
 		d.change(l(DataChange.put("another", "change")));
 		s1.close();
 		ms = msc.init(new DummyProgressMonitor());
-		assertFalse(((MultiplexStore) ms).storeEnabled.get(1));
+		assertFalse(((MultiplexStore) ms.s).storeEnabled.get(1));
 		ms.close();
 		p.delete();
 		Util.deleteRecursively(sf1);
@@ -253,7 +254,7 @@ public class SyncTest {
 		assertTrue(ms.hasMetaData(SCARY));
 		assertFalse(ms.hasMetaData(SCARY + "2"));
 		assertEquals(SCARY, ms.getMetaData(SCARY));
-		assertTrue(((MultiplexStore) ms).storeEnabled.get(1));
+		assertTrue(((MultiplexStore) ms.s).storeEnabled.get(1));
 		ms.close();
 		s2 = sc2.init(new DummyProgressMonitor());
 		assertTrue(s2.hasMetaData(SCARY));
