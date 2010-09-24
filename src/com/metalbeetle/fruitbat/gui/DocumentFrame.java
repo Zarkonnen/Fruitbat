@@ -1,6 +1,7 @@
 package com.metalbeetle.fruitbat.gui;
 
 import com.metalbeetle.fruitbat.Fruitbat;
+import com.metalbeetle.fruitbat.fulltext.FullTextExtractor;
 import com.metalbeetle.fruitbat.io.FileSrc;
 import com.metalbeetle.fruitbat.storage.Change;
 import com.metalbeetle.fruitbat.storage.DataChange;
@@ -55,6 +56,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	static final String COLOR_PROFILE_1 = Fruitbat.HIDDEN_KEY_PREFIX + "cprof1";
 	static final String COLOR_PROFILE_2 = Fruitbat.HIDDEN_KEY_PREFIX + "cprof2";
 	static final String HARDCOPY_NUMBER_PREFIX = Fruitbat.HIDDEN_KEY_PREFIX + "ret";
+	static final String FULLTEXT_PREFIX = Fruitbat.HIDDEN_KEY_PREFIX + "ft";
 
 	final Document d;
 	final MainFrame mf;
@@ -338,6 +340,10 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 						cs.add(PageChange.move(PREVIEW_PREFIX + string(shiftIndex),
 								PREVIEW_PREFIX + string(shiftIndex + numPages)));
 					}
+					if (d.hasPage(FULLTEXT_PREFIX + string(shiftIndex))) {
+						cs.add(PageChange.move(FULLTEXT_PREFIX + string(shiftIndex),
+								FULLTEXT_PREFIX + string(shiftIndex + numPages)));
+					}
 					if (d.has(HARDCOPY_NUMBER_PREFIX + string(shiftIndex))) {
 						cs.add(DataChange.move(HARDCOPY_NUMBER_PREFIX + string(shiftIndex),
 								HARDCOPY_NUMBER_PREFIX + string(shiftIndex + numPages)));
@@ -355,6 +361,9 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 						final int myIndex = atIndex + loop;
 						cs.add(PageChange.put(string(myIndex), new FileSrc(f)));
 						cs.add(PageChange.put(PREVIEW_PREFIX + string(myIndex), new FileSrc(tmp)));
+						mf.pm.progress("Extracting full text of " + f, loop * 2 + 1);
+						cs.add(PageChange.put(FULLTEXT_PREFIX + string(myIndex),
+								FullTextExtractor.getFullText(f)));
 						if (myIndex == 0) {
 							String cprof1 = ColorProfiler.profile1(preview);
 							String cprof2 = ColorProfiler.profile2(preview);
