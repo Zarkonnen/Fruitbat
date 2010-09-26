@@ -9,7 +9,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.GregorianCalendar;
+import java.util.List;
 import java.util.zip.CRC32;
 import org.apache.commons.io.FileUtils;
 
@@ -47,6 +49,25 @@ public final class Misc {
 				throw new RuntimeException("Couldn't create folder at " + f + ".");
 			}
 		}
+	}
+
+	public static List<File> getAvailableFiles(File f, List<String> acceptedExtensions, int depth) {
+		if (depth == 100) { return new ArrayList<File>(); }
+		ArrayList<File> fs = new ArrayList<File>();
+		if (f.isDirectory()) {
+			for (File child : f.listFiles()) {
+				fs.addAll(getAvailableFiles(child, acceptedExtensions, depth + 1));
+			}
+		} else {
+			if (f.canRead()) {
+				for (String ext : acceptedExtensions) {
+					if (f.getName().toLowerCase().endsWith(ext)) {
+						fs.add(f);
+					}
+				}
+			}
+		}
+		return fs;
 	}
 
 	public static String currentDateString() {

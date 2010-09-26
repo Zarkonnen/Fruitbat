@@ -13,15 +13,14 @@ import javax.swing.KeyStroke;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 
 class DocumentMenuBar extends JMenuBar {
-	// Always active
+	// Manipulated by PagesViewer
 	final JMenuItem openPageMI;
 	final JMenuItem prevPageMI;
 	final JMenuItem nextPageMI;
 	final JMenuItem gotoPageMI;
-
-	// Manipulated by PagesViewer
 	final JMenuItem assignHCNMI;
 	final JMenuItem removeHCNMI;
+	final JMenuItem movePageMI;
 
 	// Manipulated by DocumentFrame
 	final JMenuItem undeleteMI;
@@ -90,6 +89,13 @@ class DocumentMenuBar extends JMenuBar {
 					df.insertPagesAt(df.viewer.getPage() + 1);
 				}});
 				insertPageAfterMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I,
+						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask() | Event.SHIFT_MASK));
+			movePageMI = new JMenuItem("Move Page...");
+				pageMenu.add(movePageMI);
+				movePageMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
+					df.moveCurrentPage();
+				}});
+				movePageMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_M,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask() | Event.SHIFT_MASK));
 			assignHCNMI = new JMenuItem("Assign Hardcopy Number");
 				pageMenu.add(assignHCNMI);

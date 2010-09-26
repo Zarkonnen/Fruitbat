@@ -10,7 +10,6 @@ import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.storage.PageChange;
 import com.metalbeetle.fruitbat.util.ColorProfiler;
-import com.metalbeetle.fruitbat.util.Pair;
 import com.metalbeetle.fruitbat.util.PreviewImager;
 import java.awt.BorderLayout;
 import java.awt.Container;
@@ -27,16 +26,13 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 import javax.imageio.ImageIO;
 import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -60,6 +56,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	static final String COLOR_PROFILE_2 = Fruitbat.HIDDEN_KEY_PREFIX + "cprof2";
 	static final String HARDCOPY_NUMBER_PREFIX = Fruitbat.HIDDEN_KEY_PREFIX + "ret";
 	static final String FULLTEXT_PREFIX = Fruitbat.HIDDEN_KEY_PREFIX + "ft";
+	static final String TMP_MOVE_PAGE_INDEX = "tmp";
 
 	final Document d;
 	final MainFrame mf;
@@ -154,19 +151,11 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 
 		addWindowListener(new WindowAdapter() {
 			@Override
-			public void windowClosing(WindowEvent e) {
-				close();
-			}
-
+			public void windowClosing(WindowEvent e) { close(); }
 			@Override
-			public void windowIconified(WindowEvent e) {
-				saveTags();
-			}
-
+			public void windowIconified(WindowEvent e) { saveTags(); }
 			@Override
-			public void windowDeactivated(WindowEvent e) {
-				saveTags();
-			}
+			public void windowDeactivated(WindowEvent e) { saveTags(); }
 		});
 
 		new FileDrop(viewer, this);
@@ -411,6 +400,73 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		}}.start();
 	}
 
+	void moveCurrentPage() {
+		final int currentIndex = viewer.getPage();
+		final int numPages = numPages();
+		int newIndex = currentIndex;
+		String newPageNS = mf.pm.askQuestion("New location", "Where do you want to move this page?",
+				string(newIndex + 1));
+		try {
+			newIndex = integer(newPageNS) - 1;
+		} catch (Exception e) { /* meh */ }
+		if (newIndex < 0) { newIndex = 0; }
+		if (newIndex > numPages - 1) { newIndex = numPages - 1; }
+		if (newIndex != currentIndex) {
+			try {
+				ArrayList<Change> cs = new ArrayList<Change>();
+				cs.addAll(pageMoveChanges(
+						string(currentIndex),
+						string(currentIndex),
+						TMP_MOVE_PAGE_INDEX));
+				if (newIndex < currentIndex) {
+					for (int i = currentIndex - 1; i >= newIndex; i--) {
+						cs.addAll(pageMoveChanges(
+							/* originalFrom */ string(i),
+							/* from */         string(i),
+							/* to */           string(i + 1)
+						));
+					}
+				} else {
+					// newIndex > currentIndex
+					// Shift other pages to the left to make space for the page we move.
+					for (int i = currentIndex + 1; i <= newIndex; i++) {
+						cs.addAll(pageMoveChanges(
+							/* originalFrom */ string(i),
+							/* from */         string(i),
+							/* to */           string(i - 1)
+						));
+					}
+				}
+				cs.addAll(pageMoveChanges(
+						string(currentIndex),
+						TMP_MOVE_PAGE_INDEX,
+						string(newIndex)));
+				d.change(cs);
+				viewer.setPage(newIndex);
+			} catch (FatalStorageException e) {
+				mf.handleException(e);
+			}
+		}
+	}
+
+	List<Change> pageMoveChanges(String originalFrom, String from, String to) throws FatalStorageException {
+		ArrayList<Change> cs = new ArrayList<Change>();
+		cs.add(PageChange.move(from, to));
+		if (d.hasPage(PREVIEW_PREFIX + originalFrom)) {
+			cs.add(PageChange.move(PREVIEW_PREFIX + from,
+					PREVIEW_PREFIX + to));
+		}
+		if (d.hasPage(FULLTEXT_PREFIX + originalFrom)) {
+			cs.add(PageChange.move(FULLTEXT_PREFIX + from,
+					FULLTEXT_PREFIX + to));
+		}
+		if (d.has(HARDCOPY_NUMBER_PREFIX + originalFrom)) {
+			cs.add(DataChange.move(HARDCOPY_NUMBER_PREFIX + from,
+					HARDCOPY_NUMBER_PREFIX + to));
+		}
+		return cs;
+	}
+
 	/**
 	 * Called when one or several files are dropped into the viewer. Recursively explores
 	 * directories.
@@ -418,44 +474,9 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	public void filesDropped(File[] files) {
 		if (isDeleted()) { return; }
 		ArrayList<File> fs = new ArrayList<File>();
-		for (File f : files) { fs.addAll(getAvailableFiles(f, 0)); }
+		for (File f : files) { fs.addAll(getAvailableFiles(f, ACCEPTED_EXTENSIONS, 0)); }
 		if (fs.size() > 0) {
 			insertPages(fs.toArray(new File[fs.size()]), false, false, numPages());
-		}
-	}
-
-	List<File> getAvailableFiles(File f, int depth) {
-		if (depth == 100) { return l(); }
-		ArrayList<File> fs = new ArrayList<File>();
-		if (f.isDirectory()) {
-			for (File child : f.listFiles()) {
-				fs.addAll(getAvailableFiles(child, depth + 1));
-			}
-		} else {
-			if (f.canRead()) {
-				for (String ext : ACCEPTED_EXTENSIONS) {
-					if (f.getName().toLowerCase().endsWith(ext)) {
-						fs.add(f);
-					}
-				}
-			}
-		}
-		return fs;
-	}
-
-	static class ImportFileAccessory extends Box {
-		final JCheckBox deleteAfterAdding;
-		final JCheckBox retainedOriginal;
-
-		public ImportFileAccessory() {
-			super(BoxLayout.Y_AXIS);
-			add(deleteAfterAdding = new JCheckBox("Delete original"));
-				deleteAfterAdding.setSelected(true);
-				deleteAfterAdding.setToolTipText("Deletes the original file after adding it to " +
-						"the document as a page.");
-			add(retainedOriginal = new JCheckBox("Assign hardcopy number"));
-				retainedOriginal.setToolTipText("If you are keeping the original paper copy of " +
-						"this page, this gives it an unique number you can file it under.");
 		}
 	}
 
