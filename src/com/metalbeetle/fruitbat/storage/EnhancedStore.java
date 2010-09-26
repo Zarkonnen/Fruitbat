@@ -1,6 +1,7 @@
 package com.metalbeetle.fruitbat.storage;
 
 import com.metalbeetle.fruitbat.Fruitbat;
+import com.metalbeetle.fruitbat.fulltext.FullTextIndex;
 import java.util.List;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 
@@ -57,6 +58,10 @@ public class EnhancedStore implements Store {
 
 	public boolean isEmptyStore() throws FatalStorageException {
 		return s.isEmptyStore();
+	}
+
+	public FullTextIndex getFullTextIndex() {
+		return s.getFullTextIndex();
 	}
 
 	public boolean hasMetaData(String key) throws FatalStorageException {

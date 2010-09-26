@@ -20,14 +20,15 @@ public final class FullTextExtractor {
 				try {
 					pd = PDDocument.load(f);
 					ByteArrayOutputStream baos = new ByteArrayOutputStream();
-					new PDFTextStripper().writeText(pd, new OutputStreamWriter(baos));
+					new PDFTextStripper().writeText(pd, new OutputStreamWriter(baos, "UTF-8"));
 					return new ByteArraySrc(baos.toByteArray(), "full text of " + f.getName() +
 							".txt");
 				} finally {
 					try { pd.close(); } catch (Exception e) {}
 				}
 			} else {
-				ProcessBuilder pb = new ProcessBuilder("ocroscript", "recognize", f.getAbsolutePath());
+				ProcessBuilder pb = new ProcessBuilder("ocroscript", "recognize",
+						f.getAbsolutePath());
 				Process ocroProcess = pb.start();
 				OutputEater outE = new OutputEater(ocroProcess.getInputStream());
 				OutputEater errE = new OutputEater(ocroProcess.getErrorStream());
@@ -35,7 +36,7 @@ public final class FullTextExtractor {
 				errE.start();
 				int returnCode = ocroProcess.waitFor();
 				if (returnCode == 0) {
-					return new StringSrc(HTMLToText.toText(outE.get()),
+					return new StringSrc(HTMLToText.toText(fixOcropusOutput(outE.get())),
 							"full text of " + f.getName() + ".txt");
 				}
 			}
@@ -43,5 +44,9 @@ public final class FullTextExtractor {
 			e.printStackTrace();
 		}
 		return new StringSrc("", "full text of " + f.getName() + ".txt");
+	}
+
+	static String fixOcropusOutput(String out) {
+		return out.replaceAll("<head>.*</head>", "").replace("|<", "k").replace("|\\/|", "m");
 	}
 }

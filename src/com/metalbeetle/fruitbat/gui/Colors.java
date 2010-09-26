@@ -29,6 +29,9 @@ public final class Colors {
 
 	public static final Color HARDCOPY_NUM_BG = new Color(240, 240, 20);
 
+	public static final Color FULL_TEXT = Color.BLACK;
+	public static final String FULL_TEXT_HTML = toHTMLColor(FULL_TEXT);
+
 	static String toHTMLColor(Color c) {
 		return "#" + toHex(c.getRed()) + toHex(c.getGreen()) + toHex(c.getBlue());
 	}

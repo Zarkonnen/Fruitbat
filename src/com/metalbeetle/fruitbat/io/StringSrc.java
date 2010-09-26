@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class StringSrc implements DataSrc {
-	final String s;
+	public final String s;
 	final String name;
 
 	public StringSrc(String s) { this.s = s; this.name = s; }

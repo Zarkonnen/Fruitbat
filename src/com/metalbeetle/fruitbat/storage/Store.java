@@ -1,5 +1,6 @@
 package com.metalbeetle.fruitbat.storage;
 
+import com.metalbeetle.fruitbat.fulltext.FullTextIndex;
 import java.util.List;
 
 /** Interface for storing documents. */
@@ -11,8 +12,12 @@ public interface Store {
 	 * a metadata key is changed in a given session. It should be set at store creation.
 	 */
 	public String getRevision() throws FatalStorageException;
+
 	/** True when store is freshly created, false as soon as the revision changes the first time. */
 	public boolean isEmptyStore() throws FatalStorageException;
+
+	/** The full text index provided by the system, or null if none. */
+	public FullTextIndex getFullTextIndex();
 
 	public void setProgressMonitor(ProgressMonitor pm);
 

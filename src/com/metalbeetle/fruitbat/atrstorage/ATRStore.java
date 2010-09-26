@@ -1,6 +1,8 @@
 package com.metalbeetle.fruitbat.atrstorage;
 
 import com.metalbeetle.fruitbat.Fruitbat;
+import com.metalbeetle.fruitbat.fulltext.FullTextIndex;
+import com.metalbeetle.fruitbat.fulltext.LuceneIndex;
 import com.metalbeetle.fruitbat.storage.Change;
 import com.metalbeetle.fruitbat.storage.ProgressMonitor;
 import com.metalbeetle.fruitbat.storage.DataChange;
@@ -43,6 +45,7 @@ class ATRStore implements Store {
 	final HashMap<Integer, ATRDocument> idToDoc = new HashMap<Integer, ATRDocument>();
 	final List<ATRDocument> docs = new LinkedList<ATRDocument>();
 	final ATRDocIndex index;
+	final LuceneIndex luceneIndex;
 	boolean revisionUpdated = false;
 
 	public ATRStore(File location, ProgressMonitor pm) throws FatalStorageException {
@@ -71,6 +74,8 @@ class ATRStore implements Store {
 				Collections.reverse(docs);
 			}
 			index = new ATRDocIndex(this, pm, new StringPool(4));
+			pm.progress("Loading full text index", -1);
+			luceneIndex = new LuceneIndex(new File(location, "lucene-index"));
 			metaF.saveToCache();
 		} catch (Exception e) {
 			throw new FatalStorageException("Could not start up document store at " + location +
@@ -80,11 +85,13 @@ class ATRStore implements Store {
 		}
 	}
 
+	public FullTextIndex getFullTextIndex() { return luceneIndex; }
 	public DocIndex getIndex() { return index; }
 
 	public void close() throws FatalStorageException {
 		metaF.saveToCache();
 		index.close();
+		luceneIndex.close();
 	}
 
 	public void setProgressMonitor(ProgressMonitor pm) {

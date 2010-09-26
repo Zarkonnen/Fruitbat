@@ -1,6 +1,7 @@
 package com.metalbeetle.fruitbat.multiplexstorage;
 
 import com.metalbeetle.fruitbat.Fruitbat;
+import com.metalbeetle.fruitbat.fulltext.FullTextIndex;
 import com.metalbeetle.fruitbat.storage.Change;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
@@ -310,6 +311,7 @@ class MultiplexStore implements Store {
 	}
 
 	public DocIndex getIndex() { return master().getIndex(); }
+	public FullTextIndex getFullTextIndex() { return master().getFullTextIndex(); }
 
 	void handleSlaveStorageException(int slaveIndex, FatalStorageException e) {
 		pm.showWarning(SLAVE_FAILURE, "Backup store " + stores.get(slaveIndex) + " disabled",

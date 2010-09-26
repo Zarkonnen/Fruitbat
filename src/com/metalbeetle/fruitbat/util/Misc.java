@@ -2,8 +2,10 @@ package com.metalbeetle.fruitbat.util;
 
 import com.metalbeetle.fruitbat.io.DataSrc;
 import com.metalbeetle.fruitbat.io.FileSrc;
+import com.metalbeetle.fruitbat.io.StringSrc;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -78,6 +80,26 @@ public final class Misc {
 		} finally {
 			try { in.close(); } catch (Exception e) {}
 			out.close();
+		}
+	}
+
+	public static String srcToString(DataSrc src) throws IOException {
+		if (src instanceof StringSrc) {
+			return ((StringSrc) src).s;
+		}
+		BufferedInputStream in = null;
+		ByteArrayOutputStream out = null;
+		try {
+			in = new BufferedInputStream(src.getInputStream());
+			out = new ByteArrayOutputStream();
+			int bytesRead = -1;
+			byte[] buffer = new byte[BLOCK_SIZE];
+			while ((bytesRead = in.read(buffer)) != -1) {
+				out.write(buffer, 0, bytesRead);
+			}
+			return out.toString("UTF-8");
+		} finally {
+			try { in.close(); } catch (Exception e) {}
 		}
 	}
 

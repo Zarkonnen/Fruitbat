@@ -26,6 +26,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -61,6 +62,7 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 	
 	SearchResult currentSearchResult;
 	HashMap<String, String> lastSearchKV = new HashMap<String, String>();
+	List<List<String>> lastSearchFullText = new ArrayList<List<String>>();
 	List<String> lastSearchKeys = new ArrayList<String>();
 	String lastSearch = "";
 	int lastMaxDocs = DEFAULT_MAX_DOCS;
@@ -288,10 +290,26 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 		try {
 			lastSearch = searchText;
 			lastMaxDocs = maxDocs;
-			String[] terms = searchText.split(" +");
+			searchText = searchText.trim();
+			String[] tagAndFullTextRegions = searchText.split("[\"]");
+			ArrayList<List<String>> fullTextPhrases = new ArrayList<List<String>>();
+			ArrayList<String> tagTerms = new ArrayList<String>();
+			boolean inFullTextRegion = searchText.startsWith("\"");
+			boolean firstRegion = true;
+			for (String region : tagAndFullTextRegions) {
+				if (firstRegion && region.length() == 0) { firstRegion = false; continue; }
+				firstRegion = false;
+				String[] terms = region.trim().split(" +");
+				if (inFullTextRegion) {
+					fullTextPhrases.add(Arrays.asList(terms));
+				} else {
+					tagTerms.addAll(Arrays.asList(terms));
+				}
+				inFullTextRegion = !inFullTextRegion;
+			}
 			final HashMap<String, String> searchKV = new HashMap<String, String>();
 			final ArrayList<String> sortKeys = new ArrayList<String>();
-			for (String t : terms) {
+			for (String t : tagTerms) {
 				String[] kv = t.split(":", 2);
 				if (kv[0].length() == 0) { continue; }
 				if (searchKV.containsKey(kv[0])) { continue; }
@@ -300,12 +318,20 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 				sortKeys.add(kv[0]);
 			}
 			if (!showDeletedDocs) { searchKV.put(Fruitbat.ALIVE_KEY, null); }
-			if (force || !lastSearchKV.equals(searchKV)) {
+			if (force ||
+			    !lastSearchKV.equals(searchKV) ||
+			    !lastSearchFullText.equals(fullTextPhrases))
+			{
 				lastSearchKV = searchKV;
 				lastSearchKeys.clear();
 				lastSearchKeys.addAll(searchKV.keySet());
 				lastSearchKeys.remove(Fruitbat.ALIVE_KEY);
+				lastSearchFullText = fullTextPhrases;
 				currentSearchResult = getIndex().search(lastSearchKV, maxDocs);
+				if (store.getFullTextIndex() != null && fullTextPhrases.size() > 0) {
+					currentSearchResult.docs = store.getFullTextIndex().query(fullTextPhrases,
+							currentSearchResult.docs);
+				}
 				Collections.sort(currentSearchResult.docs, new ByValueComparator(sortKeys));
 				if (docsList != null) {
 					docsList.m.changed();

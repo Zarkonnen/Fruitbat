@@ -2,6 +2,7 @@ package com.metalbeetle.fruitbat.gui;
 
 import com.metalbeetle.fruitbat.Fruitbat;
 import com.metalbeetle.fruitbat.fulltext.FullTextExtractor;
+import com.metalbeetle.fruitbat.io.DataSrc;
 import com.metalbeetle.fruitbat.io.FileSrc;
 import com.metalbeetle.fruitbat.storage.Change;
 import com.metalbeetle.fruitbat.storage.DataChange;
@@ -9,6 +10,7 @@ import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.storage.PageChange;
 import com.metalbeetle.fruitbat.util.ColorProfiler;
+import com.metalbeetle.fruitbat.util.Pair;
 import com.metalbeetle.fruitbat.util.PreviewImager;
 import java.awt.BorderLayout;
 import java.awt.Container;
@@ -25,6 +27,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.prefs.BackingStoreException;
@@ -329,6 +332,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		saveTags();
 		new Thread("Adding page(s)") { @Override public void run() {
 			mf.pm.showProgressBar("Adding pages", "", pageFiles.length * 2);
+			ArrayList<DataSrc> fulltexts = new ArrayList<DataSrc>();
 			try {
 				List<Change> cs = new ArrayList<Change>();
 				// Shift later pages out of the way.
@@ -354,16 +358,17 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 				for (File f : pageFiles) {
 					try {
 						// Process page
-						mf.pm.progress("Creating preview image of " + f, loop * 2);
+						mf.pm.progress("Creating preview image of " + f.getName(), loop * 2);
 						BufferedImage preview = PreviewImager.getPreviewImage(f);
 						File tmp = File.createTempFile("preview", f.getName() + ".jpg");
 						ImageIO.write(preview, "jpg", tmp);
 						final int myIndex = atIndex + loop;
 						cs.add(PageChange.put(string(myIndex), new FileSrc(f)));
 						cs.add(PageChange.put(PREVIEW_PREFIX + string(myIndex), new FileSrc(tmp)));
-						mf.pm.progress("Extracting full text of " + f, loop * 2 + 1);
-						cs.add(PageChange.put(FULLTEXT_PREFIX + string(myIndex),
-								FullTextExtractor.getFullText(f)));
+						mf.pm.progress("Extracting full text of " + f.getName(), loop * 2 + 1);
+						DataSrc ft = FullTextExtractor.getFullText(f);
+						cs.add(PageChange.put(FULLTEXT_PREFIX + string(myIndex), ft));
+						fulltexts.add(ft);
 						if (myIndex == 0) {
 							String cprof1 = ColorProfiler.profile1(preview);
 							String cprof2 = ColorProfiler.profile2(preview);
@@ -378,14 +383,18 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 									string(nextRetN)));
 						}
 					} catch (Exception e) {
-						mf.pm.handleException(new Exception("Could not process " + f + " as " +
-								"a page.", e), null);
+						mf.pm.handleException(new Exception("Could not process " + f.getName() +
+								" as a page.", e), null);
 						return;
 					}
 					loop++;
 				}
 				mf.pm.progress("Committing data to store", -1);
 				d.change(cs);
+				if (mf.store.getFullTextIndex() != null) {
+					mf.pm.progress("Adding pages to full text index", -1);
+					for (DataSrc ft : fulltexts) { mf.store.getFullTextIndex().pageAdded(ft, d); }
+				}
 				if (deleteAfterAdding) {
 					mf.pm.progress("Deleting originals", -1);
 					for (File f : pageFiles) {
