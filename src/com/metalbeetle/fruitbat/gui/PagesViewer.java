@@ -27,6 +27,8 @@ import static com.metalbeetle.fruitbat.gui.Colors.*;
 
 class PagesViewer extends JPanel {
 	final DocumentFrame df;
+	boolean deletedPageMode = false;
+	int otherPageListIndex = -1;
 
 	final Box topBox;
 		final JButton prevButton;
@@ -84,7 +86,10 @@ class PagesViewer extends JPanel {
 
 	void gotoInputPage() {
 		try {
-			setPage(Integer.valueOf(pageField.getText()) - 1, /*setPageFieldText*/ false);
+			setPage(
+					Integer.valueOf(pageField.getText()) - 1,
+					/*setPageFieldText*/ false,
+					/*updatedisplay*/ true);
 		} catch (NumberFormatException e) {}
 	}
 
@@ -100,7 +105,7 @@ class PagesViewer extends JPanel {
 		try {
 			Runtime.getRuntime().exec(new String[] {
 				"open",
-				((FileSrc) df.d.getPage(string(pv.pageIndex))).f.getPath()
+				((FileSrc) df.d.getPage(df.pagePrefix() + pv.pageIndex)).f.getPath()
 			});
 		} catch (Exception ex) {}
 	}
@@ -109,9 +114,9 @@ class PagesViewer extends JPanel {
 		try {
 			int nextRetN = df.mf.store.getNextRetainedPageNumber();
 			df.mf.store.setNextRetainedPageNumber(nextRetN + 1);
-			df.d.change(l(DataChange.put(DocumentFrame.HARDCOPY_NUMBER_PREFIX + pv.pageIndex,
-					string(nextRetN))));
-			updateButtonAndMenuEnabledStates();
+			df.d.change(l(DataChange.put(df.pagePrefix() + DocumentFrame.HARDCOPY_NUMBER_PREFIX +
+					pv.pageIndex, string(nextRetN))));
+			updateDisplay();
 			pv.repaint();
 		} catch (FatalStorageException e) {
 			df.mf.handleException(e);
@@ -120,22 +125,23 @@ class PagesViewer extends JPanel {
 
 	void removeHardcopyNumber() {
 		try {
-			df.d.change(l(DataChange.remove(DocumentFrame.HARDCOPY_NUMBER_PREFIX + pv.pageIndex)));
-			updateButtonAndMenuEnabledStates();
+			df.d.change(l(DataChange.remove(df.pagePrefix() + DocumentFrame.HARDCOPY_NUMBER_PREFIX +
+					pv.pageIndex)));
+			updateDisplay();
 			pv.repaint();
 		} catch (FatalStorageException e) {
 			df.mf.handleException(e);
 		}
 	}
 
-	void setPage(int pageIndex) { setPage(pageIndex, true); }
+	void setPage(int pageIndex) { setPage(pageIndex, true, true); }
 
-	void setPage(int pageIndex, boolean setPageFieldText) {
+	void setPage(int pageIndex, boolean setPageFieldText, boolean updateDisplay) {
 		int numPages = df.numPages();
 		if (pageIndex < 0) { pageIndex = 0; }
 		if (pageIndex >= numPages) { pageIndex = numPages - 1; }
 		pv.pageIndex = pageIndex;
-		updateButtonAndMenuEnabledStates();
+		if (updateDisplay) { updateDisplay(); }
 		if (setPageFieldText) {
 			pageField.setText(string(pv.pageIndex + 1));
 		}
@@ -147,7 +153,13 @@ class PagesViewer extends JPanel {
 		return pv.pageIndex;
 	}
 
-	void updateButtonAndMenuEnabledStates() {
+	void updateDisplay() {
+		if (df.deletedPageMode != deletedPageMode) {
+			deletedPageMode = df.deletedPageMode;
+			int tmp = otherPageListIndex;
+			otherPageListIndex = getPage();
+			setPage(tmp, true, false);
+		}
 		prevButton.setEnabled(hasPrevPage());
 		nextButton.setEnabled(hasNextPage());
 		openButton.setEnabled(validPage());
@@ -159,6 +171,8 @@ class PagesViewer extends JPanel {
 		df.menuBar.removeHCNMI.setVisible(hasHCN());
 		df.menuBar.assignHCNMI.setEnabled(validPage() && !df.isDeleted());
 		df.menuBar.removeHCNMI.setEnabled(!df.isDeleted());
+		df.menuBar.deletePageMI.setEnabled(validPage() && !deletedPageMode);
+		df.menuBar.undeletePageMI.setEnabled(validPage() && deletedPageMode);
 	}
 
 	boolean hasPrevPage() {
@@ -175,7 +189,8 @@ class PagesViewer extends JPanel {
 
 	boolean hasHCN() {
 		try {
-			return validPage() && df.d.has(DocumentFrame.HARDCOPY_NUMBER_PREFIX + pv.pageIndex);
+			return validPage() && df.d.has(df.pagePrefix() + DocumentFrame.HARDCOPY_NUMBER_PREFIX +
+					pv.pageIndex);
 		} catch (FatalStorageException e) {
 			df.mf.handleException(e); return false;
 		}
@@ -197,7 +212,8 @@ class PagesViewer extends JPanel {
 			try {
 				g.setColor(Color.WHITE);
 				g.fillRect(0, 0, getWidth(), getHeight());
-				DataSrc src = pv.df.d.getPage(DocumentFrame.PREVIEW_PREFIX + pageIndex);
+				DataSrc src = pv.df.d.getPage(DocumentFrame.PREVIEW_PREFIX +
+						pv.df.pagePrefix() + pageIndex);
 				if (!src.equals(imgSrc)) {
 					imgSrc = src;
 					docImg = ImageIO.read(src.getInputStream());
@@ -205,8 +221,8 @@ class PagesViewer extends JPanel {
 				g.drawImage(docImg, 0, 0, getWidth(),
 						docImg.getHeight() * getWidth() / docImg.getWidth(), this);
 				hardcopyNum =
-							pv.df.d.has(DocumentFrame.HARDCOPY_NUMBER_PREFIX + pageIndex)
-							? pv.df.d.get(DocumentFrame.HARDCOPY_NUMBER_PREFIX + pageIndex)
+							pv.df.d.has(DocumentFrame.HARDCOPY_NUMBER_PREFIX + pv.df.pagePrefix() + pageIndex)
+							? pv.df.d.get(DocumentFrame.HARDCOPY_NUMBER_PREFIX + pv.df.pagePrefix() + pageIndex)
 							: null;
 				if (hardcopyNum != null) {
 					hardcopyNum = "Hardcopy #" + hardcopyNum;
@@ -221,6 +237,23 @@ class PagesViewer extends JPanel {
 							);
 					g.setColor(Color.BLACK);
 					g.drawString(hardcopyNum, getWidth() - 20 - w, 28);
+				}
+				if (pv.deletedPageMode) {
+					g.setColor(DELETED_TINT);
+					g.fillRect(0, 0, getWidth(), getHeight());
+					g.setFont(new JLabel().getFont().deriveFont(24f));
+					int w = g.getFontMetrics().stringWidth("DELETED");
+					g.setColor(DELETED_BG);
+					g.fillRoundRect(
+							getWidth() / 2 - w / 2,
+							getHeight() / 4,
+							w + 10,
+							34,
+							5,
+							5
+					);
+					g.setColor(Color.BLACK);
+					g.drawString("DELETED", getWidth() / 2 - w / 2 + 5, getHeight() / 4 + 25);
 				}
 			} catch (Exception e) {
 				g.setColor(Color.GRAY);

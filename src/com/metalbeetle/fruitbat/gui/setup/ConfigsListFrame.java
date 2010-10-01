@@ -9,8 +9,6 @@ import com.metalbeetle.fruitbat.storage.Utils;
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
@@ -22,7 +20,6 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.border.EmptyBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
@@ -46,7 +43,7 @@ public class ConfigsListFrame extends JFrame {
 		this.pm = pm;
 
 		try {
-			configs.addAll(SavedStoreConfigs.getSavedStoreConfigs());
+			configs.addAll(SavedStoreConfigs.getSavedStoreConfigs(pm));
 		} catch (Exception e) {
 			pm.handleException(new Exception("Cannot load list of saved stores from preferences.",
 					e), null);

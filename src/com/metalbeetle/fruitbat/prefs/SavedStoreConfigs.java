@@ -2,6 +2,7 @@ package com.metalbeetle.fruitbat.prefs;
 
 import com.metalbeetle.fruitbat.gui.MainFrame;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
+import com.metalbeetle.fruitbat.storage.ProgressMonitor;
 import com.metalbeetle.fruitbat.storage.StoreConfig;
 import com.metalbeetle.fruitbat.storage.StoreConfigInvalidException;
 import com.metalbeetle.fruitbat.util.Pair;
@@ -18,12 +19,17 @@ import static com.metalbeetle.fruitbat.util.Collections.*;
 public final class SavedStoreConfigs {
 	private SavedStoreConfigs() {}
 
-	public static List<StoreConfig> getSavedStoreConfigs() throws BackingStoreException, StoreConfigInvalidException {
+	public static List<StoreConfig> getSavedStoreConfigs(ProgressMonitor pm) throws BackingStoreException, StoreConfigInvalidException {
 		Preferences p = Preferences.userNodeForPackage(SavedStoreConfigs.class).
 				node("savedStoreConfigs");
 		ArrayList<StoreConfig> l = new ArrayList<StoreConfig>();
 		for (String name : p.keys()) {
-			l.add(new StoreConfig(p.get(name, null)));
+			try {
+				l.add(new StoreConfig(p.get(name, null)));
+			} catch (Exception e) {
+				pm.handleException(new Exception("Cannot load saved store \"" + name + "\". It " +
+						"may have moved or otherwise become inaccessible.", e), null);
+			}
 		}
 		return l;
 	}

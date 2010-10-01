@@ -6,6 +6,7 @@ import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
@@ -28,6 +29,9 @@ class DocumentMenuBar extends JMenuBar {
 	final JMenuItem addPageMI;
 	final JMenuItem insertPageBeforeMI;
 	final JMenuItem insertPageAfterMI;
+	final JMenuItem deletePageMI;
+	final JMenuItem undeletePageMI;
+	final JCheckBoxMenuItem showDeletedPagesMI;
 
 	public DocumentMenuBar(final DocumentFrame df) {
 		JMenu fileMenu = new JMenu("File");
@@ -52,7 +56,7 @@ class DocumentMenuBar extends JMenuBar {
 				undeleteMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
 					try {
 						df.mf.store.undelete(df.d);
-						df.updateIsDeletedStatus();
+						df.updateDisplay();
 					} catch (Exception ex) {
 						df.mf.pm.handleException(new FatalStorageException(
 								"Could not undelete document.", ex), null);
@@ -143,5 +147,28 @@ class DocumentMenuBar extends JMenuBar {
 				}});
 				gotoPageMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+			pageMenu.addSeparator();
+			deletePageMI = new JMenuItem("Delete Page");
+				pageMenu.add(deletePageMI);
+				deletePageMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
+					df.deleteCurrentPage();
+				}});
+				deletePageMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_MINUS,
+						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+			undeletePageMI = new JMenuItem("Undelete Page");
+				pageMenu.add(undeletePageMI);
+				undeletePageMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
+					df.undeleteCurrentPage();
+				}});
+				undeletePageMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_EQUALS,
+						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+			showDeletedPagesMI = new JCheckBoxMenuItem("Show Deleted Pages");
+				pageMenu.add(showDeletedPagesMI);
+				showDeletedPagesMI.setSelected(df.deletedPageMode);
+				showDeletedPagesMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
+					df.setShowDeletedPages(showDeletedPagesMI.isSelected());
+				}});
+				showDeletedPagesMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_MINUS,
+						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask() | KeyEvent.SHIFT_MASK));
 	}
 }

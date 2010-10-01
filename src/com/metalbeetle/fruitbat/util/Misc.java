@@ -74,7 +74,7 @@ public final class Misc {
 		GregorianCalendar d = new GregorianCalendar();
 		String ds = string(d.get(GregorianCalendar.YEAR));
 		String month = string(d.get(GregorianCalendar.MONTH) + 1);
-		ds += month.length() == 1 ? "-0" + month : month;
+		ds += month.length() == 1 ? "-0" + month : "-" + month;
 		String day = string(d.get(GregorianCalendar.DAY_OF_MONTH));
 		ds += day.length() == 1 ? "-0" + day : "-" + day;
 		return ds;

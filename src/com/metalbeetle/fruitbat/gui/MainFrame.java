@@ -399,7 +399,7 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 		try {
 			Document d = store.undelete(store.get(id));
 			DocumentFrame df = openDocManager.getAndToFrontIfOpen(d);
-			if (df != null) { df.updateIsDeletedStatus(); }
+			if (df != null) { df.updateDisplay(); }
 			forceSearch();
 			return df;
 		} catch (Exception e) {

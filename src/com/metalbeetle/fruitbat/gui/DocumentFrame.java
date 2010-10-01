@@ -57,6 +57,8 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	static final String HARDCOPY_NUMBER_PREFIX = Fruitbat.HIDDEN_KEY_PREFIX + "ret";
 	static final String FULLTEXT_PREFIX = Fruitbat.HIDDEN_KEY_PREFIX + "ft";
 	static final String TMP_MOVE_PAGE_INDEX = "tmp";
+	static final String DELETED_PREFIX = "d";
+	static final String NOT_DELETED_PREFIX = "";
 
 	final Document d;
 	final MainFrame mf;
@@ -64,6 +66,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	InputTagCompleteMenu completeMenu;
 	boolean tagsChanged = false;
 	final Caret tagsFCaret;
+	boolean deletedPageMode = false;
 
 	final Box searchBoxH;
 		final Box searchBoxV;
@@ -161,7 +164,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		new FileDrop(viewer, this);
 
 		updateTags();
-		updateIsDeletedStatus();
+		updateDisplay();
 		tagsChanged = false;
 		mf.app.shortcutOverlay.attachTo(this);
 		pack();
@@ -182,7 +185,11 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		mf.openDocManager.close(d);
 	}
 
-	public void updateIsDeletedStatus() {
+	/**
+	 * Updates the content/visibility/enabledness of GUI elements depending on if the document is
+	 * deleted, is showing deleted pages, etc.
+	 */
+	public void updateDisplay() {
 		boolean isDeleted = isDeleted();
 
 		setTitle(isDeleted ? "Fruitbat Document (Deleted)" : "Fruitbat Document");
@@ -200,7 +207,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		menuBar.addPageMI.setEnabled(!isDeleted);
 		menuBar.insertPageBeforeMI.setEnabled(!isDeleted);
 		menuBar.insertPageAfterMI.setEnabled(!isDeleted);
-		viewer.updateButtonAndMenuEnabledStates();
+		viewer.updateDisplay();
 	}
 
 	void delete() {
@@ -467,6 +474,68 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		return cs;
 	}
 
+	void deleteCurrentPage() {
+		try {
+			if (!deletedPageMode && viewer.validPage()) {
+				final int pageNum = viewer.getPage();
+				final int delPageNum = numPagesFor(DELETED_PREFIX);
+				final int numPages = numPagesFor(NOT_DELETED_PREFIX);
+				ArrayList<Change> cs = new ArrayList<Change>();
+
+				// Move the page to be deleted.
+				cs.addAll(pageMoveChanges(
+						/* from */        string(pageNum),
+						/* originalFrom */string(pageNum),
+						/* to */          DELETED_PREFIX + delPageNum));
+
+				// Shift any pages beyond this one to cover it up.
+				for (int i = pageNum + 1; i < numPages; i++) {
+					cs.addAll(pageMoveChanges(
+						/* from */        string(i),
+						/* originalFrom */string(i),
+						/* to */          string(i - 1)));
+				}
+				d.change(cs);
+				int gotoPageNum = pageNum - 1;
+				if (gotoPageNum == -1 && numPages > 1) { gotoPageNum = 0; }
+				viewer.setPage(gotoPageNum);
+			}
+		} catch (Exception e) {
+			mf.handleException(new FatalStorageException("Could not delete page.", e));
+		}
+	}
+
+	void undeleteCurrentPage() {
+		try {
+			if (deletedPageMode && viewer.validPage()) {
+				final int pageNum = viewer.getPage();
+				final int unDelPageNum = numPagesFor(NOT_DELETED_PREFIX);
+				final int numDelPages = numPagesFor(DELETED_PREFIX);
+				ArrayList<Change> cs = new ArrayList<Change>();
+
+				// Move the page to be undeleted.
+				cs.addAll(pageMoveChanges(
+						/* from */        DELETED_PREFIX + pageNum,
+						/* originalFrom */DELETED_PREFIX + pageNum,
+						/* to */          string(unDelPageNum)));
+
+				// Shift any pages beyond this one to cover it up.
+				for (int i = pageNum + 1; i < numDelPages; i++) {
+					cs.addAll(pageMoveChanges(
+						/* from */        DELETED_PREFIX + i,
+						/* originalFrom */DELETED_PREFIX + i,
+						/* to */          DELETED_PREFIX + (i - 1)));
+				}
+				d.change(cs);
+				int gotoPageNum = pageNum - 1;
+				if (gotoPageNum == -1 && numDelPages > 1) { gotoPageNum = 0; }
+				viewer.setPage(gotoPageNum);
+			}
+		} catch (Exception e) {
+			mf.handleException(new FatalStorageException("Could not undelete page.", e));
+		}
+	}
+
 	/**
 	 * Called when one or several files are dropped into the viewer. Recursively explores
 	 * directories.
@@ -480,18 +549,28 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		}
 	}
 
-	int numPages() {
+	String pagePrefix() { return deletedPageMode ? DELETED_PREFIX : NOT_DELETED_PREFIX; }
+
+	int numPages() { return numPagesFor(pagePrefix()); }
+
+	int numPagesFor(String prefix) {
 		try {
 			int maxIndex = -1;
 			for (String pKey : d.pageKeys()) {
+				if (!pKey.startsWith(prefix)) { continue; }
 				try {
-					maxIndex = Math.max(maxIndex, integer(pKey));
+					maxIndex = Math.max(maxIndex, integer(pKey.substring(prefix.length())));
 				} catch (Exception e) {}
 			}
 			return maxIndex + 1;
 		} catch (FatalStorageException e) {
 			mf.handleException(e); return -1;
 		}
+	}
+
+	public void setShowDeletedPages(boolean deletedPageMode) {
+		this.deletedPageMode = deletedPageMode;
+		updateDisplay();
 	}
 
 	public void writePrefs(Preferences p) throws BackingStoreException, FatalStorageException {

@@ -28,6 +28,8 @@ public final class Colors {
 	public static final String TAG_BG_HTML = toHTMLColor(TAG_BG);
 
 	public static final Color HARDCOPY_NUM_BG = new Color(240, 240, 20);
+	public static final Color DELETED_BG = new Color(255, 50, 50);
+	public static final Color DELETED_TINT = new Color(255, 50, 50, 31);
 
 	public static final Color FULL_TEXT = Color.BLACK;
 	public static final String FULL_TEXT_HTML = toHTMLColor(FULL_TEXT);
