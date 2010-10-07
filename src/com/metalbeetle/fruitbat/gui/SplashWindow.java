@@ -1,6 +1,5 @@
 package com.metalbeetle.fruitbat.gui;
 
-import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.storage.ProgressMonitor;
 import com.metalbeetle.fruitbat.Fruitbat;
 import java.awt.Color;
@@ -9,7 +8,6 @@ import java.awt.Graphics;
 import java.awt.Image;
 import java.io.IOException;
 import javax.imageio.ImageIO;
-import javax.swing.JOptionPane;
 import javax.swing.JWindow;
 
 public class SplashWindow extends JWindow implements ProgressMonitor {
