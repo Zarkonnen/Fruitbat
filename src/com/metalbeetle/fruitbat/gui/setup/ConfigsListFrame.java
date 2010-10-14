@@ -92,6 +92,7 @@ public class ConfigsListFrame extends JFrame {
 		}
 
 		pack();
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
 		setSize(600, 400);
 	}
 

@@ -62,7 +62,6 @@ final class KVFile {
 				try {
 					r = new ATRReader(new BufferedInputStream(new FileInputStream(cacheF)));
 					String[] fields = new String[2];
-					r.readRecord(fields, 0, 1);
 					int fieldsRead;
 					while ((fieldsRead = r.readRecord(fields, 0, 2)) != -1) {
 						if (fieldsRead == 0) { break; } // Broken cache!

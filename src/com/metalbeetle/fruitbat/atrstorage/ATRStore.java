@@ -9,7 +9,6 @@ import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.DocIndex;
 import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
-import com.metalbeetle.fruitbat.storage.RevisionNotFoundException;
 import com.metalbeetle.fruitbat.storage.Store;
 import com.metalbeetle.fruitbat.util.StringPool;
 import java.io.File;
@@ -77,6 +76,7 @@ class ATRStore implements Store {
 			pm.progress("Loading full text index", -1);
 			luceneIndex = new LuceneIndex(new File(location, "lucene-index"));
 			metaF.saveToCache();
+            revisionUpdated = false;
 		} catch (Exception e) {
 			throw new FatalStorageException("Could not start up document store at " + location +
 					".", e);
@@ -181,14 +181,6 @@ class ATRStore implements Store {
 		} catch (Exception e) {
 			throw new FatalStorageException("Could not determine if store is empty.", e);
 		}
-	}
-
-	public List<Change> getChangesSince(String revision) throws FatalStorageException, RevisionNotFoundException {
-		throw new UnsupportedOperationException("Not supported yet.");
-	}
-
-	public String revert(String toRevision) throws FatalStorageException, RevisionNotFoundException {
-		throw new UnsupportedOperationException("Not supported yet.");
 	}
 
 	static final class DocFilter implements FilenameFilter {

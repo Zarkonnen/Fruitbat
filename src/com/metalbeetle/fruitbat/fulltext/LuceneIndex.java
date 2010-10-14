@@ -23,7 +23,9 @@ import org.apache.lucene.search.PhraseQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.NoLockFactory;
 import org.apache.lucene.store.SimpleFSDirectory;
+import org.apache.lucene.store.SimpleFSLockFactory;
 import org.apache.lucene.util.Version;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 
@@ -37,7 +39,7 @@ public class LuceneIndex implements FullTextIndex {
 	public LuceneIndex(File indexF) throws FatalStorageException {
 		try {
 			this.indexF = indexF;
-			directory = new SimpleFSDirectory(indexF);
+			directory = new SimpleFSDirectory(indexF, NoLockFactory.getNoLockFactory());
 			writer = new IndexWriter(directory, analyzer, /*create*/ !indexF.exists(),
 					IndexWriter.MaxFieldLength.UNLIMITED);
 		} catch (Exception e) {
