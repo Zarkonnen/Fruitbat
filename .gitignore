@@ -2,3 +2,6 @@ build
 build.xml
 manifest.mf
 nbproject
+lib/junit/
+lib/junit_4/
+lib/nblibraries.properties
