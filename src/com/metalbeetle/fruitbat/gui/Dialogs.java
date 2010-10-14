@@ -57,7 +57,7 @@ public class Dialogs implements ProgressMonitor {
 	}
 
 	public void changeNumSteps(final int numSteps) {
-		progressPanel.getProgressBar().setMaximum(numSteps);
+		if (numSteps > 0) { progressPanel.getProgressBar().setMaximum(numSteps); }
 		progressPanel.getProgressBar().setIndeterminate(numSteps <= 0);
 		progressPanel.getProgressBar().setValue(0);
 	}

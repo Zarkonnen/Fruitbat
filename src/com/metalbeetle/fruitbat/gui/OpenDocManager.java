@@ -44,8 +44,8 @@ class OpenDocManager {
 	}
 
 	void close() {
-		for (DocumentFrame df : openFrames.values()) {
-			df.saveTags();
+		for (Document d : openFrames.keySet()) {
+			close(d);
 		}
 	}
 

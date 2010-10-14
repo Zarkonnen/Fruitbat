@@ -279,7 +279,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 
 	void updateTags() {
 		try {
-			if (d.keys().size() == 0) {
+			if (d.keys().isEmpty()) {
 				tagsF.setText("");
 			}
 			StringBuilder sb = new StringBuilder();
@@ -581,6 +581,8 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 			p.putInt("height", getHeight());
 			p.putBoolean("focused", isFocused());
 			p.putInt("pageNum", viewer.getPage());
+			p.putInt("altPageNum", viewer.otherPageListIndex);
+			p.putBoolean("deletedPageMode", deletedPageMode);
 			p.putInt("suggestedTagsScrollX", suggestedTagsListSP.getViewport().getViewPosition().x);
 			p.putInt("suggestedTagsScrollY", suggestedTagsListSP.getViewport().getViewPosition().y);
 			p.putInt("allTagsScrollX", allTagsListSP.getViewport().getViewPosition().x);
@@ -591,7 +593,9 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	public void readPrefs(final Preferences p) throws BackingStoreException, FatalStorageException {
 		setLocation(p.getInt("x", getX()), p.getInt("y", getY()));
 		setSize(p.getInt("width", getWidth()), p.getInt("height", getHeight()));
+		setShowDeletedPages(p.getBoolean("deletedPageMode", false));
 		viewer.setPage(p.getInt("pageNum", 0));
+		viewer.otherPageListIndex = p.getInt("altPageNum", -1);
 		SwingUtilities.invokeLater(new Runnable() { public void run() {
 			suggestedTagsListSP.getViewport().setViewPosition(
 					new Point(p.getInt("suggestedTagsScrollX", 0), p.getInt("suggestedTagsScrollY", 0)));

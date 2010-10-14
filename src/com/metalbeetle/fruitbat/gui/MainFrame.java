@@ -211,7 +211,7 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 		}
 	}
 
-	/** Call when closing application. */
+	/** Call when closing application/store. */
 	public void close() {
 		openDocManager.close();
 		try {
