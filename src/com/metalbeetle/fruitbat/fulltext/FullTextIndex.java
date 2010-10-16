@@ -9,4 +9,5 @@ public interface FullTextIndex {
 	public List<Document> query(List<List<String>> phrases, List<Document> within) throws FatalStorageException;
 	public void pageAdded(DataSrc text, Document doc) throws FatalStorageException;
 	public void pageRemoved(DataSrc text, Document doc) throws FatalStorageException;
+	public void close();
 }

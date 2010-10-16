@@ -6,3 +6,5 @@ lib/junit/
 lib/junit_4/
 lib/nblibraries.properties
 lib/CopyLibs
+test/com/metalbeetle/fruitbat/s3storage/s3testcredentials.properties
+

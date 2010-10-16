@@ -2,6 +2,7 @@ package com.metalbeetle.fruitbat.storage;
 
 import com.metalbeetle.fruitbat.gui.setup.FieldJComponent;
 import com.metalbeetle.fruitbat.gui.setup.FileFieldComponent;
+import com.metalbeetle.fruitbat.gui.setup.StringFieldComponent;
 import java.io.File;
 import javax.swing.filechooser.FileFilter;
 
@@ -26,6 +27,24 @@ public interface ConfigField<T> {
 		public Class getExpectedValueClass() { return String.class; }
 		public String toString(String value) { return value; }
 		public String toValue(String s) { return s; }
+	}
+
+	public class NonEmptyStringField extends StringField {
+		public NonEmptyStringField(String name) { super(name); }
+
+		public String validate(String input) {
+			if (input.isEmpty()) {
+				return "Please enter a " + name;
+			} else {
+				return null;
+			}
+		}
+
+		public FieldJComponent<String> getFieldJComponent() {
+			StringFieldComponent sfc = new StringFieldComponent();
+			sfc.setField(this);
+			return sfc;
+		}
 	}
 
 	public abstract class FileField implements ConfigField<File> {

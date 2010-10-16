@@ -2,6 +2,7 @@ package com.metalbeetle.fruitbat.atrstorage;
 
 import com.metalbeetle.fruitbat.atrio.ATRReader;
 import com.metalbeetle.fruitbat.atrio.ATRWriter;
+import com.metalbeetle.fruitbat.hierarchicalstorage.KVFile;
 import com.metalbeetle.fruitbat.storage.Change;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
@@ -19,7 +20,7 @@ import static com.metalbeetle.fruitbat.util.Misc.*;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 
 /** Stores key/value data in an append-only ATR file. */
-final class KVFile {
+final class AppendingKVFile implements KVFile {
 	static final String PUT    = "p";
 	static final String REMOVE = "r";
 	static final String MOVE   = "m";
@@ -33,11 +34,11 @@ final class KVFile {
 
 	private boolean loaded = false;
 
-	KVFile(File f, File cacheF,  Map<String, String> defaults) {
+	AppendingKVFile(File f, File cacheF,  Map<String, String> defaults) {
 		this.f = f; this.cacheF = cacheF; this.defaults = new HashMap<String, String>(defaults);
 	}
-	KVFile(File f, Map<String, String> defaults) { this(f, null, defaults); }
-	KVFile(File f) { this(f, Collections.<String, String>emptyMap()); }
+	AppendingKVFile(File f, Map<String, String> defaults) { this(f, null, defaults); }
+	AppendingKVFile(File f) { this(f, Collections.<String, String>emptyMap()); }
 
 	/** @return The key/value map in the file. Never use keyValueMap directly! */
 	HashMap<String, String> kv() throws FatalStorageException {
@@ -129,7 +130,7 @@ final class KVFile {
 		}
 	}
 
-	void saveToCache() throws FatalStorageException {
+	public void saveToCache() throws FatalStorageException {
 		if (cacheF != null && loaded) {
 			mkAncestors(cacheF);
 
@@ -155,20 +156,20 @@ final class KVFile {
 		}
 	}
 
-	String get(String key) throws FatalStorageException {
+	public String get(String key) throws FatalStorageException {
 		if (has(key)) { return kv().get(key); }
 		throw new FatalStorageException("Key " + key + " not found in " + f + ".");
 	}
 
-	boolean has(String key) throws FatalStorageException {
+	public boolean has(String key) throws FatalStorageException {
 		return kv().containsKey(key);
 	}
 
-	List<String> keys() throws FatalStorageException {
+	public List<String> keys() throws FatalStorageException {
 		return immute(k());
 	}
 
-	void change(List<Change> changes) throws FatalStorageException {
+	public void change(List<Change> changes) throws FatalStorageException {
 		// If there is a cache file, we must load it in to prevent it from hanging around with old
 		// data while we blithely write newer data to the non-cache file, getting them out of sync.
 		if (cacheF != null) {

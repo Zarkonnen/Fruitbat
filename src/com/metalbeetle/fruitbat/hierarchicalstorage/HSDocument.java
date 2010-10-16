@@ -1,6 +1,6 @@
-package com.metalbeetle.fruitbat.atrstorage;
+package com.metalbeetle.fruitbat.hierarchicalstorage;
+
 import com.metalbeetle.fruitbat.io.DataSrc;
-import com.metalbeetle.fruitbat.io.FileSrc;
 import com.metalbeetle.fruitbat.storage.Change;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.Document;
@@ -9,31 +9,30 @@ import com.metalbeetle.fruitbat.storage.PageChange;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Document stored on file system, using ATR files, which guarantees atomicity. */
-class ATRDocument implements Comparable<ATRDocument>, Document {
+/** Document stored on some hierarchical storage medium. */
+public class HSDocument implements Comparable<HSDocument>, Document {
 	static final String DATA_PREFIX = "d ";
 	static final String FILE_PREFIX = "f ";
 	static final String CHECKSUM_PREFIX = "c ";
 	static final String REVISION_KEY = "rev";
 
 	final int id;
-	final File location;
-	final AppendingKVFile data;
-	final ATRStore s;
+	final Location location;
+	final KVFile data;
+	final HSStore s;
 
 	/** File names in use by internal data that mustn't be used to store pages. */
 	private static final List<String> FORBIDDEN_FILE_NAMES = l("data.atr");
 
-	public ATRDocument(File location, ATRStore s) {
+	public HSDocument(Location location, HSStore s) throws FatalStorageException {
 		this.location = location;
 		this.s = s;
 		id = integer(location.getName());
-		data = new AppendingKVFile(new File(location, "data.atr"));
+		data = location.child("data.atr").kvFile();
 	}
 
 	public int getID() { return id; }
@@ -47,7 +46,7 @@ class ATRDocument implements Comparable<ATRDocument>, Document {
 		}
 	}
 
-	ATRDocIndex myIndex() { return s.index; }
+	HSIndex myIndex() { return (HSIndex) s.getIndex(); }
 
 	public String change(List<Change> changes) throws FatalStorageException {
 		return change(
@@ -86,13 +85,11 @@ class ATRDocument implements Comparable<ATRDocument>, Document {
 					throw new FatalStorageException("Could not checksum " + p.value + ".", e);
 				}
 				String name = findFreePageName(p.value);
-				File newF = new File(location, name);
-				mkAncestors(newF);
+				Location newL = location.child(name);
 				try {
-					srcToFile(p.value, newF);
-				} catch (IOException e) {
-					throw new FatalStorageException("Couldn't store page at " + p.key + ".\n" +
-							"Can't copy " + p.value + " to " + newF + ".", e);
+					newL.put(p.value);
+				} catch (Exception e) {
+					throw new FatalStorageException("Couldn't store page at " + p.key + ".", e);
 				}
 				dataChanges.add(DataChange.put(FILE_PREFIX + p.key, name));
 				dataChanges.add(DataChange.put(CHECKSUM_PREFIX + p.key, checksum));
@@ -148,14 +145,14 @@ class ATRDocument implements Comparable<ATRDocument>, Document {
 	}
 
 	public DataSrc getPage(String key) throws FatalStorageException {
-		return new FileSrc(new File(location, data.get(FILE_PREFIX + key)));
+		return location.child(data.get(FILE_PREFIX + key));
 	}
 
 	public String getPageChecksum(String key) throws FatalStorageException {
 		return data.get(CHECKSUM_PREFIX + key);
 	}
 
-	private String findFreePageName(DataSrc src) {
+	private String findFreePageName(DataSrc src) throws FatalStorageException {
 		// Replace all nonword non-period chars.
 		String name = src.getName().replaceAll("[^\\w.]", "");
 		if (name.length() > 30) {
@@ -165,7 +162,7 @@ class ATRDocument implements Comparable<ATRDocument>, Document {
 		int dotIndex = name.lastIndexOf(".");
 		String preDot  = dotIndex == -1 ? name : name.substring(0, dotIndex);
 		String postDot = dotIndex == -1 ? ""   : name.substring(dotIndex);
-		while (FORBIDDEN_FILE_NAMES.contains(name) || new File(location, name).exists()) {
+		while (FORBIDDEN_FILE_NAMES.contains(name) || location.child(name).exists()) {
 			name = preDot + "_" + i + postDot;
 			i++;
 		}
@@ -191,7 +188,7 @@ class ATRDocument implements Comparable<ATRDocument>, Document {
 		return "doc@" + location;
 	}
 
-	public int compareTo(ATRDocument d2) {
+	public int compareTo(HSDocument d2) {
 		return id - d2.id;
 	}
 }

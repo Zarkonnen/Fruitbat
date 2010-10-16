@@ -1,8 +1,6 @@
-package com.metalbeetle.fruitbat.atrstorage;
+package com.metalbeetle.fruitbat.hierarchicalstorage;
 
 import com.metalbeetle.fruitbat.Fruitbat;
-import com.metalbeetle.fruitbat.fulltext.FullTextIndex;
-import com.metalbeetle.fruitbat.fulltext.LuceneIndex;
 import com.metalbeetle.fruitbat.storage.Change;
 import com.metalbeetle.fruitbat.storage.ProgressMonitor;
 import com.metalbeetle.fruitbat.storage.DataChange;
@@ -11,8 +9,6 @@ import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.storage.Store;
 import com.metalbeetle.fruitbat.util.StringPool;
-import java.io.File;
-import java.io.FilenameFilter;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,8 +20,8 @@ import java.util.UUID;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 
-/** Stores documents on file system, using ATR files, which guarantees atomicity. */
-class ATRStore implements Store {
+/** Stores documents on some hierarchical substrate. */
+public abstract class HSStore implements Store {
 	static final String METADATA_PREFIX = "md ";
 	static final String NEXT_DOC_ID = "next_doc_id";
 	static final String NEXT_RETAINED_PAGE_NUMBER = "next_retained_page_id";
@@ -38,30 +34,34 @@ class ATRStore implements Store {
 			p(EMPTY_STORE, "true"),
 			p(REVISION, "0"));
 
-	final File location;
-	final File docsF;
-	final AppendingKVFile metaF;
-	final HashMap<Integer, ATRDocument> idToDoc = new HashMap<Integer, ATRDocument>();
-	final List<ATRDocument> docs = new LinkedList<ATRDocument>();
-	final ATRDocIndex index;
-	final LuceneIndex luceneIndex;
-	boolean revisionUpdated = false;
+	protected final Location location;
+	protected final Location docsL;
+	protected final KVFile metaF;
+	protected final HashMap<Integer, HSDocument> idToDoc = new HashMap<Integer, HSDocument>();
+	protected final List<HSDocument> docs = new LinkedList<HSDocument>();
+	protected final HSIndex index;
+	protected boolean revisionUpdated = false;
 
-	public ATRStore(File location, ProgressMonitor pm) throws FatalStorageException {
+	public HSStore(Location location, ProgressMonitor pm) throws FatalStorageException {
 		pm.showProgressBar("Loading documents", "", -1);
 		try {
 			this.location = location;
-			docsF = new File(location, "docs");
+			docsL = location.child("docs");
 			HashMap<String, String> myMetaDefaults = new HashMap<String, String>(META_DEFAULTS);
 			myMetaDefaults.put(STORE_UUID, UUID.randomUUID().toString());
-			metaF = new AppendingKVFile(new File(location, "meta.atr"), new File(location, "meta-cache.atr"),
-					myMetaDefaults);
-			if (docsF.exists()) {
-				File[] fs = docsF.listFiles(new DocFilter());
-				pm.changeNumSteps(fs.length);
+			metaF = location.child("meta.atr").kvFile(location.child("meta-cache.atr"), myMetaDefaults);
+			if (docsL.exists()) {
+				List<Location> ls = docsL.children();
+				ArrayList<Location> filteredLs = new ArrayList<Location>();
+				for (Location l : ls) {
+					if (l.getName().matches("[0-9]+")) {
+						filteredLs.add(l);
+					}
+				}
+				pm.changeNumSteps(filteredLs.size());
 				int loop = 0;
-				for (File f : fs) {
-					ATRDocument d = new ATRDocument(f, this);
+				for (Location f : filteredLs) {
+					HSDocument d = new HSDocument(f, this);
 					idToDoc.put(d.getID(), d);
 					docs.add(d);
 					if (loop++ % 100 == 0) {
@@ -72,9 +72,8 @@ class ATRStore implements Store {
 				Collections.sort(docs);
 				Collections.reverse(docs);
 			}
-			index = new ATRDocIndex(this, pm, new StringPool(4));
+			index = new HSIndex(this, pm, new StringPool(4));
 			pm.progress("Loading full text index", -1);
-			luceneIndex = new LuceneIndex(new File(location, "lucene-index"));
 			metaF.saveToCache();
             revisionUpdated = false;
 		} catch (Exception e) {
@@ -85,13 +84,14 @@ class ATRStore implements Store {
 		}
 	}
 
-	public FullTextIndex getFullTextIndex() { return luceneIndex; }
 	public DocIndex getIndex() { return index; }
 
 	public void close() throws FatalStorageException {
 		metaF.saveToCache();
 		index.close();
-		luceneIndex.close();
+		if (getFullTextIndex() != null) {
+			getFullTextIndex().close();
+		}
 	}
 
 	public void setProgressMonitor(ProgressMonitor pm) {
@@ -183,12 +183,8 @@ class ATRStore implements Store {
 		}
 	}
 
-	static final class DocFilter implements FilenameFilter {
-		public boolean accept(File dir, String name) { return name.matches("[0-9]+"); }
-	}
+	public Location getLocation() { return location; }
 
-	public File getLocation() { return location; }
-	
 	public List<Document> docs() { return (List<Document>) (List) immute(docs); }
 
 	public Document get(int id) { return idToDoc.get(id); }
@@ -199,11 +195,10 @@ class ATRStore implements Store {
 
 	Document create(String id) throws FatalStorageException {
 		try {
-			ATRDocument d = new ATRDocument(new File(docsF, id), this);
+			HSDocument d = new HSDocument(docsL.child(id), this);
 			if (integer(id) >= integer(metaF.get(NEXT_DOC_ID))) {
 				metaF.change(l(DataChange.put(NEXT_DOC_ID, string(integer(id) + 1))));
-			}			
-			mkDirs(d.location);
+			}
 			idToDoc.put(d.getID(), d);
 			docs.add(0, d);
 			d.change(/*revision*/ "0", l(
@@ -221,7 +216,7 @@ class ATRStore implements Store {
 		if (idToDoc.containsKey(id)) { return idToDoc.get(id); }
 		return create(string(id));
 	}
-	
+
 	void updateRevision() throws FatalStorageException {
 		metaF.change(revisionChanges());
 	}
@@ -244,7 +239,7 @@ class ATRStore implements Store {
 		}
 		return Collections.emptyList();
 	}
-	
+
 	@Override
 	public String toString() {
 		return "store@" + location;

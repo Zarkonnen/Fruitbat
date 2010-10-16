@@ -2,6 +2,7 @@ package com.metalbeetle.fruitbat.storage;
 
 import com.metalbeetle.fruitbat.atrstorage.ATRStorageSystem;
 import com.metalbeetle.fruitbat.multiplexstorage.MultiplexStorageSystem;
+import com.metalbeetle.fruitbat.s3storage.S3StorageSystem;
 import java.util.List;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 
@@ -10,7 +11,10 @@ public final class Utils {
 
 	public static List<StorageSystem> getAvailableStorageSystems() {
 		// TODO: Implement dynamic loading of plugins.
-		return typedL(StorageSystem.class, new ATRStorageSystem(), new MultiplexStorageSystem());
+		return typedL(StorageSystem.class,
+				new ATRStorageSystem(),
+				new S3StorageSystem(),
+				new MultiplexStorageSystem());
 	}
 
 	public static void checkConfigValues(StoreConfig c)

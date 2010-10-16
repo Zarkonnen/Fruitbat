@@ -15,11 +15,11 @@ public class KVFileTest {
 	@Test
 	public void setAndGet() throws IOException, FatalStorageException {
 		File f = File.createTempFile("foo", ".atr");
-		KVFile kvf = new KVFile(f);
+		AppendingKVFile kvf = new AppendingKVFile(f);
 		kvf.change(l(DataChange.put(SCARY, SCARY)));
 		assertTrue(kvf.has(SCARY));
 		assertEquals(SCARY, kvf.get(SCARY));
-		kvf = new KVFile(f);
+		kvf = new AppendingKVFile(f);
 		assertTrue(kvf.has(SCARY));
 		assertEquals(SCARY, kvf.get(SCARY));
 		f.delete();
@@ -28,14 +28,14 @@ public class KVFileTest {
 	@Test
 	public void remove() throws IOException, FatalStorageException {
 		File f = File.createTempFile("foo", ".atr");
-		KVFile kvf = new KVFile(f);
+		AppendingKVFile kvf = new AppendingKVFile(f);
 		kvf.change(l(DataChange.put(SCARY, SCARY)));
 		assertTrue(kvf.has(SCARY));
 		assertEquals(SCARY, kvf.get(SCARY));
-		kvf = new KVFile(f);
+		kvf = new AppendingKVFile(f);
 		kvf.change(l(DataChange.remove(SCARY)));
 		assertFalse(kvf.has(SCARY));
-		kvf = new KVFile(f);
+		kvf = new AppendingKVFile(f);
 		kvf.change(l(DataChange.remove(SCARY)));
 		assertFalse(kvf.has(SCARY));
 		f.delete();
@@ -44,15 +44,15 @@ public class KVFileTest {
 	@Test
 	public void move() throws IOException, FatalStorageException {
 		File f = File.createTempFile("foo", ".atr");
-		KVFile kvf = new KVFile(f);
+		AppendingKVFile kvf = new AppendingKVFile(f);
 		kvf.change(l(DataChange.put(SCARY, SCARY)));
 		assertTrue(kvf.has(SCARY));
 		assertEquals(SCARY, kvf.get(SCARY));
-		kvf = new KVFile(f);
+		kvf = new AppendingKVFile(f);
 		kvf.change(l(DataChange.move(SCARY, "jam")));
 		assertFalse(kvf.has(SCARY));
 		assertTrue(kvf.has("jam"));
-		kvf = new KVFile(f);
+		kvf = new AppendingKVFile(f);
 		assertFalse(kvf.has(SCARY));
 		assertTrue(kvf.has("jam"));
 		assertEquals(SCARY, kvf.get("jam"));
@@ -63,7 +63,7 @@ public class KVFileTest {
 	public void cacheCoherent() throws IOException, FatalStorageException {
 		File f = File.createTempFile("foo", ".atr");
 		File fCache = File.createTempFile("foo", "-cache.atr");
-		KVFile kvf = new KVFile(f, fCache, Collections.<String, String>emptyMap());
+		AppendingKVFile kvf = new AppendingKVFile(f, fCache, Collections.<String, String>emptyMap());
 		kvf.change(l(DataChange.put("foo", "bar")));
 		kvf.has("ensure kvf loaded so that saveToCache does something");
 		kvf.saveToCache();
