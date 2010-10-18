@@ -15,7 +15,8 @@ import java.util.List;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.border.BevelBorder;
+import javax.swing.JSeparator;
+import javax.swing.JTextField;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 
 public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener {
@@ -23,6 +24,8 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 	final List<JLabel> nameLs;
 	final List<FieldJComponent> fieldJCs;
 	final List<JLabel> errLs;
+	final JLabel nameL;
+	final JTextField nameF;
 	final StorageSystem system;
 
 	public void setConfigChangedListener(ConfigChangedListener ccl) { this.ccl = ccl; }
@@ -35,14 +38,60 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 		ArrayList<JLabel> nls = new ArrayList<JLabel>(fields.size());
 		ArrayList<FieldJComponent> fcs = new ArrayList<FieldJComponent>(fields.size());
 		ArrayList<JLabel> errs = new ArrayList<JLabel>(fields.size());
+		GridBagConstraints cs;
+		nameL = new JLabel("Name");
+		cs = new GridBagConstraints(
+					 /*gridx*/ 0,
+					 /*gridy*/ 0,
+				 /*gridwidth*/ 1,
+				/*gridheight*/ 1,
+				   /*weightx*/ 1,
+				   /*weighty*/ 1,
+					/*anchor*/ WEST,
+					  /*fill*/ NONE,
+					/*insets*/ new Insets(5, 10, 0, 0),
+					 /*ipadx*/ 0,
+					 /*ipady*/ 0
+				);
+		add(nameL, cs);
+
+		nameF = new JTextField();
+		cs = new GridBagConstraints(
+					 /*gridx*/ 1,
+					 /*gridy*/ 0,
+				 /*gridwidth*/ 1,
+				/*gridheight*/ 1,
+				   /*weightx*/ 1,
+				   /*weighty*/ 1,
+					/*anchor*/ WEST,
+					  /*fill*/ HORIZONTAL,
+					/*insets*/ new Insets(5, 10, 0, 0),
+					 /*ipadx*/ 0,
+					 /*ipady*/ 0
+				);
+		add(nameF, cs);
+
+		cs = new GridBagConstraints(
+					 /*gridx*/ 0,
+					 /*gridy*/ 1,
+				 /*gridwidth*/ 2,
+				/*gridheight*/ 1,
+				   /*weightx*/ 0,
+				   /*weighty*/ 0,
+					/*anchor*/ WEST,
+					  /*fill*/ HORIZONTAL,
+					/*insets*/ new Insets(0, 0, 20, 0),
+					 /*ipadx*/ 0,
+					 /*ipady*/ 0
+				);
+		add(new JSeparator(), cs);
+
 		int y = 0;
 		for (ConfigField f : fields) {
-			GridBagConstraints cs;
-
 			JLabel l = new JLabel(f.getName() + ":");
 			cs = new GridBagConstraints(
 					     /*gridx*/ 0,
-					     /*gridy*/ y * 2,
+					     /*gridy*/ 2 + y * 3,
 					 /*gridwidth*/ 1,
 					/*gridheight*/ 1,
 					   /*weightx*/ 1,
@@ -57,7 +106,7 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 			nls.add(l);
 
 			FieldJComponent fjc = f.getFieldJComponent();
-			((JComponent) fjc).setBorder(new BevelBorder(BevelBorder.LOWERED));
+			//((JComponent) fjc).setBorder(new BevelBorder(BevelBorder.LOWERED));
 			fjc.setValueListener(this);
 
 			String err = f.validate(fjc.getValue());
@@ -65,7 +114,7 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 			errL.setForeground(Color.RED);
 			cs = new GridBagConstraints(
 					     /*gridx*/ 0,
-					     /*gridy*/ y * 2 + 1,
+					     /*gridy*/ 2 + y * 3 + 1,
 					 /*gridwidth*/ 1,
 					/*gridheight*/ 1,
 					   /*weightx*/ 1,
@@ -81,7 +130,7 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 
 			cs = new GridBagConstraints(
 					     /*gridx*/ 1,
-					     /*gridy*/ y * 2,
+					     /*gridy*/ 2 + y * 3,
 					 /*gridwidth*/ 1,
 					/*gridheight*/ 2,
 					   /*weightx*/ 1,
@@ -95,12 +144,27 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 			add((JComponent) fjc, cs);
 			fcs.add(fjc);
 
+			cs = new GridBagConstraints(
+					     /*gridx*/ 0,
+					     /*gridy*/ 2 + y * 3 + 2,
+					 /*gridwidth*/ 2,
+					/*gridheight*/ 1,
+					   /*weightx*/ 0,
+					   /*weighty*/ 0,
+					    /*anchor*/ WEST,
+					      /*fill*/ HORIZONTAL,
+					    /*insets*/ new Insets(0, 0, 0, 0),
+					     /*ipadx*/ 0,
+					     /*ipady*/ 0
+					);
+			add(new JSeparator(), cs);
+
 			y++;
 		}
 
-		GridBagConstraints cs = new GridBagConstraints(
+		cs = new GridBagConstraints(
 					     /*gridx*/ 0,
-					     /*gridy*/ y * 2,
+					     /*gridy*/ 2 + y * 3,
 					 /*gridwidth*/ 3,
 					/*gridheight*/ 1,
 					   /*weightx*/ 1,
@@ -122,8 +186,10 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 	}
 
 	public void setConfig(StoreConfig sc) {
+		nameF.setText(sc.name);
 		for (int i = 0; i < sc.configFieldValues.size(); i++) {
 			fieldJCs.get(i).setValue(sc.configFieldValues.get(i));
+			valueChanged(fieldJCs.get(i));
 		}
 	}
 
@@ -132,7 +198,7 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 		for (FieldJComponent c : fieldJCs) {
 			vals.add(c.getValue());
 		}
-		return new StoreConfig(system, vals);
+		return new StoreConfig(nameF.getText(), system, vals);
 	}
 
 	public void valueChanged(FieldJComponent fjc) {
@@ -145,14 +211,9 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 	}
 
 	public boolean allValid() {
-		/*boolean allValid = true;
-		for (FieldJComponent f : fieldJCs) {
-			allValid = allValid && f.getField().validate(f.getValue()) == null;
-		}
-		return allValid;*/
 		try {
 			Utils.checkConfigValues(getConfig());
-			return true;
+			return !nameF.getText().isEmpty();
 		} catch (StoreConfigInvalidException e) {
 			return false;
 		}

@@ -38,6 +38,7 @@ public class Fruitbat {
 				configToMainframe.put(sc, mf);
 			} catch (Exception e) {
 				pm.handleException(e, null);
+				return null;
 			} finally {
 				pm.hideProgressBar();
 			}
@@ -71,7 +72,8 @@ public class Fruitbat {
 		configsList.setVisible(true);
 		try {
 			for (Pair<StoreConfig, Preferences> openStores : SavedStoreConfigs.getOpenStores()) {
-				openStore(openStores.a).readPrefs(openStores.b);
+				MainFrame mf = openStore(openStores.a);
+				if (mf != null) { mf.readPrefs(openStores.b); }
 			}
 		} catch (Exception e) {
 			pm.handleException(new Exception("Couldn't load open stores.", e), null);

@@ -5,7 +5,6 @@ import java.awt.Component;
 import java.awt.Frame;
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
-import javax.swing.SwingUtilities;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 
 public class Dialogs implements ProgressMonitor {

@@ -11,13 +11,21 @@ import static com.metalbeetle.fruitbat.util.Collections.*;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 
 
-public class StoreConfig {
+public final class StoreConfig {
+	public final String name;
 	public final StorageSystem system;
 	public final List<Object> configFieldValues;
+
+	public StoreConfig(String name, StorageSystem system, List<Object> configFieldValues) {
+		this.name = name;
+		this.system = system;
+		this.configFieldValues = immute(configFieldValues);
+	}
 
 	public StoreConfig(StorageSystem system, List<Object> configFieldValues) {
 		this.system = system;
 		this.configFieldValues = immute(configFieldValues);
+		this.name = getSummary();
 	}
 
 	public StoreConfig(String stringRepresentation) throws StoreConfigInvalidException {
@@ -25,10 +33,11 @@ public class StoreConfig {
 			ByteArrayInputStream in = new ByteArrayInputStream(stringRepresentation.getBytes());
 			ATRReader r = new ATRReader(in);
 			List<String> rec = r.readRecord();
-			system = (StorageSystem) Class.forName(rec.get(0)).newInstance();
+			name = rec.get(0);
+			system = (StorageSystem) Class.forName(rec.get(1)).newInstance();
 			ArrayList<Object> vals = new ArrayList<Object>();
-			for (int i = 1; i < rec.size(); i++) {
-				vals.add(system.getConfigFields().get(i - 1).toValue(rec.get(i)));
+			for (int i = 2; i < rec.size(); i++) {
+				vals.add(system.getConfigFields().get(i - 2).toValue(rec.get(i)));
 			}
 			configFieldValues = immute(vals);
 		} catch (Exception e) {
@@ -43,6 +52,7 @@ public class StoreConfig {
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			ATRWriter w = new ATRWriter(out);
 			w.startRecord();
+			w.write(name);
 			w.write(system.getClass().getName());
 			for (int i = 0; i < configFieldValues.size(); i++) {
 				w.write(system.getConfigFields().get(i).toString(configFieldValues.get(i)));
@@ -61,6 +71,10 @@ public class StoreConfig {
 
 	@Override
 	public String toString() {
+		return name;
+	}
+
+	public String getSummary() {
 		StringBuilder sb = new StringBuilder(system.toString());
 		sb.append(" (");
 		for (int i = 0; i < system.getConfigFields().size(); i++) {
