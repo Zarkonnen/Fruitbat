@@ -15,4 +15,8 @@ public class ByteArraySrc implements DataSrc {
 	public InputStream getInputStream() throws IOException {
 		return new ByteArrayInputStream(array);
 	}
+
+	public long getLength() {
+		return array.length;
+	}
 }

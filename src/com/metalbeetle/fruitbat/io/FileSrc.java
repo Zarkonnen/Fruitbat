@@ -26,4 +26,8 @@ public class FileSrc implements DataSrc {
 
 	@Override
 	public int hashCode() { return 2333 + f.hashCode() * 9; }
+
+	public long getLength() {
+		return f.length();
+	}
 }

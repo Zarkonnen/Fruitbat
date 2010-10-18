@@ -23,4 +23,8 @@ public class UrlSrc implements DataSrc {
 	}
 	@Override
 	public int hashCode() { return 187 + 19 * url.hashCode(); }
+
+	public long getLength() {
+		return UNKNOWN_DATA_LENGTH;
+	}
 }

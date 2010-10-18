@@ -10,17 +10,26 @@ import com.metalbeetle.fruitbat.storage.ProgressMonitor;
 public class S3Store extends HSStore {
 
 	public S3Store(final String accessKey, final String secretKey, String bucketName, ProgressMonitor pm) throws FatalStorageException {
-		super(new S3Location(new AmazonS3Client(
-				new AWSCredentials() {
-					public String getAWSAccessKeyId() { return accessKey; }
-					public String getAWSSecretKey() { return secretKey; }
-				}),
+		super(
+			new S3Location.Factory(
 				bucketName,
-				/* path */ ""),
-		pm);
+				new AmazonS3Client(new MyCredentials(accessKey, secretKey))
+			).getLocation(""),
+			pm
+		);
 	}
 
-	public FullTextIndex getFullTextIndex() {
-		return null;
+	static class MyCredentials implements AWSCredentials {
+		final String accessKey; final String secretKey;
+
+		MyCredentials(String accessKey, String secretKey) {
+			this.accessKey = accessKey;
+			this.secretKey = secretKey;
+		}
+
+		public String getAWSAccessKeyId() { return accessKey; }
+		public String getAWSSecretKey() { return secretKey; }
 	}
+
+	public FullTextIndex getFullTextIndex() { return null; }
 }

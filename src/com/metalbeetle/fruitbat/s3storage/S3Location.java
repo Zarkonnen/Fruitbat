@@ -10,7 +10,6 @@ import com.metalbeetle.fruitbat.hierarchicalstorage.Location;
 import com.metalbeetle.fruitbat.io.ByteArraySrc;
 import com.metalbeetle.fruitbat.io.DataSrc;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,145 +19,154 @@ import java.util.HashMap;
 import java.util.List;
 
 public class S3Location implements Location {
-	final AmazonS3 s3;
-	final String bucketName;
-	final String path;
-	boolean bucketExists = false;
+	static final String D = "/";
 
-	public S3Location(AmazonS3 s3, String bucketName, String path) {
-		this.s3 = s3;
-		this.bucketName = bucketName;
-		this.path = path;
-		ensureBucketExists();
+	public static class Factory {
+		final String bucketName;
+		final AmazonS3 s3;
+		final HashMap<String, S3Location> mapping = new HashMap<String, S3Location>(1024);
+
+		public Factory(String bucketName, AmazonS3 s3) {
+			this.bucketName = bucketName;
+			this.s3 = s3;
+			if (!s3.doesBucketExist(bucketName)) {
+				s3.createBucket(bucketName);
+			}
+			ListObjectsRequest lor = new ListObjectsRequest().
+					withBucketName(bucketName).
+					withMaxKeys(32768);
+			ObjectListing ol = s3.listObjects(lor);
+			while (true) {
+				for (S3ObjectSummary os : ol.getObjectSummaries()) {
+					S3Location child = null;
+					String path = os.getKey();
+					do {
+						S3Location loc;
+						if (mapping.containsKey(path)) {
+							loc = mapping.get(path);
+						} else {
+							loc = new S3Location(path, this);
+							mapping.put(path, loc);
+						}
+						if (child != null) {
+							loc.children.add(child);
+						}
+						child = loc;
+					} while ((path = parentPath(path)) != null);
+				}
+				if (!ol.isTruncated()) { break; }
+				ol = s3.listNextBatchOfObjects(ol);
+			}
+		}
+
+		S3Location getLocation(String path) {
+			if (mapping.containsKey(path)) {
+				return mapping.get(path);
+			}
+			return new S3Location(path, this);
+		}
+
+		void create(String path) {
+			if (!mapping.containsKey(path)) {
+				S3Location loc = new S3Location(path, this);
+				mapping.put(path, loc);
+				String parentPath = parentPath(path);
+				if (parentPath != null) {
+					create(parentPath);
+					getLocation(parentPath).children.add(loc);
+				}
+			}
+		}
+
+		void delete(String path) {
+			if (mapping.containsKey(path)) {
+				for (S3Location c : mapping.get(path).children) {
+					delete(c.path);
+				}
+				mapping.remove(path);
+				s3.deleteObject(bucketName, path);
+			}
+		}
 	}
 
-	private S3Location(AmazonS3 s3, String bucketName, String path, boolean bucketExists) {
-		this.s3 = s3;
-		this.bucketName = bucketName;
+	static String parentPath(String path) {
+		if (path.isEmpty()) { return null; }
+		if (path.contains(D)) {
+			return path.substring(0, path.lastIndexOf(D));
+		} else {
+			return "";
+		}
+	}
+
+	static String childPath(String parentPath, String name) {
+		return parentPath.isEmpty() ? name : parentPath + "/" + name;
+	}
+
+	final String path;
+	final Factory f;
+	final ArrayList<S3Location> children = new ArrayList<S3Location>();
+
+	private S3Location(String path, Factory f) {
 		this.path = path;
-		this.bucketExists = bucketExists;
-		ensureBucketExists();
+		this.f = f;
 	}
 
 	public String getName() {
-		if (path.contains("/")) {
-			return path.substring(path.lastIndexOf("/") + 1);
-		} else {
-			return path;
-		}
+		return path.contains(D) ? path.substring(path.indexOf(D) + 1) : path;
 	}
 
-	public String getPath() {
-		return "s3://" + bucketName + "/" + path;
+	public long getLength() {
+		return f.s3.getObject(f.bucketName, path).getObjectMetadata().getContentLength();
 	}
 
-	public boolean exists() {
-		ensureBucketExists();
-		try {
-			return s3.getObjectMetadata(bucketName, path) != null;
-		} catch (Exception e) {
-			return false;
-		}
+	public boolean exists() throws FatalStorageException {
+		return f.mapping.containsKey(path);
 	}
 
-	public Location parent() {
-		ensureBucketExists();
-		if (path.contains("/")) {
-			return new S3Location(s3, bucketName, path.substring(0, path.lastIndexOf("/")),
-					bucketExists);
-		} else {
-			if (path.isEmpty()) {
-				return null;
-			} else {
-				return new S3Location(s3, bucketName, "", bucketExists);
-			}
-		}
+	public Location parent() throws FatalStorageException {
+		String parentPath = parentPath(path);
+		return parentPath == null ? null : f.getLocation(path);
 	}
 
-	public Location child(String name) {
-		if (path.isEmpty()) {
-			return new S3Location(s3, bucketName, name, bucketExists);
-		} else {
-			return new S3Location(s3, bucketName, path + "/" + name, bucketExists);
-		}
+	public Location child(String name) throws FatalStorageException {
+		return f.getLocation(childPath(path, name));
 	}
 
-	public List<Location> children() {
-		ensureBucketExists();
-		ObjectListing ol = s3.listObjects(
-				new ListObjectsRequest().
-				withBucketName(bucketName).
-				withPrefix(path + "/").
-				withDelimiter("/"));
-		ArrayList<Location> c = new ArrayList<Location>();
-		while (true) {
-			for (S3ObjectSummary os : ol.getObjectSummaries()) {
-				c.add(new S3Location(s3, bucketName, os.getKey(), bucketExists));
-			}
-			if (!ol.isTruncated()) {
-				break;
-			} else {
-				s3.listNextBatchOfObjects(ol);
-			}
-		}
-		return c;
+	public List<Location> children() throws FatalStorageException {
+		return new ArrayList<Location>(f.getLocation(path).children);
 	}
 
 	public KVFile kvFile() {
-		ensureBucketExists();
 		return new LocationKVFile(this, new HashMap<String, String>());
 	}
 
 	public KVFile kvFile(Location cache, HashMap<String, String> defaults) {
-		ensureBucketExists();
 		return new LocationKVFile(this, defaults);
 	}
 
 	public void put(DataSrc data) throws FatalStorageException {
-		mkAncestors();
+		f.create(path);
 		try {
-			s3.putObject(bucketName, path, data.getInputStream(), new ObjectMetadata());
+			ObjectMetadata omd = new ObjectMetadata();
+			if (data.getLength() != DataSrc.UNKNOWN_DATA_LENGTH) {
+				omd.setContentLength(data.getLength());
+			}
+			f.s3.putObject(f.bucketName, path, data.getInputStream(), omd);
 		} catch (IOException e) {
 			throw new FatalStorageException("Could not store data on S3.", e);
 		}
 	}
 
 	public void delete() {
-		s3.deleteObject(bucketName, path);
+		f.delete(path);
 	}
 
 	public CommittableOutputStream getOutputStream() {
-		ensureBucketExists();
 		return new MyCOS();
 	}
 
 	public InputStream getInputStream() throws IOException {
-		ensureBucketExists();
-		return s3.getObject(bucketName, path).getObjectContent();
-	}
-
-	void ensureBucketExists() {
-		if (bucketExists) { return; }
-		if (!s3.doesBucketExist(bucketName)) {
-			s3.createBucket(bucketName);
-			bucketExists = true;
-		}
-	}
-
-	void mkAncestors() throws FatalStorageException {
-		ensureBucketExists();
-		S3Location p = this;
-		while ((p = (S3Location) p.parent()) != null) {
-			if (!p.exists()) {
-				try {
-					s3.putObject(bucketName, p.path, new ByteArrayInputStream(new byte[0]),
-							new ObjectMetadata());
-				} catch (Exception e) {
-					throw new FatalStorageException("Could not create parent location " + p + ".",
-							e);
-				}
-			}
-		}
+		return f.s3.getObject(f.bucketName, path).getObjectContent();
 	}
 
 	class MyCOS implements CommittableOutputStream {
@@ -184,6 +192,6 @@ public class S3Location implements Location {
 
 	@Override
 	public String toString() {
-		return getPath();
+		return "s3://" + f.bucketName + "/" + path;
 	}
 }

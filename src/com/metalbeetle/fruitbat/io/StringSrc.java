@@ -16,4 +16,8 @@ public class StringSrc implements DataSrc {
 	public InputStream getInputStream() throws IOException {
 		return new ByteArrayInputStream(s.getBytes("UTF-8"));
 	}
+
+	public long getLength() throws IOException {
+		return s.getBytes("UTF-8").length;
+	}
 }
