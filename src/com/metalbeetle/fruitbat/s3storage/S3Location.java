@@ -188,6 +188,8 @@ public class S3Location implements Location {
 			aborted = true;
 			stream.reset();
 		}
+
+		public boolean isAbortable() { return true; }
 	}
 
 	@Override

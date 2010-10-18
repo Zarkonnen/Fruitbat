@@ -1,6 +1,6 @@
 package com.metalbeetle.fruitbat.storage;
 
-import com.metalbeetle.fruitbat.atrstorage.ATRStorageSystem;
+import com.metalbeetle.fruitbat.filestorage.ATRStorageSystem;
 import com.metalbeetle.fruitbat.multiplexstorage.MultiplexStorageSystem;
 import java.io.File;
 import org.junit.Test;

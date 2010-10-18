@@ -1,4 +1,4 @@
-package com.metalbeetle.fruitbat.atrstorage;
+package com.metalbeetle.fruitbat.filestorage;
 
 import com.metalbeetle.fruitbat.atrio.ATRReader;
 import com.metalbeetle.fruitbat.atrio.ATRWriter;

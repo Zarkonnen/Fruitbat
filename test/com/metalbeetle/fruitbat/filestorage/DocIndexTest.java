@@ -1,5 +1,6 @@
-package com.metalbeetle.fruitbat.atrstorage;
+package com.metalbeetle.fruitbat.filestorage;
 
+import com.metalbeetle.fruitbat.hierarchicalstorage.HSIndex;
 import com.metalbeetle.fruitbat.Fruitbat;
 import com.metalbeetle.fruitbat.Util;
 import com.metalbeetle.fruitbat.gui.DummyProgressMonitor;
@@ -19,19 +20,19 @@ public class DocIndexTest {
 	public static final String SCARY = "\"\n\r\u0026\u0416\u4E2D\uD800\uDF46\n\n\"\n\"\"\"\t\r\"\n";
 
 	EnhancedStore s;
-	ATRStore atrS;
-	ATRDocIndex index;
+	FileStore fileS;
+	HSIndex index;
 
 	@Test
 	public void search() throws FatalStorageException {
-		Document d1 = atrS.create();
+		Document d1 = fileS.create();
 		d1.change(l(DataChange.put(SCARY, SCARY)));
 
-		Document d2 = atrS.create();
+		Document d2 = fileS.create();
 		d2.change(l(DataChange.put(SCARY, SCARY)));
 		d2.change(l(DataChange.put("x", SCARY)));
 
-		Document d3 = atrS.create();
+		Document d3 = fileS.create();
 		d3.change(l(DataChange.put(SCARY + "not", SCARY)));
 
 		int id1 = d1.getID();
@@ -39,9 +40,9 @@ public class DocIndexTest {
 		int id3 = d3.getID();
 
 		rebootStore();
-		d1 = atrS.get(id1);
-		d2 = atrS.get(id2);
-		d3 = atrS.get(id3);
+		d1 = fileS.get(id1);
+		d2 = fileS.get(id2);
+		d3 = fileS.get(id3);
 
 		// Searching for SCARY should yield d1 and d2.
 		SearchResult result;
@@ -59,20 +60,20 @@ public class DocIndexTest {
 
 	@Test
 	public void searchValuePrefixes() throws FatalStorageException {
-		Document d1 = atrS.create();
+		Document d1 = fileS.create();
 		d1.change(l(DataChange.put("x", "12345")));
 		d1.change(l(DataChange.put("y", "a")));
-		Document d2 = atrS.create();
+		Document d2 = fileS.create();
 		d2.change(l(DataChange.put("x", "12345")));
 		d2.change(l(DataChange.put("y", "b")));
-		Document d3 = atrS.create();
+		Document d3 = fileS.create();
 		d3.change(l(DataChange.put("x", "123456")));
-		Document d4 = atrS.create();
+		Document d4 = fileS.create();
 		d4.change(l(DataChange.put("x", "1234")));
 		d4.change(l(DataChange.put("y", "a")));
-		Document d5 = atrS.create();
+		Document d5 = fileS.create();
 		d5.change(l(DataChange.put("x", "1234000")));
-		Document d6 = atrS.create();
+		Document d6 = fileS.create();
 		d6.change(l(DataChange.put("x", "kqopqfekqpo")));
 		d6.change(l(DataChange.put("y", "a")));
 
@@ -84,12 +85,12 @@ public class DocIndexTest {
 		int id6 = d6.getID();
 
 		rebootStore();
-		d1 = atrS.get(id1);
-		d2 = atrS.get(id2);
-		d3 = atrS.get(id3);
-		d4 = atrS.get(id4);
-		d5 = atrS.get(id5);
-		d6 = atrS.get(id6);
+		d1 = fileS.get(id1);
+		d2 = fileS.get(id2);
+		d3 = fileS.get(id3);
+		d4 = fileS.get(id4);
+		d5 = fileS.get(id5);
+		d6 = fileS.get(id6);
 
 		SearchResult result;
 		result = index.search(m(p("x", "12345")), DocIndex.ALL_DOCS);
@@ -143,14 +144,14 @@ public class DocIndexTest {
 
 	@Test
 	public void coTags() throws FatalStorageException {
-		Document d1 = atrS.create();
+		Document d1 = fileS.create();
 		d1.change(l(DataChange.put("a", "a")));
 
-		Document d2 = atrS.create();
+		Document d2 = fileS.create();
 		d2.change(l(DataChange.put("a", "a")));
 		d2.change(l(DataChange.put("b", "b")));
 
-		Document d3 = atrS.create();
+		Document d3 = fileS.create();
 		d3.change(l(DataChange.put("b", "b")));
 		d3.change(l(DataChange.put("c", "c")));
 
@@ -159,9 +160,9 @@ public class DocIndexTest {
 		int id3 = d3.getID();
 
 		rebootStore();
-		d1 = atrS.get(id1);
-		d2 = atrS.get(id2);
-		d3 = atrS.get(id3);
+		d1 = fileS.get(id1);
+		d2 = fileS.get(id2);
+		d3 = fileS.get(id3);
 
 		SearchResult result;
 
@@ -180,7 +181,7 @@ public class DocIndexTest {
 
 	@Test
 	public void postDelete() throws FatalStorageException {
-		Document d1 = atrS.create();
+		Document d1 = fileS.create();
 		d1.change(l(DataChange.put(SCARY, SCARY)));
 		assertTrue(d1.has(Fruitbat.ALIVE_KEY));
 
@@ -203,7 +204,7 @@ public class DocIndexTest {
 
 	@Test
 	public void postUnDelete() throws FatalStorageException {
-		Document d1 = atrS.create();
+		Document d1 = fileS.create();
 		int id1 = d1.getID();
 		d1.change(l(DataChange.put(SCARY, SCARY)));
 		s.delete(d1);
@@ -219,20 +220,20 @@ public class DocIndexTest {
 
 	void rebootStore() throws FatalStorageException {
 		index.close();
-		atrS = new ATRStore(atrS.getLocation(), new DummyProgressMonitor());
-		s = new EnhancedStore(atrS);
-		index = (ATRDocIndex) atrS.getIndex();
+		fileS = new FileStore(fileS.f, new DummyProgressMonitor());
+		s = new EnhancedStore(fileS);
+		index = (HSIndex) fileS.getIndex();
 	}
 
     @Before
     public void setUp() throws FatalStorageException {
-		atrS = new ATRStore(Util.createTempFolder(), new DummyProgressMonitor());
-		s = new EnhancedStore(atrS);
-		index = (ATRDocIndex) atrS.getIndex();
+		fileS = new FileStore(Util.createTempFolder(), new DummyProgressMonitor());
+		s = new EnhancedStore(fileS);
+		index = (HSIndex) fileS.getIndex();
     }
 
     @After
     public void tearDown() {
-		Util.deleteRecursively(atrS.getLocation());
+		Util.deleteRecursively(fileS.f);
     }
 }

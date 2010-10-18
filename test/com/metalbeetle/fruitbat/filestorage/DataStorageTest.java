@@ -1,5 +1,6 @@
-package com.metalbeetle.fruitbat.atrstorage;
+package com.metalbeetle.fruitbat.filestorage;
 
+import com.metalbeetle.fruitbat.storage.DocIndex;
 import com.metalbeetle.fruitbat.Util;
 import com.metalbeetle.fruitbat.gui.DummyProgressMonitor;
 import com.metalbeetle.fruitbat.storage.DataChange;
@@ -14,8 +15,8 @@ import static com.metalbeetle.fruitbat.util.Collections.*;
 public class DataStorageTest {
 	public static final String SCARY = "\"\n\r\u0026\u0416\u4E2D\uD800\uDF46\n\n\"\n\"\"\"\t\r\"\n";
 
-	ATRStore s;
-	ATRDocIndex i;
+	FileStore s;
+	DocIndex i;
 
 	@Test
 	public void testCleanStoreValues() throws FatalStorageException, InterruptedException {
@@ -139,18 +140,18 @@ public class DataStorageTest {
 
 	void rebootStore() throws FatalStorageException {
 		s.close();
-		s = new ATRStore(s.getLocation(), new DummyProgressMonitor());
-		i = s.index;
+		s = new FileStore(s.f, new DummyProgressMonitor());
+		i = s.getIndex();
 	}
 
     @Before
     public void setUp() throws FatalStorageException {
-		s = new ATRStore(Util.createTempFolder(), new DummyProgressMonitor());
-		i = s.index;
+		s = new FileStore(Util.createTempFolder(), new DummyProgressMonitor());
+		i = s.getIndex();
     }
 
     @After
     public void tearDown() {
-		Util.deleteRecursively(s.getLocation());
+		Util.deleteRecursively(s.f);
     }
 }

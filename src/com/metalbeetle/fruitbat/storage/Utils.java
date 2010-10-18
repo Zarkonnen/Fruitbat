@@ -1,6 +1,6 @@
 package com.metalbeetle.fruitbat.storage;
 
-import com.metalbeetle.fruitbat.atrstorage.ATRStorageSystem;
+import com.metalbeetle.fruitbat.filestorage.ATRStorageSystem;
 import com.metalbeetle.fruitbat.multiplexstorage.MultiplexStorageSystem;
 import com.metalbeetle.fruitbat.s3storage.S3StorageSystem;
 import java.util.List;

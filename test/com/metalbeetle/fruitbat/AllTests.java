@@ -8,20 +8,17 @@ package com.metalbeetle.fruitbat;
 import com.metalbeetle.fruitbat.atrio.ATRTest;
 import com.metalbeetle.fruitbat.atrio.ATRWriterTest;
 import com.metalbeetle.fruitbat.atrio.SimpleReaderTest;
-import com.metalbeetle.fruitbat.atrstorage.DataStorageTest;
-import com.metalbeetle.fruitbat.atrstorage.FileStorageTest;
-import com.metalbeetle.fruitbat.atrstorage.DocIndexTest;
-import com.metalbeetle.fruitbat.atrstorage.KVFileTest;
-import com.metalbeetle.fruitbat.atrstorage.NecromancyTest;
+import com.metalbeetle.fruitbat.filestorage.DataStorageTest;
+import com.metalbeetle.fruitbat.filestorage.FileStorageTest;
+import com.metalbeetle.fruitbat.filestorage.DocIndexTest;
+import com.metalbeetle.fruitbat.filestorage.KVFileTest;
+import com.metalbeetle.fruitbat.filestorage.NecromancyTest;
 import com.metalbeetle.fruitbat.multiplexstorage.MultiplexTest;
 import com.metalbeetle.fruitbat.multiplexstorage.SyncTest;
+import com.metalbeetle.fruitbat.s3storage.S3StorageTest;
 import com.metalbeetle.fruitbat.storage.StoreConfigTest;
 import com.metalbeetle.fruitbat.util.MiscTest;
 import com.metalbeetle.fruitbat.util.PrefixBTreeTest;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -43,23 +40,6 @@ import org.junit.runners.Suite;
 	MiscTest.class,
 	MultiplexTest.class,
 	SyncTest.class,
-	StoreConfigTest.class})
-public class AllTests {
-
-	@BeforeClass
-	public static void setUpClass() throws Exception {
-	}
-
-	@AfterClass
-	public static void tearDownClass() throws Exception {
-	}
-
-	@Before
-	public void setUp() throws Exception {
-	}
-
-	@After
-	public void tearDown() throws Exception {
-	}
-
-}
+	StoreConfigTest.class,
+	S3StorageTest.class})
+public class AllTests {}

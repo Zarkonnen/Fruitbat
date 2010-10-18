@@ -1,4 +1,4 @@
-package com.metalbeetle.fruitbat.atrstorage;
+package com.metalbeetle.fruitbat.filestorage;
 
 import com.metalbeetle.fruitbat.storage.ConfigField;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
@@ -42,7 +42,8 @@ public class ATRStorageSystem implements StorageSystem {
 			throws FatalStorageException, StoreConfigInvalidException
 	{
 		Utils.checkConfigValues(new StoreConfig(this, configValues));
-		return new ATRStore((File) configValues.get(0), pm);
+		//return new ATRStore((File) configValues.get(0), pm);
+		return new FileStore((File) configValues.get(0), pm);
 	}
 
 	@Override

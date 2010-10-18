@@ -2,7 +2,7 @@ package com.metalbeetle.fruitbat.multiplexstorage;
 
 import com.metalbeetle.fruitbat.Fruitbat;
 import com.metalbeetle.fruitbat.Util;
-import com.metalbeetle.fruitbat.atrstorage.ATRStorageSystem;
+import com.metalbeetle.fruitbat.filestorage.ATRStorageSystem;
 import com.metalbeetle.fruitbat.gui.DummyProgressMonitor;
 import com.metalbeetle.fruitbat.io.DataSrc;
 import com.metalbeetle.fruitbat.io.FileSrc;

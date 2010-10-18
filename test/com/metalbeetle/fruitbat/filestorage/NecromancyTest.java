@@ -1,9 +1,4 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
-package com.metalbeetle.fruitbat.atrstorage;
+package com.metalbeetle.fruitbat.filestorage;
 
 import com.metalbeetle.fruitbat.Fruitbat;
 import com.metalbeetle.fruitbat.Util;
@@ -105,24 +100,24 @@ public class NecromancyTest {
 	}
 
 	void rebootStore() throws FatalStorageException {
-		i.close();
-		s = new EnhancedStore(new ATRStore(((ATRStore) s.s).getLocation(), new DummyProgressMonitor()));
-		i = (ATRDocIndex) s.getIndex();
+		s.close();
+		s = new EnhancedStore(new FileStore(((FileStore) s.s).f, new DummyProgressMonitor()));
+		i = s.getIndex();
 	}
 
 	void crashAndRebootStore() throws FatalStorageException {
-		s = new EnhancedStore(new ATRStore(((ATRStore) s.s).getLocation(), new DummyProgressMonitor()));
-		i = (ATRDocIndex) s.getIndex();
+		s = new EnhancedStore(new FileStore(((FileStore) s.s).f, new DummyProgressMonitor()));
+		i = s.getIndex();
 	}
 
     @Before
     public void setUp() throws FatalStorageException {
-		s = new EnhancedStore(new ATRStore(Util.createTempFolder(), new DummyProgressMonitor()));
-		i = (ATRDocIndex) s.getIndex();
+		s = new EnhancedStore(new FileStore(Util.createTempFolder(), new DummyProgressMonitor()));
+		i = s.getIndex();
     }
 
     @After
     public void tearDown() {
-		Util.deleteRecursively(((ATRStore) s.s).getLocation());
+		Util.deleteRecursively(((FileStore) s.s).f);
     }
 }

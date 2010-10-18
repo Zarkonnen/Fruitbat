@@ -13,5 +13,6 @@ public interface DataSink {
 		public OutputStream stream() throws IOException;
 		public void commitIfNotAborted() throws IOException;
 		public void abort();
+		public boolean isAbortable();
 	}
 }
