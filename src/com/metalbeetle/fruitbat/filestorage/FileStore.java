@@ -18,4 +18,6 @@ public class FileStore extends HSStore {
 	}
 
 	public FullTextIndex getFullTextIndex() { return luceneIndex; }
+
+	public File getFile() { return f; }
 }

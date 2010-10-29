@@ -9,7 +9,7 @@ import java.util.Collections;
 import java.util.List;
 
 /** Shorter, low-performing reference implementation. */
-class SimpleATRReader {
+public class SimpleATRReader {
 	private final BufferedReader in;
 	private boolean waitingForRecordStart = true;
 	public SimpleATRReader(InputStream in) {

@@ -11,12 +11,10 @@ import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.EnhancedStore;
 import com.metalbeetle.fruitbat.storage.PageChange;
 import com.metalbeetle.fruitbat.storage.Store;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 import static com.metalbeetle.fruitbat.util.Misc.*;
@@ -176,7 +174,6 @@ class MultiplexStore implements Store {
 			}
 			// Now the file changes.
 			// Changed and added pages.
-			HashSet<File> toDelete = new HashSet<File>();
 			for (String key : from.pageKeys()) {
 				if (!to.hasPage(key) || !from.getPageChecksum(key).equals(to.getPageChecksum(key))) {
 					syncChanges.add(PageChange.put(key, from.getPage(key)));
@@ -189,7 +186,6 @@ class MultiplexStore implements Store {
 			}
 
 			to.change(from.getRevision(), syncChanges);
-			for (File f : toDelete) { f.delete(); }
 		}
 	}
 

@@ -27,7 +27,7 @@ public class S3StorageTest {
 	public void testStoreCreation() throws FatalStorageException, StoreConfigInvalidException {
 		String bucketName = "fruitbat-test-bucket-" + new Random().nextLong();
 		StoreConfig sc1 = new StoreConfig(new S3StorageSystem(), typedL(Object.class,
-				accessKey, secretKey, bucketName));
+				accessKey, secretKey, bucketName, /*password*/ "jamcat"));
 		Store s = sc1.init(new DummyProgressMonitor());
 		s.close();
 		deleteBucket(bucketName);
@@ -36,7 +36,7 @@ public class S3StorageTest {
 	@BeforeClass
 	public static void setup() throws IOException {
 		Properties creds = new Properties();
-		creds.load(S3StorageTest.class.getResourceAsStream("s3testcredentials.properties"));
+		creds.load(S3StorageTest.class.getResourceAsStream("../s3testcredentials.properties"));
 		accessKey = creds.getProperty("accessKey");
 		secretKey = creds.getProperty("secretKey");
 	}

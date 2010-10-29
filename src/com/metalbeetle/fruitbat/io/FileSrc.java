@@ -21,7 +21,7 @@ public class FileSrc implements DataSrc {
 	@Override
 	public boolean equals(Object o) {
 		if (!(o instanceof FileSrc)) { return false; }
-		return ((FileSrc) o).f.equals(o);
+		return ((FileSrc) o).f.equals(f);
 	}
 
 	@Override

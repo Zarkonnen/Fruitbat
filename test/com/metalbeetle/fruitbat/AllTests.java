@@ -13,6 +13,7 @@ import com.metalbeetle.fruitbat.filestorage.FileStorageTest;
 import com.metalbeetle.fruitbat.filestorage.DocIndexTest;
 import com.metalbeetle.fruitbat.filestorage.KVFileTest;
 import com.metalbeetle.fruitbat.filestorage.NecromancyTest;
+import com.metalbeetle.fruitbat.io.CryptoTest;
 import com.metalbeetle.fruitbat.multiplexstorage.MultiplexTest;
 import com.metalbeetle.fruitbat.multiplexstorage.SyncTest;
 import com.metalbeetle.fruitbat.s3storage.S3StorageTest;
@@ -28,6 +29,7 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+	CryptoTest.class,
 	ATRTest.class,
 	ATRWriterTest.class,
 	SimpleReaderTest.class,

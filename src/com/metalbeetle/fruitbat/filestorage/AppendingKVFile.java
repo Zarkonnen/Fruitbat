@@ -20,7 +20,7 @@ import static com.metalbeetle.fruitbat.util.Misc.*;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 
 /** Stores key/value data in an append-only ATR file. */
-final class AppendingKVFile implements KVFile {
+public final class AppendingKVFile implements KVFile {
 	static final String PUT    = "p";
 	static final String REMOVE = "r";
 	static final String MOVE   = "m";
@@ -34,11 +34,11 @@ final class AppendingKVFile implements KVFile {
 
 	private boolean loaded = false;
 
-	AppendingKVFile(File f, File cacheF,  Map<String, String> defaults) {
+	public AppendingKVFile(File f, File cacheF,  Map<String, String> defaults) {
 		this.f = f; this.cacheF = cacheF; this.defaults = new HashMap<String, String>(defaults);
 	}
-	AppendingKVFile(File f, Map<String, String> defaults) { this(f, null, defaults); }
-	AppendingKVFile(File f) { this(f, Collections.<String, String>emptyMap()); }
+	public AppendingKVFile(File f, Map<String, String> defaults) { this(f, null, defaults); }
+	public AppendingKVFile(File f) { this(f, Collections.<String, String>emptyMap()); }
 
 	/** @return The key/value map in the file. Never use keyValueMap directly! */
 	HashMap<String, String> kv() throws FatalStorageException {

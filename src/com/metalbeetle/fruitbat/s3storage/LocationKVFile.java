@@ -2,6 +2,7 @@ package com.metalbeetle.fruitbat.s3storage;
 
 import com.metalbeetle.fruitbat.atrio.ATRReader;
 import com.metalbeetle.fruitbat.atrio.ATRWriter;
+import com.metalbeetle.fruitbat.atrio.SimpleATRReader;
 import com.metalbeetle.fruitbat.hierarchicalstorage.KVFile;
 import com.metalbeetle.fruitbat.hierarchicalstorage.Location;
 import com.metalbeetle.fruitbat.io.DataSink.CommittableOutputStream;
@@ -34,12 +35,26 @@ public class LocationKVFile implements KVFile {
 			__kv.clear();
 			__kv.putAll(defaults);
 			if (l.exists()) {
+				/*
 				ATRReader r = null;
 				try {
 					r = new ATRReader(l.getInputStream());
 					String[] kv = new String[2];
 					while (r.readRecord(kv, 0, 2) != -1) {
 						__kv.put(kv[0], kv[1]);
+					}
+				} catch (Exception e) {
+					throw new FatalStorageException("Could not read data from " + l.getName() + ".",
+							e);
+				} finally {
+					try { r.close(); } catch (Exception e) {}
+				}*/
+				SimpleATRReader r = null;
+				try {
+					r = new SimpleATRReader(l.getInputStream());
+					List<String> rec = null;
+					while ((rec = r.readRecord()) != null) {
+						__kv.put(rec.get(0), rec.get(1));
 					}
 				} catch (Exception e) {
 					throw new FatalStorageException("Could not read data from " + l.getName() + ".",
@@ -54,9 +69,10 @@ public class LocationKVFile implements KVFile {
 
 	void save() throws FatalStorageException {
 		if (!loaded) { return; }
-		CommittableOutputStream cos = l.getOutputStream();
+		CommittableOutputStream cos = null;
 		ATRWriter w = null;
 		try {
+			cos = l.getOutputStream();
 			w = new ATRWriter(cos.stream());
 			for (Entry<String, String> kv : __kv.entrySet()) {
 				w.startRecord();

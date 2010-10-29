@@ -232,8 +232,9 @@ public class HSIndex implements DocIndex {
 		pm.showProgressBar("Saving index", "", valueCache.size());
 		Location l = s.location.child("index.atr");
 		ATRWriter w = null;
-		CommittableOutputStream tos = l.getOutputStream();
+		CommittableOutputStream tos = null;
 		try {
+			tos = l.getOutputStream();
 			w = new ATRWriter(new BufferedOutputStream(tos.stream()));
 			int progress = 0;
 			// First, just say how many keys there are for better progress metering.

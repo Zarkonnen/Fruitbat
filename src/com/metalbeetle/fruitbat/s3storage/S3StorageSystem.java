@@ -3,7 +3,6 @@ package com.metalbeetle.fruitbat.s3storage;
 import com.metalbeetle.fruitbat.storage.Utils;
 import com.metalbeetle.fruitbat.storage.StoreConfig;
 import java.util.ArrayList;
-import com.metalbeetle.fruitbat.gui.setup.FieldJComponent;
 import com.metalbeetle.fruitbat.storage.ConfigField;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.storage.ProgressMonitor;
@@ -20,6 +19,7 @@ public class S3StorageSystem implements StorageSystem {
 		l.add(new ConfigField.NonEmptyStringField("Access Key"));
 		l.add(new ConfigField.NonEmptyStringField("Secret Key"));
 		l.add(new ConfigField.NonEmptyStringField("Bucket Name"));
+		l.add(new ConfigField.NonEmptyStringField("Encryption Password"));
 		CONFIG_FIELDS = immute(l);
 	}
 
@@ -40,6 +40,7 @@ public class S3StorageSystem implements StorageSystem {
 				(String) configValues.get(0),
 				(String) configValues.get(1),
 				(String) configValues.get(2),
+				(String) configValues.get(3),
 				pm);
 	}
 
@@ -49,5 +50,5 @@ public class S3StorageSystem implements StorageSystem {
 	}
 
 	@Override
-	public int hashCode() { return 616; }
+	public int hashCode() { return -998; }
 }

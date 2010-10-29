@@ -8,6 +8,8 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.metalbeetle.fruitbat.hierarchicalstorage.KVFile;
 import com.metalbeetle.fruitbat.hierarchicalstorage.Location;
 import com.metalbeetle.fruitbat.io.ByteArraySrc;
+import com.metalbeetle.fruitbat.io.Crypto.CryptoInputStream;
+import com.metalbeetle.fruitbat.io.Crypto.CryptoOutputStream;
 import com.metalbeetle.fruitbat.io.DataSrc;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import java.io.ByteArrayOutputStream;
@@ -23,19 +25,43 @@ public class S3Location implements Location {
 
 	public static class Factory {
 		final String bucketName;
+		final String password;
 		final AmazonS3 s3;
 		final HashMap<String, S3Location> mapping = new HashMap<String, S3Location>(1024);
 
-		public Factory(String bucketName, AmazonS3 s3) {
+		public Factory(String bucketName, AmazonS3 s3, String password) {
 			this.bucketName = bucketName;
+			this.password = password;
 			this.s3 = s3;
 			if (!s3.doesBucketExist(bucketName)) {
 				s3.createBucket(bucketName);
+				ListObjectsRequest lor = new ListObjectsRequest().
+					withBucketName(bucketName).
+					withMaxKeys(1);
+				boolean existsNow = false;
+				while (!existsNow) {
+					try {
+						s3.listObjects(lor);
+						existsNow = true;
+					} catch (Exception e) {
+						// S3 may be being slow.
+						try {
+							Thread.sleep(1000);
+						} catch (InterruptedException e2) {
+							throw new RuntimeException(e2);
+						}
+					}
+				}
 			}
 			ListObjectsRequest lor = new ListObjectsRequest().
 					withBucketName(bucketName).
 					withMaxKeys(32768);
-			ObjectListing ol = s3.listObjects(lor);
+			ObjectListing ol = null;
+			try {
+				ol = s3.listObjects(lor);
+			} catch (Exception e) {
+				javax.swing.JOptionPane.showMessageDialog(null, bucketName);
+			}
 			while (true) {
 				for (S3ObjectSummary os : ol.getObjectSummaries()) {
 					S3Location child = null;
@@ -59,7 +85,7 @@ public class S3Location implements Location {
 			}
 		}
 
-		S3Location getLocation(String path) {
+		public S3Location getLocation(String path) {
 			if (mapping.containsKey(path)) {
 				return mapping.get(path);
 			}
@@ -161,19 +187,26 @@ public class S3Location implements Location {
 		f.delete(path);
 	}
 
-	public CommittableOutputStream getOutputStream() {
+	public CommittableOutputStream getOutputStream() throws IOException {
 		return new MyCOS();
 	}
 
 	public InputStream getInputStream() throws IOException {
-		return f.s3.getObject(f.bucketName, path).getObjectContent();
+		return new CryptoInputStream(f.s3.getObject(f.bucketName, path).getObjectContent(),
+				f.password);
 	}
 
 	class MyCOS implements CommittableOutputStream {
-		final ByteArrayOutputStream stream = new ByteArrayOutputStream();
+		final ByteArrayOutputStream stream;
+		final CryptoOutputStream cryptoStream;
 		boolean aborted = false;
 
-		public OutputStream stream() throws IOException { return stream; }
+		MyCOS() throws IOException {
+			stream = new ByteArrayOutputStream();
+			cryptoStream = new CryptoOutputStream(stream, f.password);
+		}
+
+		public OutputStream stream() throws IOException { return cryptoStream; }
 
 		public void commitIfNotAborted() throws IOException {
 			if (aborted) { return; }
