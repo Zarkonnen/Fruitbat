@@ -1,5 +1,6 @@
 package com.metalbeetle.fruitbat.s3storage;
 
+import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.metalbeetle.fruitbat.fulltext.FullTextIndex;
@@ -13,7 +14,10 @@ public class S3Store extends HSStore {
 		super(
 			new S3Location.Factory(
 				bucketName,
-				new AmazonS3Client(new MyCredentials(accessKey, secretKey)),
+				new AmazonS3Client(new MyCredentials(accessKey, secretKey),
+					new ClientConfiguration().
+						withConnectionTimeout(200000).
+						withMaxErrorRetry(10)),
 				password
 			).getLocation(""),
 			pm

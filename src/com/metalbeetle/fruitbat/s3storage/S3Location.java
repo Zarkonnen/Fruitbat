@@ -26,42 +26,20 @@ public class S3Location implements Location {
 	public static class Factory {
 		final String bucketName;
 		final String password;
-		final AmazonS3 s3;
+		final RetryingS3 s3;
 		final HashMap<String, S3Location> mapping = new HashMap<String, S3Location>(1024);
 
-		public Factory(String bucketName, AmazonS3 s3, String password) {
+		public Factory(String bucketName, AmazonS3 amazonS3, String password) throws FatalStorageException {
 			this.bucketName = bucketName;
 			this.password = password;
-			this.s3 = s3;
+			this.s3 = new RetryingS3(amazonS3);
 			if (!s3.doesBucketExist(bucketName)) {
 				s3.createBucket(bucketName);
-				ListObjectsRequest lor = new ListObjectsRequest().
-					withBucketName(bucketName).
-					withMaxKeys(1);
-				boolean existsNow = false;
-				while (!existsNow) {
-					try {
-						s3.listObjects(lor);
-						existsNow = true;
-					} catch (Exception e) {
-						// S3 may be being slow.
-						try {
-							Thread.sleep(1000);
-						} catch (InterruptedException e2) {
-							throw new RuntimeException(e2);
-						}
-					}
-				}
 			}
 			ListObjectsRequest lor = new ListObjectsRequest().
 					withBucketName(bucketName).
 					withMaxKeys(32768);
-			ObjectListing ol = null;
-			try {
-				ol = s3.listObjects(lor);
-			} catch (Exception e) {
-				javax.swing.JOptionPane.showMessageDialog(null, bucketName);
-			}
+			ObjectListing ol = s3.listObjects(lor);
 			while (true) {
 				for (S3ObjectSummary os : ol.getObjectSummaries()) {
 					S3Location child = null;
@@ -104,7 +82,7 @@ public class S3Location implements Location {
 			}
 		}
 
-		void delete(String path) {
+		void delete(String path) throws FatalStorageException {
 			if (mapping.containsKey(path)) {
 				for (S3Location c : mapping.get(path).children) {
 					delete(c.path);
@@ -141,8 +119,12 @@ public class S3Location implements Location {
 		return path.contains(D) ? path.substring(path.indexOf(D) + 1) : path;
 	}
 
-	public long getLength() {
-		return f.s3.getObject(f.bucketName, path).getObjectMetadata().getContentLength();
+	public long getLength() throws IOException {
+		try {
+			return f.s3.getObject(f.bucketName, path).getObjectMetadata().getContentLength();
+		} catch (FatalStorageException e) {
+			throw new IOException(e);
+		}
 	}
 
 	public boolean exists() throws FatalStorageException {
@@ -183,7 +165,7 @@ public class S3Location implements Location {
 		}
 	}
 
-	public void delete() {
+	public void delete() throws FatalStorageException {
 		f.delete(path);
 	}
 
@@ -192,8 +174,12 @@ public class S3Location implements Location {
 	}
 
 	public InputStream getInputStream() throws IOException {
-		return new CryptoInputStream(f.s3.getObject(f.bucketName, path).getObjectContent(),
-				f.password);
+		try {
+			return new CryptoInputStream(f.s3.getObject(f.bucketName, path).getObjectContent(),
+					f.password);
+		} catch (FatalStorageException e) {
+			throw new IOException(e);
+		}
 	}
 
 	class MyCOS implements CommittableOutputStream {
