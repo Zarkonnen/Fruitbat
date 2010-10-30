@@ -9,11 +9,12 @@ import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.storage.ProgressMonitor;
 
 public class S3Store extends HSStore {
+	static final String BUCKET_NAME_PREFIX = "fruitbat-bucket-";
 
 	public S3Store(final String accessKey, final String secretKey, String bucketName, String password, ProgressMonitor pm) throws FatalStorageException {
 		super(
 			new S3Location.Factory(
-				bucketName,
+				BUCKET_NAME_PREFIX + bucketName,
 				new AmazonS3Client(new MyCredentials(accessKey, secretKey),
 					new ClientConfiguration().
 						withConnectionTimeout(200000).

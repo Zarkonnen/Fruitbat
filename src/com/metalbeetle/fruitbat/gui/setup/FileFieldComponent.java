@@ -2,6 +2,7 @@ package com.metalbeetle.fruitbat.gui.setup;
 
 import com.metalbeetle.fruitbat.gui.setup.FieldJComponent.ValueListener;
 import com.metalbeetle.fruitbat.storage.ConfigField;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
@@ -71,4 +72,6 @@ public class FileFieldComponent extends JPanel implements FieldJComponent<File>,
 	}
 
 	public void setValueListener(ValueListener l) { this.l = l; }
+
+	public Dimension getExtraSize() { return new Dimension(0, 0); }
 }

@@ -4,6 +4,7 @@ import com.metalbeetle.fruitbat.gui.setup.FieldJComponent;
 import com.metalbeetle.fruitbat.gui.setup.FileFieldComponent;
 import com.metalbeetle.fruitbat.gui.setup.StringFieldComponent;
 import java.io.File;
+import java.util.regex.Pattern;
 import javax.swing.filechooser.FileFilter;
 
 public interface ConfigField<T> {
@@ -27,6 +28,24 @@ public interface ConfigField<T> {
 		public Class getExpectedValueClass() { return String.class; }
 		public String toString(String value) { return value; }
 		public String toValue(String s) { return s; }
+	}
+
+	public class RegexStringField extends StringField {
+		final Pattern regex;
+		final String errorMessage;
+		public RegexStringField(String name, String regex, String errorMessage) {
+			super(name);
+			this.regex = Pattern.compile(regex);
+			this.errorMessage = errorMessage;
+		}
+		public String validate(String input) {
+			return regex.matcher(input).matches() ? null : errorMessage;
+		}
+		public FieldJComponent<String> getFieldJComponent() {
+			StringFieldComponent sfc = new StringFieldComponent();
+			sfc.setField(this);
+			return sfc;
+		}
 	}
 
 	public class NonEmptyStringField extends StringField {

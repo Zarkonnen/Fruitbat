@@ -1,6 +1,7 @@
 package com.metalbeetle.fruitbat.gui.setup;
 
 import com.metalbeetle.fruitbat.storage.ConfigField;
+import java.awt.Dimension;
 
 /** Interface for a JComponent that can be used to input a field value. */
 public interface FieldJComponent<T> {
@@ -9,6 +10,7 @@ public interface FieldJComponent<T> {
 	public void setField(ConfigField<T> field);
 	public ConfigField<T> getField();
 	public void setValueListener(ValueListener l);
+	public Dimension getExtraSize();
 	
 	public static interface ValueListener {
 		public void valueChanged(FieldJComponent fjc);

@@ -111,4 +111,6 @@ public class MultiplexedStoresFieldComponent extends JPanel implements
 	public void configChanged(boolean allValid) {
 		if (vl != null) { vl.valueChanged(this); }
 	}
+
+	public Dimension getExtraSize() { return new Dimension(350, 450); }
 }

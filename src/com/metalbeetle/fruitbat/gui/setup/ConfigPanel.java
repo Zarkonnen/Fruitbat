@@ -1,5 +1,6 @@
 package com.metalbeetle.fruitbat.gui.setup;
 
+import java.awt.Dimension;
 import com.metalbeetle.fruitbat.storage.ConfigField;
 import com.metalbeetle.fruitbat.storage.StoreConfig;
 import com.metalbeetle.fruitbat.storage.StorageSystem;
@@ -27,6 +28,7 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 	final JLabel nameL;
 	final JTextField nameF;
 	final StorageSystem system;
+	final Dimension extraSize;
 
 	public void setConfigChangedListener(ConfigChangedListener ccl) { this.ccl = ccl; }
 	ConfigChangedListener ccl;
@@ -55,7 +57,7 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 				);
 		add(nameL, cs);
 
-		nameF = new JTextField();
+		nameF = new JTextField(20);
 		cs = new GridBagConstraints(
 					 /*gridx*/ 1,
 					 /*gridy*/ 0,
@@ -63,9 +65,9 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 				/*gridheight*/ 1,
 				   /*weightx*/ 1,
 				   /*weighty*/ 1,
-					/*anchor*/ WEST,
+					/*anchor*/ NORTHWEST,
 					  /*fill*/ HORIZONTAL,
-					/*insets*/ new Insets(5, 10, 0, 0),
+					/*insets*/ new Insets(5, 10, 0, 10),
 					 /*ipadx*/ 0,
 					 /*ipady*/ 0
 				);
@@ -86,8 +88,10 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 				);
 		add(new JSeparator(), cs);
 
+		int extraWidth = 0, extraHeight = 0;
 		int y = 0;
 		for (ConfigField f : fields) {
+			// Field label
 			JLabel l = new JLabel(f.getName() + ":");
 			cs = new GridBagConstraints(
 					     /*gridx*/ 0,
@@ -105,12 +109,17 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 			add(l, cs);
 			nls.add(l);
 
+			// Get the field component
 			FieldJComponent fjc = f.getFieldJComponent();
-			//((JComponent) fjc).setBorder(new BevelBorder(BevelBorder.LOWERED));
 			fjc.setValueListener(this);
+			// Figure out how much extra size we want to give to the panel.
+			extraWidth  += fjc.getExtraSize().width;
+			extraHeight += fjc.getExtraSize().height;
 
+			// Error label
 			String err = f.validate(fjc.getValue());
 			JLabel errL = new JLabel(err == null ? "" : err);
+			errL.setFont(errL.getFont().deriveFont(errL.getFont().getSize() * 0.75f));
 			errL.setForeground(Color.RED);
 			cs = new GridBagConstraints(
 					     /*gridx*/ 0,
@@ -121,13 +130,14 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 					   /*weighty*/ 1,
 					    /*anchor*/ WEST,
 					      /*fill*/ NONE,
-					    /*insets*/ new Insets(5, 10, 0, 0),
+					    /*insets*/ new Insets(0, 10, 0, 0),
 					     /*ipadx*/ 0,
 					     /*ipady*/ 0
 					);
 			add(errL, cs);
 			errs.add(errL);
 
+			// Field component
 			cs = new GridBagConstraints(
 					     /*gridx*/ 1,
 					     /*gridy*/ 2 + y * 3,
@@ -135,7 +145,7 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 					/*gridheight*/ 2,
 					   /*weightx*/ 1,
 					   /*weighty*/ 1,
-					    /*anchor*/ WEST,
+					    /*anchor*/ NORTHWEST,
 					      /*fill*/ HORIZONTAL,
 					    /*insets*/ new Insets(5, 10, 0, 10),
 					     /*ipadx*/ 0,
@@ -144,6 +154,7 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 			add((JComponent) fjc, cs);
 			fcs.add(fjc);
 
+			// Separator
 			cs = new GridBagConstraints(
 					     /*gridx*/ 0,
 					     /*gridy*/ 2 + y * 3 + 2,
@@ -183,7 +194,10 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 		errLs = immute(errs);
 
 		for (FieldJComponent fjc : fieldJCs) { valueChanged(fjc); }
+		extraSize = new Dimension(extraWidth, extraHeight);
 	}
+
+	public Dimension getExtraSize() { return extraSize; }
 
 	public void setConfig(StoreConfig sc) {
 		nameF.setText(sc.name);

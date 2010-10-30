@@ -90,14 +90,17 @@ public class SplashWindow extends JWindow implements ProgressMonitor {
 	}
 
 	public void showWarning(String type, String title, String message) {
+		toBack();
 		dialogs.showWarning(type, title, message);
 	}
 
 	public void handleException(Exception e, MainFrame affectedStore) {
+		toBack();
 		dialogs.handleException(e, affectedStore);
 	}
 
 	public String askQuestion(String title, String question, String initialValue) {
+		toBack();
 		return dialogs.askQuestion(title, question, initialValue);
 	}
 }

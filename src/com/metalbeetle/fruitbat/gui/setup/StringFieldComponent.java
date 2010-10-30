@@ -2,7 +2,11 @@ package com.metalbeetle.fruitbat.gui.setup;
 
 import com.metalbeetle.fruitbat.gui.setup.FieldJComponent.ValueListener;
 import com.metalbeetle.fruitbat.storage.ConfigField;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
@@ -14,11 +18,25 @@ public class StringFieldComponent extends JPanel implements FieldJComponent<Stri
 	ValueListener vl = null;
 
 	public StringFieldComponent() {
-		setLayout(new FlowLayout(FlowLayout.LEFT));
-		textField = new JTextField();
+		//setLayout(new FlowLayout(FlowLayout.LEFT));
+		setLayout(new GridBagLayout());
+		textField = new JTextField(20);
 		textField.getDocument().addDocumentListener(this);
 		textField.setEnabled(false);
-		add(textField);
+		GridBagConstraints cs = new GridBagConstraints(
+					     /*gridx*/ 0,
+					     /*gridy*/ 0,
+					 /*gridwidth*/ 1,
+					/*gridheight*/ 1,
+					   /*weightx*/ 1,
+					   /*weighty*/ 1,
+					    /*anchor*/ GridBagConstraints.NORTHWEST,
+					      /*fill*/ GridBagConstraints.HORIZONTAL,
+					    /*insets*/ new Insets(0, 0, 0, 0),
+					     /*ipadx*/ 0,
+					     /*ipady*/ 0
+					);
+		add(textField, cs);
 	}
 
 	public String getValue() {
@@ -55,4 +73,6 @@ public class StringFieldComponent extends JPanel implements FieldJComponent<Stri
 	public void changedUpdate(DocumentEvent e) {
 		if (vl != null) { vl.valueChanged(this); }
 	}
+
+	public Dimension getExtraSize() { return new Dimension(0, 0); }
 }

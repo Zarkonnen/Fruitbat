@@ -4,6 +4,7 @@ import com.metalbeetle.fruitbat.gui.setup.ConfigPanel.ConfigChangedListener;
 import com.metalbeetle.fruitbat.storage.StoreConfig;
 import com.metalbeetle.fruitbat.storage.StorageSystem;
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -66,7 +67,12 @@ public class ConfigDialog extends JDialog implements ConfigChangedListener {
 				KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
 				JComponent.WHEN_IN_FOCUSED_WINDOW);
 
-		setSize(700, 600);
+		//setSize(700, 600);
+		pack();
+		Dimension size = getSize();
+		size.width  += cp.getExtraSize().width;
+		size.height += cp.getExtraSize().height;
+		setSize(size);
 	}
 
 	public void configChanged(boolean allValid) {
