@@ -76,7 +76,7 @@ public final class TestStoreManagers {
 		String bucketName;
 
 		public void setUp() throws Exception {
-			bucketName = "fruitbat-test-bucket-" + new Random().nextLong();
+			bucketName = "fruitbattestbucket" + Math.abs(new Random().nextLong());
 			crashAndReboot();
 		}
 

@@ -16,7 +16,6 @@ import com.metalbeetle.fruitbat.filestorage.NecromancyTest;
 import com.metalbeetle.fruitbat.io.CryptoTest;
 import com.metalbeetle.fruitbat.multiplexstorage.MultiplexTest;
 import com.metalbeetle.fruitbat.multiplexstorage.SyncTest;
-import com.metalbeetle.fruitbat.s3storage.S3StorageTest;
 import com.metalbeetle.fruitbat.storage.StoreConfigTest;
 import com.metalbeetle.fruitbat.util.MiscTest;
 import com.metalbeetle.fruitbat.util.PrefixBTreeTest;
@@ -42,6 +41,5 @@ import org.junit.runners.Suite;
 	MiscTest.class,
 	MultiplexTest.class,
 	SyncTest.class,
-	StoreConfigTest.class,
-	S3StorageTest.class})
+	StoreConfigTest.class})
 public class AllTests {}

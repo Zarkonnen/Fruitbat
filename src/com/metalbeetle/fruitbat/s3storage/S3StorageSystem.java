@@ -18,7 +18,7 @@ public class S3StorageSystem implements StorageSystem {
 		ArrayList<ConfigField> l = new ArrayList<ConfigField>();
 		l.add(new ConfigField.NonEmptyStringField("Access Key"));
 		l.add(new ConfigField.NonEmptyStringField("Secret Key"));
-		l.add(new ConfigField.RegexStringField("Bucket Name", "[a-z0-0]+", "Lowercase letters and numbers only"));
+		l.add(new ConfigField.RegexStringField("Bucket Name", "[a-z0-9]+", "Lowercase letters and numbers only"));
 		l.add(new ConfigField.NonEmptyStringField("Encryption Password"));
 		CONFIG_FIELDS = immute(l);
 	}
