@@ -143,6 +143,14 @@ public class DocIndexTest {
 	}
 
 	@Test
+	public void noSearchTagsInCoTags() throws FatalStorageException {
+		Document d1 = fileS.create();
+		d1.change(l(DataChange.put("a", "a")));
+		SearchResult result = index.search(m(p("a", "")), DocIndex.ALL_DOCS);
+		assertFalse(result.narrowingTags.contains("a"));
+	}
+
+	@Test
 	public void coTags() throws FatalStorageException {
 		Document d1 = fileS.create();
 		d1.change(l(DataChange.put("a", "a")));

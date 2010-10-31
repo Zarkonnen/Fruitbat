@@ -1,5 +1,6 @@
 package com.metalbeetle.fruitbat.gui;
 
+import javax.swing.text.BadLocationException;
 import com.metalbeetle.fruitbat.Fruitbat;
 import com.metalbeetle.fruitbat.fulltext.FullTextExtractor;
 import com.metalbeetle.fruitbat.io.DataSrc;
@@ -229,9 +230,15 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 			completeMenu = null;
 			return;
 		}
+		int xOffset = 0;
+		try {
+			xOffset = tagsF.modelToView(tagsF.getCaretPosition()).x;
+		} catch (BadLocationException e) {
+			// Not important, just default xOffset to 0.
+		}
 		completeMenu = new InputTagCompleteMenu(this);
 		if (completeMenu.getSubElements().length > 0) {
-			completeMenu.show(tagsF, 0, tagsF.getHeight());
+			completeMenu.show(tagsF, xOffset, tagsF.getHeight());
 		} else {
 			completeMenu = null;
 		}

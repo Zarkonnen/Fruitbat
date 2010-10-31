@@ -1,5 +1,10 @@
 package com.metalbeetle.fruitbat.gui;
 
+import com.metalbeetle.fruitbat.Fruitbat;
+import javax.swing.MenuSelectionManager;
+import javax.swing.MenuElement;
+import java.awt.Component;
+import javax.swing.SwingUtilities;
 import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import java.awt.event.ActionEvent;
@@ -26,7 +31,9 @@ class SearchTagCompleteMenu extends JPopupMenu {
 				// Suggest a tag
 				final String tagFragment = text.substring(spacePos, caretPos);
 				for (final String tag : mf.currentSearchResult.narrowingTags) {
-					if (tag.startsWith(tagFragment)) {
+					if (!tag.startsWith(Fruitbat.HIDDEN_KEY_PREFIX) &&
+					    tag.startsWith(tagFragment))
+					{
 						JMenuItem tagItem = new JMenuItem(tag);
 						tagItem.setForeground(TAG);
 						tagItem.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
@@ -77,5 +84,18 @@ class SearchTagCompleteMenu extends JPopupMenu {
 		} catch (FatalStorageException e) {
 			mf.handleException(e);
 		}
+	}
+
+	@Override
+	public void show(Component invoker, int x, int y) {
+		super.show(invoker, x, y);
+		final JPopupMenu self = this;
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				MenuSelectionManager.defaultManager().setSelectedPath(new MenuElement[]{
+					self, self.getSubElements()[0]
+				});
+			}
+		});
 	}
 }

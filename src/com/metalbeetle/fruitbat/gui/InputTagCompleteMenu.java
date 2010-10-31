@@ -1,5 +1,8 @@
 package com.metalbeetle.fruitbat.gui;
 
+import javax.swing.MenuSelectionManager;
+import javax.swing.MenuElement;
+import java.awt.Component;
 import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import java.awt.event.ActionEvent;
@@ -9,6 +12,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 import static com.metalbeetle.fruitbat.gui.Colors.*;
 
@@ -79,5 +83,18 @@ class InputTagCompleteMenu extends JPopupMenu {
 		} catch (FatalStorageException e) {
 			df.mf.handleException(e);
 		}
+	}
+
+	@Override
+	public void show(Component invoker, int x, int y) {
+		super.show(invoker, x, y);
+		final JPopupMenu self = this;
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				MenuSelectionManager.defaultManager().setSelectedPath(new MenuElement[]{
+					self, self.getSubElements()[0]
+				});
+			}
+		});
 	}
 }

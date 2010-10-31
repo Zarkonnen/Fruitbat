@@ -80,12 +80,11 @@ public class HSIndex implements DocIndex {
 			}
 		}
 		// Determine co-keys
-		List<String> coKeyList = new ArrayList<String>();
+		HashSet<String> coKeys = new HashSet<String>();
 		if (docs.size() == s.idToDoc.size()) {
-			coKeyList.addAll(valueCache.keySet());
+			coKeys.addAll(valueCache.keySet());
 		} else {
 			int loop = 0;
-			HashSet<String> coKeys = new HashSet<String>();
 			for (HSDocument d : docs) {
 				HashSet<String> keys = documentToKeys.get(d);
 				if (keys != null) { coKeys.addAll(keys); }
@@ -96,16 +95,16 @@ public class HSIndex implements DocIndex {
 					}
 				}
 			}
-			coKeys.removeAll(searchKV.keySet());
-			coKeyList.addAll(coKeys);
 		}
+		coKeys.removeAll(searchKV.keySet());
+		List<String> coKeyList = new ArrayList<String>(coKeys);
 		Collections.sort(coKeyList);
 		int numDocs = docs.size();
+		// Cast to List and then to List<Document> to force correct return type.
 		List<Document> docsToReturn = (List<Document>) (List)(
 				(maxDocs == ALL_DOCS || docs.size() <= maxDocs)
 				? docs
 				: docs.subList(0, maxDocs));
-		// Cast to List and then to List<Document> to force correct return type.
 		SearchOutcome outcome = SearchOutcome.EXHAUSTIVE;
 		if (maxDocs != ALL_DOCS && docs.size() > maxDocs) {
 			outcome = SearchOutcome.DOC_LIMIT_REACHED;

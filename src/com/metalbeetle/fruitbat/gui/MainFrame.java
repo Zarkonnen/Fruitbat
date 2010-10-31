@@ -1,5 +1,6 @@
 package com.metalbeetle.fruitbat.gui;
 
+import java.awt.Rectangle;
 import com.metalbeetle.fruitbat.ByValueComparator;
 import com.metalbeetle.fruitbat.Closeable;
 import com.metalbeetle.fruitbat.Fruitbat;
@@ -44,6 +45,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.text.BadLocationException;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 
@@ -229,9 +231,15 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 			completeMenu = null;
 			return;
 		}
+		int xOffset = 0;
+		try {
+			xOffset = searchF.modelToView(searchF.getCaretPosition()).x;
+		} catch (BadLocationException e) {
+			// Not important, just default xOffset to 0.
+		}
 		completeMenu = new SearchTagCompleteMenu(this);
 		if (completeMenu.getSubElements().length > 0) {
-			completeMenu.show(searchF, 0, searchF.getHeight());
+			completeMenu.show(searchF, xOffset, searchF.getHeight());
 		} else {
 			completeMenu = null;
 		}
