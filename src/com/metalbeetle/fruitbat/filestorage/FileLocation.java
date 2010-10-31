@@ -3,6 +3,7 @@ package com.metalbeetle.fruitbat.filestorage;
 import com.metalbeetle.fruitbat.hierarchicalstorage.KVFile;
 import com.metalbeetle.fruitbat.hierarchicalstorage.Location;
 import com.metalbeetle.fruitbat.io.DataSrc;
+import com.metalbeetle.fruitbat.io.LocalFile;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.util.Misc;
 import java.io.File;
@@ -15,7 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class FileLocation implements Location {
+public class FileLocation implements Location, LocalFile {
 	final File f;
 
 	public FileLocation(File f) { this.f = f; }
@@ -73,6 +74,10 @@ public class FileLocation implements Location {
 
 	public CommittableOutputStream getOutputStream() {
 		return new MyCOS();
+	}
+
+	public File getLocalFile() {
+		return f;
 	}
 
 	class MyCOS implements CommittableOutputStream {

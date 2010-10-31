@@ -215,13 +215,16 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 
 	/** Call when closing application/store. */
 	public void close() {
-		openDocManager.close();
-		try {
-			store.close();
-		} catch (Exception e) {
-			pm.handleException(e, this);
-		}
-		app.storeClosed(this);
+		final MainFrame self = this;
+		new Thread("Closing " + store) { @Override public void run() {
+			openDocManager.close();
+			try {
+				store.close();
+			} catch (Exception e) {
+				pm.handleException(e, self);
+			}
+			app.storeClosed(self);
+		}}.start();
 	}
 
 	/** Show/hide a menu for completing a half-started tag. */

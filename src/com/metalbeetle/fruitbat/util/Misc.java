@@ -148,4 +148,16 @@ public final class Misc {
 		}
 		return sb.toString();
 	}
+
+	private static boolean isMac = false;
+	private static boolean isMacKnown = false;
+	public static boolean isMac() {
+		if (!isMacKnown) {
+			try {
+				isMac = System.getProperty("os.name").toLowerCase().matches(".*mac.*");
+				isMacKnown = true;
+			} catch (Exception e) { }
+		}
+		return isMac;
+	}
 }

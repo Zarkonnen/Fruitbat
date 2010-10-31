@@ -1,5 +1,6 @@
 package com.metalbeetle.fruitbat.gui;
 
+import com.metalbeetle.fruitbat.util.Misc;
 import com.metalbeetle.fruitbat.util.Pair;
 import java.awt.Color;
 import java.awt.Component;
@@ -176,18 +177,6 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 			getRootPane().putClientProperty("Window.shadow", Boolean.FALSE);
 		}
 
-		private static boolean isMac = false;
-		private static boolean isMacKnown = false;
-		public static boolean isMac() {
-			if (!isMacKnown) {
-				try {
-					isMac = System.getProperty("os.name").toLowerCase().matches(".*mac.*");
-					isMacKnown = true;
-				} catch (Exception e) { }
-			}
-			return isMac;
-		}
-
 		@Override
 		public void paint(Graphics g) {
 			g.drawImage(bg, 0, 0, this);
@@ -205,7 +194,7 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 					if (ks != null && mi.isEnabled()) {
 						String shortcut = "";
 						int mods = ks.getModifiers();
-						if (isMac()) {
+						if (Misc.isMac()) {
 							if ((mods & InputEvent.CTRL_MASK) != 0) {
 								shortcut += "^";
 							}
@@ -239,7 +228,7 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 					}
 				}
 			}
-			if (isMac()) {
+			if (Misc.isMac()) {
 				maxShortcutWidth = Math.max(maxShortcutWidth, fm.stringWidth("\u2318Q"));
 				maxTextWidth = Math.max(maxTextWidth, fm.stringWidth("Quit"));
 				items.add(p("\u2318Q", "Quit"));

@@ -5,7 +5,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class FileSrc implements DataSrc {
+public class FileSrc implements DataSrc, LocalFile {
 	public final File f;
 	public FileSrc(File f) {
 		if (f == null) {
@@ -30,4 +30,6 @@ public class FileSrc implements DataSrc {
 	public long getLength() {
 		return f.length();
 	}
+
+	public File getLocalFile() { return f; }
 }

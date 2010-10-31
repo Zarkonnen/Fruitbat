@@ -1,7 +1,10 @@
 package com.metalbeetle.fruitbat.gui;
 
+import java.io.File;
+import com.metalbeetle.fruitbat.util.Misc;
 import com.metalbeetle.fruitbat.io.DataSrc;
 import com.metalbeetle.fruitbat.io.FileSrc;
+import com.metalbeetle.fruitbat.io.LocalFile;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import java.awt.BorderLayout;
@@ -101,13 +104,44 @@ class PagesViewer extends JPanel {
 		setPage(pv.pageIndex - 1);
 	}
 
-	void openPage() {
+	boolean openPageAvailable() {
+		if (!validPage()) { return false; }
 		try {
-			Runtime.getRuntime().exec(new String[] {
-				"open",
-				((FileSrc) df.d.getPage(df.pagePrefix() + pv.pageIndex)).f.getPath()
-			});
-		} catch (Exception ex) {}
+			Object o = df.d.getPage(df.pagePrefix() + pv.pageIndex);
+			if (!(df.d.getPage(df.pagePrefix() + pv.pageIndex) instanceof LocalFile)) {
+				return false;
+			}
+		} catch (Exception e) { return false; }
+		if (Misc.isMac()) {
+			return true;
+		} else {
+			try {
+				Class desktopC = Class.forName("java.awt.Desktop");
+				return (Boolean) desktopC.getMethod("isDesktopSupported").invoke(null);
+			} catch (Exception e) {
+				return false;
+			}
+		}
+	}
+
+	void openPage() {
+		if (!openPageAvailable()) { return; }
+		if (Misc.isMac()) {
+			try {
+				Runtime.getRuntime().exec(new String[] {
+					"open",
+					((LocalFile) df.d.getPage(df.pagePrefix() + pv.pageIndex)).getLocalFile().getPath()
+				});
+			} catch (Exception e) {}
+		} else {
+			// This is made gruelling by our desire to not require Java 6.
+			try {
+				Class desktopC = Class.forName("java.awt.Desktop");
+				Object desktop = desktopC.getMethod("getDesktop").invoke(null);
+				desktopC.getMethod("open", File.class).invoke(desktop,
+						((LocalFile) df.d.getPage(df.pagePrefix() + pv.pageIndex)).getLocalFile());
+			} catch (Exception e) {}
+		}
 	}
 
 	void assignHardcopyNumber() {
@@ -162,7 +196,7 @@ class PagesViewer extends JPanel {
 		}
 		prevButton.setEnabled(hasPrevPage());
 		nextButton.setEnabled(hasNextPage());
-		openButton.setEnabled(validPage());
+		openButton.setEnabled(validPage() && openPageAvailable());
 		df.menuBar.prevPageMI.setEnabled(hasPrevPage());
 		df.menuBar.nextPageMI.setEnabled(hasNextPage());
 		df.menuBar.openPageMI.setEnabled(validPage());
