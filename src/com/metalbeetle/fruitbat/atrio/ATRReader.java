@@ -65,7 +65,7 @@ public class ATRReader {
 			int fieldsRead = 0;
 			String f;
 			while ((f = read()) != null) {
-				if (fieldsRead <= max) {
+				if (fieldsRead < max) {
 					into[offset + fieldsRead++] = f;
 				}
 			}

@@ -31,8 +31,6 @@ public class ATRTest {
 		w.write("kittens");
 		w.endRecord();
 		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-		System.out.println(new String(out.toByteArray()));
-		System.out.println("------------");
 		ATRReader r = new ATRReader(in);
 		assertEquals("kittens", r.read());
 		assertNull(r.read());
@@ -52,8 +50,6 @@ public class ATRTest {
 		w.writeRecord(l("iguanas:%"));
 		w.writeRecord(Collections.EMPTY_LIST);
 		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-		System.out.println(new String(out.toByteArray()));
-		System.out.println("------------");
 		ATRReader r = new ATRReader(in);
 		List<String> rec = r.readRecord();
 		assertEquals(0, rec.size());
@@ -70,6 +66,24 @@ public class ATRTest {
 	}
 
 	@Test
+	public void testReadStartOfRecordOnly() throws IOException {
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		ATRWriter w = new ATRWriter(out);
+		w.writeRecord(l("a", "b", "c", "d"));
+		w.writeRecord(l("x"));
+		w.close();
+		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+		ATRReader r = new ATRReader(in);
+		String[] rec = new String[2];
+		assertEquals(2, r.readRecord(rec, 0, 2));
+		assertEquals("a", rec[0]);
+		assertEquals("b", rec[1]);
+		assertEquals(1, r.readRecord(rec, 0, 2));
+		assertEquals("x", rec[0]);
+		assertEquals("b", rec[1]);
+	}
+
+	@Test
 	public void testAbortedRecordsIgnored() throws IOException {
 		String data =
 				"gibberish" + // Initial gibberish
@@ -79,8 +93,6 @@ public class ATRTest {
 				"\n:x\t" + // Aborted record containing nonaborted x
 				"\n:\\u00abcd\t%" + // Full record containing \uabcd
 				"\n"; // Aborted record start
-		System.out.println(data);
-		System.out.println("------------");
 		ByteArrayInputStream in = new ByteArrayInputStream(data.getBytes());
 		ATRReader r = new ATRReader(in);
 		List<String> rec;
