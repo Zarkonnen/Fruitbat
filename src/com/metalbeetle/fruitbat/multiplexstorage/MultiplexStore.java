@@ -19,7 +19,7 @@ import java.util.List;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 
-class MultiplexStore implements Store {
+public class MultiplexStore implements Store {
 	static final String SLAVE_FAILURE = "SLAVE_FAILURE";
 
 	// The multiplex store stores the slaves' revisions in metadata keyed by the slaves' UUID, so it

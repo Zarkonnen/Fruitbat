@@ -68,6 +68,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	boolean tagsChanged = false;
 	final Caret tagsFCaret;
 	boolean deletedPageMode = false;
+	boolean blockUIInput = false;
 
 	final Box searchBoxH;
 		final Box searchBoxV;
@@ -155,11 +156,11 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 
 		addWindowListener(new WindowAdapter() {
 			@Override
-			public void windowClosing(WindowEvent e) { close(); }
+			public void windowClosing(WindowEvent e) { if (!blockUIInput) { close(); } }
 			@Override
-			public void windowIconified(WindowEvent e) { saveTags(); }
+			public void windowIconified(WindowEvent e) { if (!blockUIInput) { saveTags(); } }
 			@Override
-			public void windowDeactivated(WindowEvent e) { saveTags(); }
+			public void windowDeactivated(WindowEvent e) { if (!blockUIInput) { saveTags(); } }
 		});
 
 		new FileDrop(viewer, this);
@@ -309,6 +310,28 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		}
 	}
 
+	void setBlockUIInput(final boolean blockUIInput) {
+		final DocumentFrame self = this;
+		try {
+			SwingUtilities.invokeAndWait(new Runnable() {
+				public void run() {
+					if (!self.blockUIInput && blockUIInput) {
+						setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+						setGlassPane(new AllInterceptingPane());
+						getGlassPane().setVisible(true);
+					}
+					if (self.blockUIInput && !blockUIInput) {
+						setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+						setGlassPane(new JPanel());
+					}
+					self.blockUIInput = blockUIInput;
+				}
+			});
+		} catch (Exception e) {
+			mf.handleException(e);
+		}
+	}
+
 	void insertPagesAt(int atIndex) {
 		JFileChooser c = new JFileChooser(mf.lastDirectory);
 		c.setDialogTitle("Choose one or several pages to " +
@@ -334,6 +357,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		final int numPages = pageFiles.length;
 		saveTags();
 		new Thread("Adding page(s)") { @Override public void run() {
+			mf.setUIBusy(true);
 			mf.pm.showProgressBar("Adding pages", "", pageFiles.length * 2);
 			ArrayList<DataSrc> fulltexts = new ArrayList<DataSrc>();
 			try {
@@ -410,6 +434,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 				mf.pm.handleException(new Exception("Could not add page(s).", e), null);
 			} finally {
 				mf.pm.hideProgressBar();
+				mf.setUIBusy(false);
 			}
 		}}.start();
 	}

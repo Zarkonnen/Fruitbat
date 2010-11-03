@@ -1,6 +1,7 @@
 package com.metalbeetle.fruitbat.gui;
 
 import com.metalbeetle.fruitbat.TestDataGenerator;
+import com.metalbeetle.fruitbat.util.Misc;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -61,7 +62,17 @@ class MainMenuBar extends JMenuBar {
 				}});
 				closeMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+			if (!Misc.isMac()) {
+				JMenuItem quitMI = new JMenuItem("Quit");
+					fileMenu.add(quitMI);
+					quitMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
+						System.exit(0);
+					}});
+					quitMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Q,
+						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+			}
 
+				/*
 		// Create temp test data.
 		JMenu testMenu = new JMenu("Test");
 			add(testMenu);
@@ -78,8 +89,10 @@ class MainMenuBar extends JMenuBar {
 							"Which year should these docs be from?",
 							"2009"));
 						TestDataGenerator.generate(mf.store, quantity, year);
-						mf.search(mf.lastSearch, MainFrame.DEFAULT_MAX_DOCS, /*force*/true);
+						mf.search(mf.lastSearch, MainFrame.DEFAULT_MAX_DOCS, true);
 					} catch (Exception ex) { ex.printStackTrace(); }
 				}});
+				 * 
+				 */
 	}
 }

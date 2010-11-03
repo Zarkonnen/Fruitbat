@@ -1,6 +1,7 @@
 package com.metalbeetle.fruitbat.gui.setup;
 
 import com.metalbeetle.fruitbat.Fruitbat;
+import com.metalbeetle.fruitbat.gui.AllInterceptingPane;
 import com.metalbeetle.fruitbat.prefs.SavedStoreConfigs;
 import com.metalbeetle.fruitbat.storage.ProgressMonitor;
 import com.metalbeetle.fruitbat.storage.StorageSystem;
@@ -11,6 +12,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import javax.swing.AbstractListModel;
 import javax.swing.BoxLayout;
@@ -20,12 +23,14 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 public class ConfigsListFrame extends JFrame {
 	final Fruitbat app;
 	final ProgressMonitor pm;
+	boolean blockUIInput;
 
 	final JScrollPane configsListSP;
 		final JList configsList;
@@ -91,16 +96,50 @@ public class ConfigsListFrame extends JFrame {
 			configsList.setSelectedIndex(0);
 		}
 
+		addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) { if (!blockUIInput) { app.close(); } }
+		});
+
 		pack();
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		setSize(600, 400);
+	}
+
+	void setBlockUIInput(final boolean blockUIInput) {
+		final ConfigsListFrame self = this;
+		try {
+			SwingUtilities.invokeAndWait(new Runnable() {
+				public void run() {
+					if (!self.blockUIInput && blockUIInput) {
+						setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+						setGlassPane(new AllInterceptingPane());
+						getGlassPane().setVisible(true);
+					}
+					if (self.blockUIInput && !blockUIInput) {
+						setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+						setGlassPane(new JPanel());
+					}
+					self.blockUIInput = blockUIInput;
+				}
+			});
+		} catch (Exception e) {
+			// Cry.
+		}
 	}
 
 	void open() {
 		if (configsList.getSelectedIndex() != -1) {
 			final StoreConfig sc = (StoreConfig) configsListM.getElementAt(
 								configsList.getSelectedIndex());
-			new Thread() { @Override public void run() { app.openStore(sc); }}.start();
+			new Thread("Opening " + sc) { @Override public void run() {
+				setBlockUIInput(true);
+				try {
+					app.openStore(sc);
+				} finally {
+					setBlockUIInput(false);
+				}
+			}}.start();
 		}
 	}
 

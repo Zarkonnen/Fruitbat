@@ -1,6 +1,5 @@
 package com.metalbeetle.fruitbat.gui;
 
-import java.awt.Rectangle;
 import com.metalbeetle.fruitbat.ByValueComparator;
 import com.metalbeetle.fruitbat.Closeable;
 import com.metalbeetle.fruitbat.Fruitbat;
@@ -57,6 +56,8 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 	final StoreConfig config;
 	boolean showDeletedDocs = false;
 
+	boolean blockUIInput = false;
+
 	ProgressMonitor pm;
 	boolean isEmergencyShutdown = false;
 
@@ -91,13 +92,13 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 			final JScrollPane tagsListSP;
 				final NarrowSearchTagsList tagsList;
 
-	public MainFrame(Fruitbat application, EnhancedStore store, ProgressMonitor pm,
-			StoreConfig config)
+	public MainFrame(Fruitbat application, EnhancedStore store, StoreConfig config)
 	{
 		super("Fruitbat: " + store);
 		app = application;
 		this.store = store;
-		this.pm = pm;
+		pm = new Dialogs();
+		this.store.setProgressMonitor(pm);
 		this.config = config;
 		search("", DEFAULT_MAX_DOCS, /*force*/ true);
 
@@ -161,11 +162,11 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 		addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
-				close();
+				if (!blockUIInput) { close(); }
 			}
 			@Override
 			public void windowActivated(WindowEvent e) {
-				if (tagsChanged) {
+				if (!blockUIInput && tagsChanged) {
 					((SearchColorizingDocument) searchF.getDocument()).colorize();
 					search(searchF.getText(), DEFAULT_MAX_DOCS, /*force*/true);
 					tagsChanged = false;
@@ -179,6 +180,7 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 		split.setDividerLocation(500);
 	}
 
+	public EnhancedStore getStore() { return store; }
 	public StoreConfig getConfig() { return config; }
 
 	public void setShowDeletedDocs(boolean showDeletedDocs) {
@@ -217,14 +219,52 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 	public void close() {
 		final MainFrame self = this;
 		new Thread("Closing " + store) { @Override public void run() {
-			openDocManager.close();
+			self.setUIBusy(true);
 			try {
-				store.close();
-			} catch (Exception e) {
-				pm.handleException(e, self);
+				openDocManager.close();
+				try {
+					store.close();
+				} catch (Exception e) {
+					pm.handleException(e, self);
+				}
+				app.storeClosed(self);
+			} finally {
+				self.setUIBusy(false);
 			}
-			app.storeClosed(self);
 		}}.start();
+	}
+
+	void setUIBusy(final boolean blockUIInput) {
+		final MainFrame self = this;
+		try {
+			SwingUtilities.invokeAndWait(new Runnable() { public void run() {
+				if (!self.blockUIInput && blockUIInput) {
+					setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+					setGlassPane(new AllInterceptingPane());
+					getGlassPane().setVisible(true);
+				}
+				if (self.blockUIInput && !blockUIInput) {
+					setGlassPane(new JPanel());
+					setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+				}
+				self.blockUIInput = blockUIInput;
+			}});
+			openDocManager.setBlockUIInput(blockUIInput);
+		} catch (Exception e) {
+			handleException(e);
+		}
+	}
+
+	public boolean getUIBusy() {
+		try {
+			final boolean[] result = new boolean[1];
+			SwingUtilities.invokeAndWait(new Runnable() { public void run() {
+				result[0] = blockUIInput;
+			}});
+			return result[0];
+		} catch (Exception e) {
+			return false; // Allll is doooomed anyway.
+		}
 	}
 
 	/** Show/hide a menu for completing a half-started tag. */

@@ -61,7 +61,7 @@ public class SplashWindow extends JWindow implements ProgressMonitor {
 		progress("", NO_BAR);
 		if (--progressBarLevel == 0) {
 			if (System.currentTimeMillis() - appearance < 1000) {
-				try { Thread.sleep(1000 - System.currentTimeMillis() + appearance); } catch (InterruptedException e) {}
+				try { Thread.sleep(1000 - System.currentTimeMillis() + appearance); } catch (InterruptedException e) {Thread.currentThread().interrupt();}
 			}
 			setVisible(false);
 		}

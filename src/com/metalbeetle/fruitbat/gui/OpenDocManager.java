@@ -73,4 +73,10 @@ class OpenDocManager {
 			toFocus.toFront();
 		}
 	}
+
+	void setBlockUIInput(boolean blockUIInput) {
+		for (DocumentFrame df : openFrames.values()) {
+			df.setBlockUIInput(blockUIInput);
+		}
+	}
 }
