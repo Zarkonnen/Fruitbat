@@ -3,6 +3,7 @@ package com.metalbeetle.fruitbat.gui;
 import com.metalbeetle.fruitbat.ByValueComparator;
 import com.metalbeetle.fruitbat.Closeable;
 import com.metalbeetle.fruitbat.Fruitbat;
+import com.metalbeetle.fruitbat.gui.blockable.Blockable;
 import com.metalbeetle.fruitbat.storage.DocIndex;
 import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.EnhancedStore;
@@ -240,11 +241,13 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 			SwingUtilities.invokeAndWait(new Runnable() { public void run() {
 				if (!self.blockUIInput && blockUIInput) {
 					setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+					Blockable.setBlocked(getJMenuBar(), true);
 					setGlassPane(new AllInterceptingPane());
 					getGlassPane().setVisible(true);
 				}
 				if (self.blockUIInput && !blockUIInput) {
 					setGlassPane(new JPanel());
+					Blockable.setBlocked(getJMenuBar(), false);
 					setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 				}
 				self.blockUIInput = blockUIInput;

@@ -1,5 +1,6 @@
 package com.metalbeetle.fruitbat.gui;
 
+import com.metalbeetle.fruitbat.gui.blockable.Blockable;
 import javax.swing.text.BadLocationException;
 import com.metalbeetle.fruitbat.Fruitbat;
 import com.metalbeetle.fruitbat.fulltext.FullTextExtractor;
@@ -317,12 +318,14 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 				public void run() {
 					if (!self.blockUIInput && blockUIInput) {
 						setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+						Blockable.setBlocked(getJMenuBar(), true);
 						setGlassPane(new AllInterceptingPane());
 						getGlassPane().setVisible(true);
 					}
 					if (self.blockUIInput && !blockUIInput) {
-						setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 						setGlassPane(new JPanel());
+						Blockable.setBlocked(getJMenuBar(), true);
+						setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 					}
 					self.blockUIInput = blockUIInput;
 				}
