@@ -72,7 +72,7 @@ class MainMenuBar extends JMenuBar {
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 			}
 
-				/*
+				
 		// Create temp test data.
 		JMenu testMenu = new JMenu("Test");
 			add(testMenu);
@@ -92,7 +92,6 @@ class MainMenuBar extends JMenuBar {
 						mf.search(mf.lastSearch, MainFrame.DEFAULT_MAX_DOCS, true);
 					} catch (Exception ex) { ex.printStackTrace(); }
 				}});
-				 * 
-				 */
+				
 	}
 }

@@ -247,6 +247,7 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 				}
 				if (self.blockUIInput && !blockUIInput) {
 					setGlassPane(new JPanel());
+					getGlassPane().setVisible(false);
 					Blockable.setBlocked(getJMenuBar(), false);
 					setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 				}
