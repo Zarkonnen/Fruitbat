@@ -119,12 +119,14 @@ public class ConfigsListFrame extends JFrame {
 					if (self.blockUIInput && !blockUIInput) {
 						setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 						setGlassPane(new JPanel());
+						getGlassPane().setVisible(false);
 					}
 					self.blockUIInput = blockUIInput;
 				}
 			});
 		} catch (Exception e) {
 			// Cry.
+			e.printStackTrace();
 		}
 	}
 
