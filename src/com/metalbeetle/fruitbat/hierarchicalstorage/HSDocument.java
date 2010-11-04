@@ -38,6 +38,8 @@ public class HSDocument implements Comparable<HSDocument>, Document {
 	public int getID() { return id; }
 
 	public String getRevision() throws FatalStorageException {
+		String cached = myIndex().getCachedRevision(this);
+		if (cached != null) { return cached; }
 		try {
 			return data.get(REVISION_KEY);
 		} catch (Exception e) {
@@ -55,11 +57,11 @@ public class HSDocument implements Comparable<HSDocument>, Document {
 				changes);
 	}
 
-	public String change(String changeID, List<Change> changes) throws FatalStorageException {
+	public String change(String revision, List<Change> changes) throws FatalStorageException {
 		s.updateRevision();
 		// Transduce into changes for data.atr.
 		ArrayList<Change> dataChanges = new ArrayList<Change>(changes.size());
-		dataChanges.add(DataChange.put(REVISION_KEY, changeID));
+		dataChanges.add(DataChange.put(REVISION_KEY, revision));
 		for (Change c : changes) {
 			if (c instanceof DataChange.Put) {
 				DataChange.Put p = (DataChange.Put) c;
@@ -110,7 +112,8 @@ public class HSDocument implements Comparable<HSDocument>, Document {
 		}
 		// Commit the changes to disk.
 		data.change(dataChanges);
-		// Inform the index of data changes.
+		// Inform the index of data/revision changes.
+		myIndex().revisionChanged(this, revision);
 		for (Change c : changes) {
 			if (c instanceof DataChange.Put) {
 				DataChange.Put p = (DataChange.Put) c;
@@ -129,7 +132,7 @@ public class HSDocument implements Comparable<HSDocument>, Document {
 				continue;
 			}
 		}
-		return changeID;
+		return revision;
 	}
 
 	public String get(String key) throws FatalStorageException {

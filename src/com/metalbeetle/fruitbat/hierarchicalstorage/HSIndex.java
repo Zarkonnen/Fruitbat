@@ -37,6 +37,8 @@ public class HSIndex implements DocIndex {
 	 */
 	final HashMap<String, Pair<HashMap<Document, String>, PrefixBTree<Document>>> valueCache =
 			new HashMap<String, Pair<HashMap<Document, String>, PrefixBTree<Document>>>();
+	/** Map of Documents to their revision. */
+	final HashMap<HSDocument, String> documentToRevision = new HashMap<HSDocument, String>();
 	final HSStore s;
 	boolean closed = false;
 	ProgressMonitor pm;
@@ -184,6 +186,15 @@ public class HSIndex implements DocIndex {
 		}
 	}
 
+	/** Called when the revision of a document changes. */
+	void revisionChanged(HSDocument d, String revision) {
+		documentToRevision.put(d, revision);
+	}
+
+	String getCachedRevision(HSDocument d) {
+		return documentToRevision.get(d);
+	}
+
 	List<String> getKeys(HSDocument d) {
 		return documentToKeys.containsKey(d)
 				? new ArrayList<String>(documentToKeys.get(d))
@@ -209,11 +220,13 @@ public class HSIndex implements DocIndex {
 		try {
 			documentToKeys.clear();
 			valueCache.clear();
+			documentToRevision.clear();
 			int loops = 0;
 			for (HSDocument d : s.docs) {
 				if (loops++ % 10 == 0) {
 					pm.progress(loops + " documents of " + numDocs, loops);
 				}
+				documentToRevision.put(d, d.data.get(HSDocument.REVISION_KEY));
 				for (String key : d.data.keys()) {
 					if (key.startsWith(HSDocument.DATA_PREFIX)) {
 						keyAdded(d, key.substring(HSDocument.DATA_PREFIX.length()),
@@ -236,6 +249,18 @@ public class HSIndex implements DocIndex {
 			tos = l.getOutputStream();
 			w = new ATRWriter(new BufferedOutputStream(tos.stream()));
 			int progress = 0;
+			// First, store the revision info:
+			for (Entry<HSDocument, String> e : documentToRevision.entrySet()) {
+				w.startRecord();
+				w.write(string(e.getKey().getID()));
+				w.write(e.getValue());
+				w.endRecord();
+			}
+			// End the revision info with an empty record.
+			w.startRecord();
+			w.endRecord();
+
+			// Second, store the key/value cache:
 			// First, just say how many keys there are for better progress metering.
 			w.startRecord();
 			w.write(string(valueCache.size() + 1));
@@ -285,12 +310,24 @@ public class HSIndex implements DocIndex {
 		try {
 			documentToKeys.clear();
 			valueCache.clear();
+			documentToRevision.clear();
 			Location l = s.location.child("index.atr");
 			if (l.exists()) {
 				ATRReader r = null;
 				try {
 					r = new ATRReader(new BufferedInputStream(l.getInputStream()));
 					String[] rec = new String[2];
+					// Load the revision cache:
+					while (r.readRecord(rec, 0, 2) > 0) {
+						HSDocument d = (HSDocument) s.get(integer(rec[0]));
+						if (d == null) {
+							throw new RuntimeException("Document " + rec[0] + " doesn't " +
+									"exist.");
+						}
+						documentToRevision.put(d, rec[1]);
+					}
+
+					// Load the k/v cache:
 					r.readRecord(rec, 0, 1);
 					int numKeys = integer(rec[0]);
 					pm.changeNumSteps(numKeys);

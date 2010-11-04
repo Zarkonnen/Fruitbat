@@ -72,8 +72,9 @@ public abstract class HSStore implements Store {
 				Collections.sort(docs);
 				Collections.reverse(docs);
 			}
+			pm.progress("Loading index...", -1);
 			index = new HSIndex(this, pm, new StringPool(4));
-			pm.progress("Loading full text index", -1);
+			pm.progress("Finishing...", -1);
 			metaF.saveToCache();
             revisionUpdated = false;
 		} catch (Exception e) {

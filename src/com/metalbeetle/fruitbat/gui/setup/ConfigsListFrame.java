@@ -23,6 +23,7 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
@@ -62,6 +63,7 @@ public class ConfigsListFrame extends JFrame {
 					editB.setEnabled(configsList.getSelectedIndex() != -1);
 					openB.setEnabled(configsList.getSelectedIndex() != -1);
 				}});
+				configsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 				configsList.addMouseListener(new MouseAdapter() {
 					@Override
 					public void mouseClicked(MouseEvent e) {
