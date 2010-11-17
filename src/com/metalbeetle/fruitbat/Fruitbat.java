@@ -1,6 +1,7 @@
 package com.metalbeetle.fruitbat;
 
 import apple.dts.samplecode.osxadapter.OSXAdapter;
+import com.metalbeetle.fruitbat.gui.AboutWindow;
 import com.metalbeetle.fruitbat.gui.Dialogs;
 import com.metalbeetle.fruitbat.gui.MainFrame;
 import com.metalbeetle.fruitbat.gui.ShortcutOverlay;
@@ -18,7 +19,8 @@ import java.util.prefs.Preferences;
 
 /** Application instance. */
 public class Fruitbat {
-	public static final String VERSION = "1.0a";
+	public static final String VERSION = "1.0b";
+	public static final String ABOUT = "by David Stark, 2010";
 	public static final String HIDDEN_KEY_PREFIX = ":";
 	public static final String DATE_KEY = "d";
 	public static final String CREATION_DATE_KEY = HIDDEN_KEY_PREFIX + "cd";
@@ -72,6 +74,7 @@ public class Fruitbat {
 		if (Misc.isMac()) {
 			try {
 				OSXAdapter.setQuitHandler(this, Fruitbat.class.getMethod("closeIfAble"));
+				OSXAdapter.setAboutHandler(this, Fruitbat.class.getMethod("showAbout"));
 			} catch (Exception e) {
 				pm.handleException(e, null);
 				System.exit(1);
@@ -99,6 +102,12 @@ public class Fruitbat {
 	public boolean closeIfAble() {
 		close();
 		return true;
+	}
+
+	public void showAbout() {
+		AboutWindow aw = new AboutWindow();
+		aw.setLocationRelativeTo(null);
+		aw.setVisible(true);
 	}
 
 	public void close() {
