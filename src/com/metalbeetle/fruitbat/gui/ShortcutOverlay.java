@@ -156,7 +156,7 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 		static final int TEXT_Y_OFFSET = 16;
 		static final int HEIGHT_FUDGE = 21;
 		static final int SHORTCUT_TO_TEXT = 20;
-		static final int ROWS = 12;
+		static final int ROWS = 9;
 		static final float FONT_SIZE = 16f;
 		static final int FUDGE = 7;
 		final BufferedImage bg;
