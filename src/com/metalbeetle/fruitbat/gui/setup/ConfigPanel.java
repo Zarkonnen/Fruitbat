@@ -227,7 +227,7 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 	public boolean allValid() {
 		try {
 			Utils.checkConfigValues(getConfig());
-			return !nameF.getText().isEmpty();
+			return nameF.getText().length() != 0;
 		} catch (StoreConfigInvalidException e) {
 			return false;
 		}

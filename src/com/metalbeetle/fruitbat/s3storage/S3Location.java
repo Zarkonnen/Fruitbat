@@ -94,7 +94,7 @@ public class S3Location implements Location {
 	}
 
 	static String parentPath(String path) {
-		if (path.isEmpty()) { return null; }
+		if (path.length() == 0) { return null; }
 		if (path.contains(D)) {
 			return path.substring(0, path.lastIndexOf(D));
 		} else {
@@ -103,7 +103,7 @@ public class S3Location implements Location {
 	}
 
 	static String childPath(String parentPath, String name) {
-		return parentPath.isEmpty() ? name : parentPath + "/" + name;
+		return parentPath.length() == 0 ? name : parentPath + "/" + name;
 	}
 
 	final String path;
@@ -123,7 +123,7 @@ public class S3Location implements Location {
 		try {
 			return f.s3.getObject(f.bucketName, path).getObjectMetadata().getContentLength();
 		} catch (FatalStorageException e) {
-			throw new IOException(e);
+			throw new IOException(e.getMessage());
 		}
 	}
 
@@ -178,7 +178,7 @@ public class S3Location implements Location {
 			return new CryptoInputStream(f.s3.getObject(f.bucketName, path).getObjectContent(),
 					f.password);
 		} catch (FatalStorageException e) {
-			throw new IOException(e);
+			throw new IOException(e.getMessage());
 		}
 	}
 
@@ -199,7 +199,8 @@ public class S3Location implements Location {
 			try {
 				put(new ByteArraySrc(stream.toByteArray(), "streamed data"));
 			} catch (FatalStorageException e) {
-				throw new IOException("Could not save data to " + getName() + ".", e);
+				throw new IOException("Could not save data to " + getName() + ".\n" +
+						e.getMessage());
 			}
 		}
 

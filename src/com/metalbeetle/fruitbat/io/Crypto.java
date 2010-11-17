@@ -120,7 +120,7 @@ public class Crypto {
 				try {
 					bufLength = c.doFinal(plainBuf, 0);
 				} catch (InvalidCipherTextException e) {
-					throw new IOException(e);
+					throw new IOException("Invalid ciphertext: " + e.getMessage());
 				}
 			} else {
 				bufLength = c.processBytes(cipherBuf, 0, bufLength, plainBuf, 0);
@@ -148,7 +148,7 @@ public class Crypto {
 			try {
 				dig.update(pwd.getBytes("UTF-8"), 0, pwd.getBytes("UTF-8").length);
 			} catch (UnsupportedEncodingException e) {
-				throw new IOException(e);
+				throw new IOException("UTF-8 not supported!");
 			}
 			dig.doFinal(key, 0);
 			c.init(true, new KeyParameter(key));
@@ -185,8 +185,8 @@ public class Crypto {
 				int offset = c.doFinal(buf, 0);
 				s.write(buf, 0, offset);
 				s.close();
-			} catch (InvalidCipherTextException icte) {
-				throw new IOException(icte);
+			} catch (InvalidCipherTextException e) {
+				throw new IOException("Invalid ciphertext: " + e.getMessage());
 			}
 		}
 

@@ -26,7 +26,7 @@ public class Dialogs implements ProgressMonitor {
 	}
 
 	public void showProgressBar(final String title, final String detail, final int numSteps) {
-		SwingUtilities.invokeLater(new Runnable() { @Override public void run() { synchronized (progressDialog) {
+		SwingUtilities.invokeLater(new Runnable() { public void run() { synchronized (progressDialog) {
 			progressBarLevel++;
 			progressDialog.setTitle(title);
 			progressPanel.getInfoLabel().setText(detail);
@@ -41,7 +41,7 @@ public class Dialogs implements ProgressMonitor {
 	}
 
 	public void progress(final String detail, final int step) {
-		SwingUtilities.invokeLater(new Runnable() { @Override public void run() { synchronized (progressDialog) {
+		SwingUtilities.invokeLater(new Runnable() { public void run() { synchronized (progressDialog) {
 			progressPanel.getInfoLabel().setText(detail);
 			progressPanel.getProgressBar().setValue(step);
 			progressPanel.getProgressBar().setIndeterminate(step < 0);
@@ -50,7 +50,7 @@ public class Dialogs implements ProgressMonitor {
 
 	public void hideProgressBar() {
 		try { Thread.sleep(100); } catch (InterruptedException e) { Thread.currentThread().interrupt();/*gaaaah*/ }
-		SwingUtilities.invokeLater(new Runnable() { @Override public void run() { synchronized (progressDialog) {
+		SwingUtilities.invokeLater(new Runnable() { public void run() { synchronized (progressDialog) {
 			if (--progressBarLevel == 0) {
 				progressDialog.setVisible(false);
 			}
@@ -58,7 +58,7 @@ public class Dialogs implements ProgressMonitor {
 	}
 
 	public void changeNumSteps(final int numSteps) {
-		SwingUtilities.invokeLater(new Runnable() { @Override public void run() { synchronized (progressDialog) {
+		SwingUtilities.invokeLater(new Runnable() { public void run() { synchronized (progressDialog) {
 			if (numSteps > 0) { progressPanel.getProgressBar().setMaximum(numSteps); }
 			progressPanel.getProgressBar().setIndeterminate(numSteps <= 0);
 			progressPanel.getProgressBar().setValue(0);

@@ -52,7 +52,7 @@ public interface ConfigField<T> {
 		public NonEmptyStringField(String name) { super(name); }
 
 		public String validate(String input) {
-			if (input.isEmpty()) {
+			if (input.length() == 0) {
 				return "Please enter a " + name;
 			} else {
 				return null;
