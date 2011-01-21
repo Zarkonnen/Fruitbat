@@ -13,6 +13,9 @@ import org.bouncycastle.crypto.modes.CBCBlockCipher;
 import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
 import org.bouncycastle.crypto.params.KeyParameter;
 
+/**
+ * Cryptographic functions based on BouncyCastle's crypto systems. Uses AES/CBC/SHA256.
+ */
 public class Crypto {
 	private static final SecureRandom SR = new SecureRandom();
 	private static final String SALT = "sodium chloride is delicious";
@@ -52,6 +55,7 @@ public class Crypto {
 		return dst2;
 	}
 
+	/** Decrypting wrapper for input stream. */
 	public static final class CryptoInputStream extends InputStream {
 		final InputStream s;
 		final PaddedBufferedBlockCipher c;
@@ -133,6 +137,7 @@ public class Crypto {
 		}
 	}
 
+	/** Encrypting wrapper for output stream. */
 	public static class CryptoOutputStream extends OutputStream {
 		final OutputStream s;
 		final PaddedBufferedBlockCipher c;

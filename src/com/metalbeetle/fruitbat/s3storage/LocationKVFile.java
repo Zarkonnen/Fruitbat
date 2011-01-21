@@ -35,7 +35,6 @@ public class LocationKVFile implements KVFile {
 			__kv.clear();
 			__kv.putAll(defaults);
 			if (l.exists()) {
-				/*
 				ATRReader r = null;
 				try {
 					r = new ATRReader(l.getInputStream());
@@ -48,8 +47,8 @@ public class LocationKVFile implements KVFile {
 							e);
 				} finally {
 					try { r.close(); } catch (Exception e) {}
-				}*/
-				SimpleATRReader r = null;
+				}
+				/*SimpleATRReader r = null;
 				try {
 					r = new SimpleATRReader(l.getInputStream());
 					List<String> rec = null;
@@ -61,7 +60,7 @@ public class LocationKVFile implements KVFile {
 							e);
 				} finally {
 					try { r.close(); } catch (Exception e) {}
-				}
+				}*/
 			}
 			loaded = true;
 		}

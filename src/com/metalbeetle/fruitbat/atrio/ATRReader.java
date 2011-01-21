@@ -42,7 +42,7 @@ public class ATRReader {
 		bOffset = 0;
 	}
 
-	/** The next valid record, or null if at the end of stream. */
+	/** @return The next valid record, or null if at the end of stream. */
 	public List<String> readRecord() throws IOException {
 		ArrayList<String> fs = new ArrayList<String>();
 		do {

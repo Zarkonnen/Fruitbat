@@ -290,7 +290,11 @@ public class HSIndex implements DocIndex {
 			w.endRecord();
 			pm.progress("Finishing...", valueCache.size());
 		} catch (Exception e) {
-			tos.abort();
+			// We couldn't write the index, so let's just try to delete it.
+			if (tos.isAbortable()) {
+				tos.abort();
+			}
+			l.delete();
 			throw new FatalStorageException("Couldn't write index to " + l.getName() + ".", e);
 		} finally {
 			try { w.close(); } catch (Exception e) {}

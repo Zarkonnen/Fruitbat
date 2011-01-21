@@ -10,7 +10,6 @@ import java.util.List;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 
-
 public final class StoreConfig {
 	public final String name;
 	public final StorageSystem system;

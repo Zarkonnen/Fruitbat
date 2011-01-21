@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+/** Data source backed by a byte array. */
 public class ByteArraySrc implements DataSrc {
 	private final byte[] array;
 	private final String name;

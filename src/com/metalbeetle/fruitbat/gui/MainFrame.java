@@ -93,8 +93,7 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 			final JScrollPane tagsListSP;
 				final NarrowSearchTagsList tagsList;
 
-	public MainFrame(Fruitbat application, EnhancedStore store, StoreConfig config)
-	{
+	public MainFrame(Fruitbat application, EnhancedStore store, StoreConfig config) {
 		super("Fruitbat: " + store);
 		app = application;
 		this.store = store;

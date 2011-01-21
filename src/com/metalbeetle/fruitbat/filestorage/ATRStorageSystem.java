@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 
+/** Storage system that saves documents as ATR on a local file system. */
 public class ATRStorageSystem implements StorageSystem {
 	static final List<ConfigField> CONFIG_FIELDS;
 	static {
@@ -42,7 +43,6 @@ public class ATRStorageSystem implements StorageSystem {
 			throws FatalStorageException, StoreConfigInvalidException
 	{
 		Utils.checkConfigValues(new StoreConfig(this, configValues));
-		//return new ATRStore((File) configValues.get(0), pm);
 		return new FileStore((File) configValues.get(0), pm);
 	}
 

@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+/** Data source of UTF-8 string. */
 public class StringSrc implements DataSrc {
 	public final String s;
 	final String name;

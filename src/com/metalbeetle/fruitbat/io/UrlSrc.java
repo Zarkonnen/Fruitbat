@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 
+/** Data source to read data via HTTP request from an URL. */
 public class UrlSrc implements DataSrc {
 	final URL url;
 	public UrlSrc(URL url) {

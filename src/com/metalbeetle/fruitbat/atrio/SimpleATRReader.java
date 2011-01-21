@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** Shorter, low-performing reference implementation. */
+/** Shorter, more-commented, low-performing reference implementation. */
 public class SimpleATRReader {
 	private final BufferedReader in;
 	private boolean waitingForRecordStart = true;

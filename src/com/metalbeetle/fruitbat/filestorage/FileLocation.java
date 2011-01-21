@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+/** A location pointing to a file on the local file system. */
 public class FileLocation implements Location, LocalFile {
 	final File f;
 

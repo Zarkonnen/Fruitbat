@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 
 public class S3Location implements Location {
-	static final String D = "/";
+	static final String PATH_DELIMITER = "/";
 
 	public static class Factory {
 		final String bucketName;
@@ -95,8 +95,8 @@ public class S3Location implements Location {
 
 	static String parentPath(String path) {
 		if (path.length() == 0) { return null; }
-		if (path.contains(D)) {
-			return path.substring(0, path.lastIndexOf(D));
+		if (path.contains(PATH_DELIMITER)) {
+			return path.substring(0, path.lastIndexOf(PATH_DELIMITER));
 		} else {
 			return "";
 		}
@@ -116,7 +116,10 @@ public class S3Location implements Location {
 	}
 
 	public String getName() {
-		return path.contains(D) ? path.substring(path.indexOf(D) + 1) : path;
+		return
+				path.contains(PATH_DELIMITER)
+				? path.substring(path.indexOf(PATH_DELIMITER) + 1)
+				: path;
 	}
 
 	public long getLength() throws IOException {
