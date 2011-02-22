@@ -5,12 +5,11 @@ import com.metalbeetle.fruitbat.util.Pair;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Dimension;
 import java.awt.DisplayMode;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.GraphicsEnvironment;
-import java.awt.Rectangle;
-import java.awt.Robot;
 import java.awt.Toolkit;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -43,6 +42,7 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 	int ticksKeyPressed = KEY_NOT_PRESSED;
 	HelpWindow helpWindow;
 	Component currentComponent;
+	BufferedImage img;
 
 	public ShortcutOverlay() {
 		t = new Timer("ShortcutOverlay", /*isDaemon*/ true);
@@ -127,16 +127,14 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 						c = c.getParent();
 					}
 					if (c instanceof JFrame && ((JFrame) c).getJMenuBar() != null) {
-						DisplayMode dm = GraphicsEnvironment.getLocalGraphicsEnvironment().
-								getDefaultScreenDevice().getDisplayMode();
-						Robot r = new Robot();
-						BufferedImage bg = r.createScreenCapture(
-								new Rectangle((dm.getWidth() - 800) / 2, (dm.getHeight() - 600) / 2, 800, 600));
-						helpWindow = new HelpWindow(bg, ((JFrame) c).getJMenuBar(),
-								(dm.getWidth() - 800) / 2, (dm.getHeight() - 600) / 2, 800, 600);
+						if (img == null) {
+							img = c.getGraphicsConfiguration().createCompatibleImage(800, 600);
+						}
+						helpWindow = new HelpWindow(((JFrame) c).getJMenuBar(), img);
 						helpWindow.setVisible(true);
 					}
 				} catch (Exception e) {
+					e.printStackTrace();
 					// Do nothing! Whee!
 				}
 			}
@@ -148,7 +146,7 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 	}
 
 	static class HelpWindow extends JWindow {
-		static final Color OVERLAY = new Color(160, 240, 140, 220); //new Color(31, 31, 31, 220);
+		static final Color BG = new Color(160, 240, 140);
 		static final Color ROW_HILITE = new Color(255, 255, 255, 127);
 		static final Color TEXT_C = Color.BLACK; //new Color(255, 255, 255);
 		static final int LINE_H = 40;
@@ -159,18 +157,20 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 		static final int ROWS = 9;
 		static final float FONT_SIZE = 16f;
 		static final int FUDGE = 7;
-		final BufferedImage bg;
 		final JMenuBar mb;
-		final int width;
-		final int height;
-		
+		final BufferedImage img;
 
-		HelpWindow(BufferedImage bg, JMenuBar mb, int x, int y, int width, int height) {
-			this.bg = bg;
+		HelpWindow(JMenuBar mb, BufferedImage img) {
 			this.mb = mb;
-			this.width = width;
-			this.height = height;
-			setBounds(x, y, width, height);
+			this.img = img;
+			DisplayMode dm = GraphicsEnvironment.getLocalGraphicsEnvironment().
+					getDefaultScreenDevice().getDisplayMode();
+			Dimension dim = draw(img.getGraphics());
+			setBounds(
+					dm.getWidth() / 2 - dim.width / 2,
+					dm.getHeight() / 2 - dim.height / 2,
+					dim.width,
+					dim.height);
 			setAlwaysOnTop(true);
 			setFocusable(false);
 			// Prevents window shadow on OS X
@@ -179,7 +179,10 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 
 		@Override
 		public void paint(Graphics g) {
-			g.drawImage(bg, 0, 0, this);
+			g.drawImage(img, 0, 0, null);
+		}
+
+		public Dimension draw(Graphics g) {
 			g.setFont(new JLabel().getFont().deriveFont(FONT_SIZE));
 			ArrayList<Pair<String, String>> items = new ArrayList<Pair<String, String>>();
 			int maxShortcutWidth = 0;
@@ -237,17 +240,12 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 			final int rows = items.size() < ROWS ? items.size() : ROWS;
 			final int colWidth = maxShortcutWidth + SHORTCUT_TO_TEXT + maxTextWidth;
 			final int totalWidth = cols * colWidth + (cols - 1) * SPACING;
-			final int fromLeft = (width - totalWidth) / 2;
-			final int fromTop = (height - rows * LINE_H) / 2;
+			final int fromLeft = SPACING;
+			final int fromTop = SPACING;
 
-			g.setColor(OVERLAY);
-			g.fillRoundRect(
-					fromLeft - SPACING,
-					fromTop - SPACING,
-					totalWidth + SPACING * 2,
-					rows * LINE_H + SPACING * 2 - HEIGHT_FUDGE,
-					SPACING,
-					SPACING);
+			Dimension dim = new Dimension(totalWidth + SPACING * 2, rows * LINE_H + SPACING);
+			g.setColor(BG);
+			g.fillRect(0, 0, dim.width, dim.height);
 
 			int itemIndex = 0;
 			for (int column = 0; column < cols; column++) {
@@ -281,6 +279,7 @@ public class ShortcutOverlay implements KeyListener, WindowListener {
 			}
 
 			g.setColor(Color.RED);
+			return dim;
 		}
 
 		static String keyCodeName(int code) {

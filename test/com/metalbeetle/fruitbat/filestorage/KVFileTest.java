@@ -4,10 +4,6 @@ import com.metalbeetle.fruitbat.hierarchicalstorage.KVFile;
 import com.metalbeetle.fruitbat.KVFileManagers;
 import com.metalbeetle.fruitbat.KVFileManager;
 import com.metalbeetle.fruitbat.storage.DataChange;
-import com.metalbeetle.fruitbat.storage.FatalStorageException;
-import java.io.File;
-import java.io.IOException;
-import java.util.Collections;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import static com.metalbeetle.fruitbat.util.Collections.*;
@@ -83,6 +79,10 @@ public class KVFileTest {
 	}
 
 	@Test
+	/**
+	 * Tests whether saving data to the cache followed by changing data results in the correct data
+	 * on disk.
+	 */
 	public void cacheCoherent() throws Exception {
 		for (KVFileManager m : KVFileManagers.get()) {
 			try {
