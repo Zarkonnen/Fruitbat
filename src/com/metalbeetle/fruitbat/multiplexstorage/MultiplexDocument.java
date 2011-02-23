@@ -19,7 +19,7 @@ class MultiplexDocument implements Document, Comparable<MultiplexDocument> {
 	
 	public int getID() { return id; }
 
-	public String change(List<Change> changes) throws FatalStorageException {
+	public String change(List<? extends Change> changes) throws FatalStorageException {
 		String changeID;
 		try {
 			changeID = master.change(changes);
@@ -32,7 +32,7 @@ class MultiplexDocument implements Document, Comparable<MultiplexDocument> {
 		return changeID;
 	}
 	
-	public String change(String changeID, List<Change> changes) throws FatalStorageException {
+	public String change(String changeID, List<? extends Change> changes) throws FatalStorageException {
 		try {
 			master.change(changeID, changes);
 		} catch (FatalStorageException e) {
@@ -44,7 +44,7 @@ class MultiplexDocument implements Document, Comparable<MultiplexDocument> {
 		return changeID;
 	}
 	
-	private void changeSlaves(String changeID, List<Change> changes) {
+	private void changeSlaves(String changeID, List<? extends Change> changes) {
 		for (int slaveIndex = 1; slaveIndex < s.stores.size(); slaveIndex++) {
 			if (s.storeEnabled.get(slaveIndex)) {
 				try {

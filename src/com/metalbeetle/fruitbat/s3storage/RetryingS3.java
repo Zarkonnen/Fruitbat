@@ -12,7 +12,7 @@ import java.io.InputStream;
  * This class acts as a wrapper around selected S3 functionality, retrying several times in case of
  * failure. This is to counteract S3's tendency to randomly not work on occasion.
  */
-class RetryingS3 {
+public class RetryingS3 {
 	static final int FINAL_TIMEOUT = 12000;
 	static final int INITIAL_WAIT = 100;
 	static final int WAIT_INCREMENT = 1000;

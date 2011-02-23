@@ -32,7 +32,7 @@ public interface Store {
 	public Document get(int id) throws FatalStorageException;
 
 	public String getMetaData(String key) throws FatalStorageException;
-	public void changeMetaData(List<Change> changes) throws FatalStorageException;
+	public void changeMetaData(List<DataChange> changes) throws FatalStorageException;
 	public boolean hasMetaData(String key) throws FatalStorageException;
 	public List<String> metaDataKeys() throws FatalStorageException;
 }

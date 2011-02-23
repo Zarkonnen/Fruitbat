@@ -3,6 +3,8 @@ package com.metalbeetle.fruitbat;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import java.util.Properties;
 import java.util.Map;
 import java.util.Collections;
@@ -12,7 +14,6 @@ import com.metalbeetle.fruitbat.s3storage.S3Location;
 import java.util.HashMap;
 import java.util.List;
 import java.io.File;
-import java.io.InputStream;
 import java.util.Random;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 
@@ -92,7 +93,7 @@ public final class KVFileManagers {
 					return secretKey;
 				}
 			});
-			bucketName = "fruitbat-s3kvfiletest-" + new Random().nextLong();
+			bucketName = "s3kvfiletest-" + new Random().nextLong();
 			s3l = new S3Location.Factory(bucketName, s3, "jamcat").getLocation(fileName);
 			reboot();
 		}
@@ -102,10 +103,24 @@ public final class KVFileManagers {
 		}
 
 		public void tearDown() throws Exception {
-			try {
-				s3l.delete();
-			} catch (Exception e) { /* mehh */ }
-			s3.deleteBucket(bucketName);
+			deleteBucket(bucketName);
+		}
+
+		void deleteBucket(String bucketName) {
+			// Code to truly delete bucket despite inconsistencies from S3.
+			while (s3.doesBucketExist(bucketName)) {
+				try {
+					ObjectListing ol = s3.listObjects(bucketName);
+					while (true) {
+						for (S3ObjectSummary os : ol.getObjectSummaries()) {
+							s3.deleteObject(bucketName, os.getKey());
+						}
+						if (!ol.isTruncated()) { break; }
+						ol = s3.listNextBatchOfObjects(ol);
+					}
+					s3.deleteBucket(bucketName);
+				} catch (Exception e) {}
+			}
 		}
 
 		public KVFile get() throws Exception {

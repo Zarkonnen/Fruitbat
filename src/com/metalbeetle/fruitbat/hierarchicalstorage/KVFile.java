@@ -1,6 +1,6 @@
 package com.metalbeetle.fruitbat.hierarchicalstorage;
 
-import com.metalbeetle.fruitbat.storage.Change;
+import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import java.util.Collection;
 import java.util.List;
@@ -21,7 +21,7 @@ public interface KVFile {
 	/**
 	 * @param changes A list of data changes to apply. File changes are not valid here.
 	 */
-	public void change(List<Change> changes) throws FatalStorageException;
+	public void change(List<DataChange> changes) throws FatalStorageException;
 	/**
 	 * Hint to the KV file to flush its contents to any cache it may have.
 	 */

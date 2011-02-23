@@ -3,7 +3,6 @@ package com.metalbeetle.fruitbat.filestorage;
 import com.metalbeetle.fruitbat.atrio.ATRReader;
 import com.metalbeetle.fruitbat.atrio.ATRWriter;
 import com.metalbeetle.fruitbat.hierarchicalstorage.KVFile;
-import com.metalbeetle.fruitbat.storage.Change;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import java.io.File;
@@ -169,14 +168,14 @@ public final class AppendingKVFile implements KVFile {
 		return immute(k());
 	}
 
-	public void change(List<Change> changes) throws FatalStorageException {
+	public void change(List<DataChange> changes) throws FatalStorageException {
 		// If there is a cache file, we must load it in to prevent it from hanging around with old
 		// data while we blithely write newer data to the non-cache file, getting them out of sync.
 		if (cacheF != null) {
 			load();
 		}
 		if (loaded) {
-			for (Change c : changes) {
+			for (DataChange c : changes) {
 				if (c instanceof DataChange.Put) {
 					DataChange.Put p = (DataChange.Put) c;
 					kv().put(p.key, p.value);
@@ -202,14 +201,14 @@ public final class AppendingKVFile implements KVFile {
 		append(changes);
 	}
 
-	void append(List<Change> changes) throws FatalStorageException {
+	void append(List<DataChange> changes) throws FatalStorageException {
 		mkAncestors(f);
 
 		ATRWriter w = null;
 		try {
 			w = new ATRWriter(new BufferedOutputStream(new FileOutputStream(f, /*append*/ true)));
 			w.startRecord();
-			for (Change c : changes) {
+			for (DataChange c : changes) {
 				if (c instanceof DataChange.Put) {
 					DataChange.Put p = (DataChange.Put) c;
 					w.write(PUT);

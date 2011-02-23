@@ -11,6 +11,7 @@ import com.metalbeetle.fruitbat.filestorage.FileStore;
 import com.metalbeetle.fruitbat.gui.DummyProgressMonitor;
 import com.metalbeetle.fruitbat.hierarchicalstorage.HSIndex;
 import com.metalbeetle.fruitbat.s3storage.S3StorageSystem;
+import com.metalbeetle.fruitbat.s3storage.S3Store;
 import com.metalbeetle.fruitbat.storage.EnhancedStore;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.storage.StoreConfig;
@@ -76,7 +77,7 @@ public final class TestStoreManagers {
 		String bucketName;
 
 		public void setUp() throws Exception {
-			bucketName = "fruitbattestbucket" + Math.abs(new Random().nextLong());
+			bucketName = "testbucket" + Math.abs(new Random().nextLong());
 			crashAndReboot();
 		}
 
@@ -97,6 +98,8 @@ public final class TestStoreManagers {
 		}
 
 		void deleteBucket(String bucketName) {
+			// Code to truly delete bucket despite inconsistencies from S3.
+			bucketName = S3Store.BUCKET_NAME_PREFIX + bucketName;
 			AmazonS3 s3 = new AmazonS3Client(new AWSCredentials() {
 				public String getAWSAccessKeyId() {
 					return accessKey;
@@ -106,16 +109,18 @@ public final class TestStoreManagers {
 					return secretKey;
 				}
 			});
-			if (s3.doesBucketExist(bucketName)) {
-				ObjectListing ol = s3.listObjects(bucketName);
-				while (true) {
-					for (S3ObjectSummary os : ol.getObjectSummaries()) {
-						s3.deleteObject(bucketName, os.getKey());
+			while (s3.doesBucketExist(bucketName)) {
+				try {
+					ObjectListing ol = s3.listObjects(bucketName);
+					while (true) {
+						for (S3ObjectSummary os : ol.getObjectSummaries()) {
+							s3.deleteObject(bucketName, os.getKey());
+						}
+						if (!ol.isTruncated()) { break; }
+						ol = s3.listNextBatchOfObjects(ol);
 					}
-					if (!ol.isTruncated()) { break; }
-					ol = s3.listNextBatchOfObjects(ol);
-				}
-				s3.deleteBucket(bucketName);
+					s3.deleteBucket(bucketName);
+				} catch (Exception e) {}
 			}
 		}
 

@@ -10,8 +10,8 @@ public interface Document {
 	/** @return The ID of the current revision */
 	public String getRevision() throws FatalStorageException;
 	
-	public String change(String changeID, List<Change> changes) throws FatalStorageException;
-	public String change(List<Change> changes) throws FatalStorageException;
+	public String change(String changeID, List<? extends Change> changes) throws FatalStorageException;
+	public String change(List<? extends Change> changes) throws FatalStorageException;
 
 	public boolean has(String key) throws FatalStorageException;
 	public String get(String key) throws FatalStorageException;

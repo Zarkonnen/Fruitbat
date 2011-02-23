@@ -108,7 +108,7 @@ public class EnhancedStore implements Store {
 		s.close();
 	}
 
-	public void changeMetaData(List<Change> changes) throws FatalStorageException {
+	public void changeMetaData(List<DataChange> changes) throws FatalStorageException {
 		s.changeMetaData(changes);
 	}
 

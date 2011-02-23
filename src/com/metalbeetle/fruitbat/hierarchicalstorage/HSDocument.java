@@ -50,17 +50,17 @@ public class HSDocument implements Comparable<HSDocument>, Document {
 
 	HSIndex myIndex() { return (HSIndex) s.getIndex(); }
 
-	public String change(List<Change> changes) throws FatalStorageException {
+	public String change(List<? extends Change> changes) throws FatalStorageException {
 		return change(
 				Long.toHexString(System.currentTimeMillis()) +
 				Integer.toHexString(changes.hashCode()),
 				changes);
 	}
 
-	public String change(String revision, List<Change> changes) throws FatalStorageException {
+	public String change(String revision, List<? extends Change> changes) throws FatalStorageException {
 		s.updateRevision();
 		// Transduce into changes for data.atr.
-		ArrayList<Change> dataChanges = new ArrayList<Change>(changes.size());
+		ArrayList<DataChange> dataChanges = new ArrayList<DataChange>(changes.size());
 		dataChanges.add(DataChange.put(REVISION_KEY, revision));
 		for (Change c : changes) {
 			if (c instanceof DataChange.Put) {

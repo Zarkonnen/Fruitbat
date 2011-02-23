@@ -127,8 +127,8 @@ public abstract class HSStore implements Store {
 		return metaF.has(METADATA_PREFIX + key);
 	}
 
-	public void changeMetaData(List<Change> changes) throws FatalStorageException {
-		ArrayList<Change> mdc = new ArrayList<Change>();
+	public void changeMetaData(List<DataChange> changes) throws FatalStorageException {
+		ArrayList<DataChange> mdc = new ArrayList<DataChange>();
 		for (Change c : changes) {
 			if (c instanceof DataChange.Put) {
 				DataChange.Put p = (DataChange.Put) c;
@@ -222,7 +222,7 @@ public abstract class HSStore implements Store {
 		metaF.change(revisionChanges());
 	}
 
-	List<Change> revisionChanges() throws FatalStorageException {
+	List<DataChange> revisionChanges() throws FatalStorageException {
 		if (!revisionUpdated) {
 			revisionUpdated = true;
 			BigInteger rev = new BigInteger(metaF.get(REVISION), 16);

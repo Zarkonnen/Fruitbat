@@ -137,7 +137,7 @@ public class MultiplexStore implements Store {
 
 	void syncMetaData(Store from, Store to) throws FatalStorageException {
 		pm.progress("Synchronizing metadata", -1);
-		ArrayList<Change> syncChanges = new ArrayList<Change>();
+		ArrayList<DataChange> syncChanges = new ArrayList<DataChange>();
 		// Changed and added keys.
 		for (String key : from.metaDataKeys()) {
 			if (!to.hasMetaData(key) || !from.getMetaData(key).equals(to.getMetaData(key))) {
@@ -326,7 +326,7 @@ public class MultiplexStore implements Store {
 		return master().getMetaData(key);
 	}
 
-	public void changeMetaData(List<Change> changes) throws FatalStorageException {
+	public void changeMetaData(List<DataChange> changes) throws FatalStorageException {
 		try {
 			master().changeMetaData(changes);
 			for (int i = 1; i < stores.size(); i++) {
@@ -361,7 +361,7 @@ public class MultiplexStore implements Store {
 			masterIDUpdated = true;
 			// Store the revisions of all the slaves in the master's metadata for coherency checking
 			// purposes.
-			ArrayList<Change> mdc = new ArrayList<Change>();
+			ArrayList<DataChange> mdc = new ArrayList<DataChange>();
 			for (int i = 1; i < stores.size(); i++) {
 				if (storeEnabled.get(i)) {
 					Store slave = stores.get(i);

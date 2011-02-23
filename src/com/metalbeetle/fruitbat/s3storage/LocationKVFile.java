@@ -2,11 +2,9 @@ package com.metalbeetle.fruitbat.s3storage;
 
 import com.metalbeetle.fruitbat.atrio.ATRReader;
 import com.metalbeetle.fruitbat.atrio.ATRWriter;
-import com.metalbeetle.fruitbat.atrio.SimpleATRReader;
 import com.metalbeetle.fruitbat.hierarchicalstorage.KVFile;
 import com.metalbeetle.fruitbat.hierarchicalstorage.Location;
 import com.metalbeetle.fruitbat.io.DataSink.CommittableOutputStream;
-import com.metalbeetle.fruitbat.storage.Change;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import java.util.Collection;
@@ -108,9 +106,9 @@ public class LocationKVFile implements KVFile {
 		return kv().keySet();
 	}
 
-	public void change(List<Change> changes) throws FatalStorageException {
+	public void change(List<DataChange> changes) throws FatalStorageException {
 		if (changes.size() > 0) {
-			for (Change c : changes) {
+			for (DataChange c : changes) {
 				if (c instanceof DataChange.Put) {
 					DataChange.Put p = (DataChange.Put) c;
 					kv().put(p.key, p.value);

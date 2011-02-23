@@ -16,13 +16,13 @@ public abstract class DataChange implements Change {
 		Remove(String key) { this.key = key; }
 	}
 
-	public static Change put(String key, String value) {
+	public static DataChange put(String key, String value) {
 		return new Put(key, value);
 	}
-	public static Change move(String srcKey, String dstKey) {
+	public static DataChange move(String srcKey, String dstKey) {
 		return new Move(srcKey, dstKey);
 	}
-	public static Change remove(String key) {
+	public static DataChange remove(String key) {
 		return new Remove(key);
 	}
 }
