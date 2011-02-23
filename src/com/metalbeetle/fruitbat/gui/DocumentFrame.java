@@ -136,8 +136,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 				buttonP.add(addPageB = new JButton("Add Page"));
 					addPageB.setFocusable(false);
 					addPageB.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
-						insertPagesAt(numPages());
-						tagsF.requestFocusInWindow();
+						addPage();
 					}});
 		c.add(split = new JSplitPane(), BorderLayout.CENTER);
 			split.setBorder(new EmptyBorder(0, 5, 5, 5));
@@ -334,6 +333,11 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		} catch (Exception e) {
 			mf.handleException(e);
 		}
+	}
+
+	public void addPage() {
+		insertPagesAt(numPages());
+		tagsF.requestFocusInWindow();
 	}
 
 	void insertPagesAt(int atIndex) {

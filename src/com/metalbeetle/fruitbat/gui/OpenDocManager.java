@@ -19,8 +19,7 @@ class OpenDocManager {
 	DocumentFrame open(Document d) {
 		if (!openFrames.containsKey(d)) {
 			DocumentFrame df = new DocumentFrame(d, mf);
-			df.setLocation(mf.getLocation().x + DOC_WIN_OFFSET,
-					mf.getLocation().y + DOC_WIN_OFFSET);
+			df.setLocationRelativeTo(null);
 			df.setVisible(true);
 			openFrames.put(d, df);
 		}

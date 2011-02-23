@@ -415,6 +415,19 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 		}
 	}
 
+	DocumentFrame newDocumentAndAddPage() {
+		try {
+			Document d = store.create();
+			search(lastSearch, DEFAULT_MAX_DOCS, /*force*/ true);
+			DocumentFrame df = openDocManager.open(d);
+			df.addPage();
+			return df;
+		} catch (FatalStorageException e) {
+			pm.handleException(e, this);
+			return null;
+		}
+	}
+
 	void deleteSelectedDocument() {
 		if (docsList.getSelectedIndex() == -1) { return; }
 		int docIndex = docsList.getSelectedIndex();

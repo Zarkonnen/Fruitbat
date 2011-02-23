@@ -26,6 +26,13 @@ class MainMenuBar extends JMenuBar {
 				}});
 				newDocMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+			BlockableMenuItem newDocAndAddPageMI = new BlockableMenuItem("New Document and Add Page");
+				fileMenu.add(newDocAndAddPageMI);
+				newDocAndAddPageMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
+					mf.newDocumentAndAddPage();
+				}});
+				newDocAndAddPageMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N,
+						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask() | KeyEvent.SHIFT_MASK));
 			deleteMI = new BlockableMenuItem("Delete Document");
 				fileMenu.add(deleteMI);
 				deleteMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
