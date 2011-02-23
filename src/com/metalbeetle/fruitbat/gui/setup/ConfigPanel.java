@@ -18,6 +18,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSeparator;
 import javax.swing.JTextField;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 
 public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener {
@@ -58,6 +60,17 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 		add(nameL, cs);
 
 		nameF = new JTextField(20);
+		nameF.getDocument().addDocumentListener(new DocumentListener() {
+			public void insertUpdate(DocumentEvent de) {
+				nameChanged();
+			}
+			public void removeUpdate(DocumentEvent de) {
+				nameChanged();
+			}
+			public void changedUpdate(DocumentEvent de) {
+				nameChanged();
+			}
+		});
 		cs = new GridBagConstraints(
 					 /*gridx*/ 1,
 					 /*gridy*/ 0,
@@ -221,6 +234,10 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 		errLs.get(index).setText(err == null ? "√" : err);
 		errLs.get(index).setForeground(err == null ? Color.GREEN : Color.RED);
 		revalidate();
+		if (ccl != null) { ccl.configChanged(allValid()); }
+	}
+
+	public void nameChanged() {
 		if (ccl != null) { ccl.configChanged(allValid()); }
 	}
 
