@@ -79,6 +79,7 @@ public class SplashWindow extends JWindow implements ProgressMonitor {
 		if (progressBarLevel++ == 0) {
 			setLocationRelativeTo(null);
 			setVisible(true);
+			setAlwaysOnTop(true);
 			appearance = System.currentTimeMillis();
 		}
 	}

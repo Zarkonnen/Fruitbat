@@ -14,7 +14,7 @@ import static com.metalbeetle.fruitbat.util.Collections.*;
 public final class ByValueComparator implements Comparator<Document> {
 	public final List<String> cmpKeys;
 	static final Pattern DATE_P = Pattern.compile("\\d\\d\\d\\d-\\d\\d-\\d\\d");
-	static final Pattern NUM_P = Pattern.compile("\\d+([.]\\d+)?");
+	static final Pattern NUM_P = Pattern.compile("-?\\d+([.]\\d+)?");
 
 	public ByValueComparator(List<String> cmpKeys) {
 		this.cmpKeys = immute(cmpKeys);
