@@ -353,7 +353,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 			mf.lastDirectory = c.getCurrentDirectory();
 			File[] fs = c.getSelectedFiles();
 			if (fs != null && fs.length > 0) {
-				insertPages(fs, ifa.retainedOriginal.isSelected(), ifa.deleteAfterAdding.isSelected(),
+				insertPages(fs, ifa.retainedOriginal.isSelected(), !ifa.storeCopy.isSelected(),
 						atIndex);
 			}
 		}

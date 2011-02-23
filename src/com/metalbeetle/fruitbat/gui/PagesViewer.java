@@ -84,7 +84,7 @@ class PagesViewer extends JPanel {
 			add(viewerP = new JPanel(new BorderLayout()), BorderLayout.CENTER);
 				viewerP.setBorder(new BevelBorder(BevelBorder.LOWERED));
 				viewerP.add(pv = new PageViewer(this), BorderLayout.CENTER);
-			setPage(1);
+			setPage(0);
 	}
 
 	void gotoInputPage() {
