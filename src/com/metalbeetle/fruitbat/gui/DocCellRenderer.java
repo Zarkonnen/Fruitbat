@@ -2,6 +2,7 @@ package com.metalbeetle.fruitbat.gui;
 
 import com.metalbeetle.fruitbat.Fruitbat;
 import com.metalbeetle.fruitbat.storage.Document;
+import com.metalbeetle.fruitbat.storage.DocumentTools;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import java.awt.Component;
 import javax.swing.DefaultListCellRenderer;
@@ -28,8 +29,8 @@ class DocCellRenderer extends DefaultListCellRenderer {
 			sb.setLength(0);
 			sb.append("<html>");
 			String profile = "ffffff";
-			if (d.has(DocumentFrame.COLOR_PROFILE_1)) {
-				profile = d.get(DocumentFrame.COLOR_PROFILE_1);
+			if (d.has(DocumentTools.COLOR_PROFILE_1)) {
+				profile = d.get(DocumentTools.COLOR_PROFILE_1);
 				if (profile.equals("")) {
 					profile = "ffffff";
 				}

@@ -184,7 +184,11 @@ public final class AppendingKVFile implements KVFile {
 				if (c instanceof DataChange.Move) {
 					DataChange.Move m = (DataChange.Move) c;
 					String value = kv().get(m.srcKey);
-					if (value == null) { return; }
+					if (value == null) {
+						loaded = false;
+						throw new FatalStorageException("Could not move key \"" + m.srcKey + "\" " +
+								"to \"" + m.dstKey + "\": no mapping exists.");
+					}
 					kv().put(m.dstKey, value);
 					k().add(m.dstKey);
 					kv().remove(m.srcKey);
@@ -229,11 +233,13 @@ public final class AppendingKVFile implements KVFile {
 			}
 			w.endRecord();
 		} catch (Exception e) {
+			loaded = false;
 			throw new FatalStorageException("Couldn't append to " + f + ".", e);
 		} finally {
 			try {
 				w.close();
 			} catch (Exception e) {
+				loaded = false;
 				throw new FatalStorageException("Couldn't append to " + f + ".", e);
 			}
 		}

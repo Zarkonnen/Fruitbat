@@ -1,14 +1,13 @@
 package com.metalbeetle.fruitbat.gui;
 
+import com.metalbeetle.fruitbat.BlockingTask;
 import com.metalbeetle.fruitbat.ByValueComparator;
-import com.metalbeetle.fruitbat.Closeable;
 import com.metalbeetle.fruitbat.Fruitbat;
-import com.metalbeetle.fruitbat.gui.blockable.Blockable;
 import com.metalbeetle.fruitbat.storage.DocIndex;
 import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.EnhancedStore;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
-import com.metalbeetle.fruitbat.storage.ProgressMonitor;
+import com.metalbeetle.fruitbat.ProgressMonitor;
 import com.metalbeetle.fruitbat.storage.SearchOutcome;
 import com.metalbeetle.fruitbat.storage.SearchResult;
 import com.metalbeetle.fruitbat.storage.StoreConfig;
@@ -49,15 +48,13 @@ import javax.swing.text.BadLocationException;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 
-public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
+public class MainFrame extends JFrame implements FileDrop.Listener {
 	static final int DEFAULT_MAX_DOCS = 50;
 
 	final Fruitbat app;
 	final EnhancedStore store;
 	final StoreConfig config;
 	boolean showDeletedDocs = false;
-
-	boolean blockUIInput = false;
 
 	ProgressMonitor pm;
 	boolean isEmergencyShutdown = false;
@@ -161,12 +158,8 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		addWindowListener(new WindowAdapter() {
 			@Override
-			public void windowClosing(WindowEvent e) {
-				if (!blockUIInput) { close(); }
-			}
-			@Override
 			public void windowActivated(WindowEvent e) {
-				if (!blockUIInput && tagsChanged) {
+				if (tagsChanged) {
 					((SearchColorizingDocument) searchF.getDocument()).colorize();
 					search(searchF.getText(), DEFAULT_MAX_DOCS, /*force*/true);
 					tagsChanged = false;
@@ -215,58 +208,32 @@ public class MainFrame extends JFrame implements Closeable, FileDrop.Listener {
 		}
 	}
 
-	/** Call when closing application/store. */
-	public void close() {
-		final MainFrame self = this;
-		new Thread("Closing " + store) { @Override public void run() {
-			self.setUIBusy(true);
-			try {
-				openDocManager.close();
-				try {
-					store.close();
-				} catch (Exception e) {
-					pm.handleException(e, self);
-				}
-				app.storeClosed(self);
-			} finally {
-				self.setUIBusy(false);
+	void runClose() {
+		pm.runBlockingTask("Closing " + store, new BlockingTask() {
+			public boolean run() {
+				return close();
 			}
-		}}.start();
+
+			public void onSuccess() {
+				dispose();
+			}
+
+			public void onFailure() {
+				// Nothing
+			}
+		});
 	}
 
-	void setUIBusy(final boolean blockUIInput) {
-		final MainFrame self = this;
+	/** Call when closing application/store. */
+	public boolean close() {
 		try {
-			SwingUtilities.invokeAndWait(new Runnable() { public void run() {
-				if (!self.blockUIInput && blockUIInput) {
-					setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
-					Blockable.setBlocked(getJMenuBar(), true);
-					setGlassPane(new AllInterceptingPane());
-					getGlassPane().setVisible(true);
-				}
-				if (self.blockUIInput && !blockUIInput) {
-					setGlassPane(new JPanel());
-					getGlassPane().setVisible(false);
-					Blockable.setBlocked(getJMenuBar(), false);
-					setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-				}
-				self.blockUIInput = blockUIInput;
-			}});
-			openDocManager.setBlockUIInput(blockUIInput);
+			openDocManager.close();
+			store.close();
+			app.storeClosed(this);
+			return true;
 		} catch (Exception e) {
-			handleException(e);
-		}
-	}
-
-	public boolean getUIBusy() {
-		try {
-			final boolean[] result = new boolean[1];
-			SwingUtilities.invokeAndWait(new Runnable() { public void run() {
-				result[0] = blockUIInput;
-			}});
-			return result[0];
-		} catch (Exception e) {
-			return false; // Allll is doooomed anyway.
+			pm.handleException(e, this);
+			return false;
 		}
 	}
 

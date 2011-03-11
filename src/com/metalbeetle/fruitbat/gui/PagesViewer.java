@@ -6,6 +6,7 @@ import com.metalbeetle.fruitbat.io.DataSrc;
 import com.metalbeetle.fruitbat.io.FileSrc;
 import com.metalbeetle.fruitbat.io.LocalFile;
 import com.metalbeetle.fruitbat.storage.DataChange;
+import com.metalbeetle.fruitbat.storage.DocumentTools;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -148,7 +149,7 @@ class PagesViewer extends JPanel {
 		try {
 			int nextRetN = df.mf.store.getNextRetainedPageNumber();
 			df.mf.store.setNextRetainedPageNumber(nextRetN + 1);
-			df.d.change(l(DataChange.put(df.pagePrefix() + DocumentFrame.HARDCOPY_NUMBER_PREFIX +
+			df.d.change(l(DataChange.put(df.pagePrefix() + DocumentTools.HARDCOPY_NUMBER_PREFIX +
 					pv.pageIndex, string(nextRetN))));
 			updateDisplay();
 			pv.repaint();
@@ -159,7 +160,7 @@ class PagesViewer extends JPanel {
 
 	void removeHardcopyNumber() {
 		try {
-			df.d.change(l(DataChange.remove(df.pagePrefix() + DocumentFrame.HARDCOPY_NUMBER_PREFIX +
+			df.d.change(l(DataChange.remove(df.pagePrefix() + DocumentTools.HARDCOPY_NUMBER_PREFIX +
 					pv.pageIndex)));
 			updateDisplay();
 			pv.repaint();
@@ -223,7 +224,7 @@ class PagesViewer extends JPanel {
 
 	boolean hasHCN() {
 		try {
-			return validPage() && df.d.has(df.pagePrefix() + DocumentFrame.HARDCOPY_NUMBER_PREFIX +
+			return validPage() && df.d.has(df.pagePrefix() + DocumentTools.HARDCOPY_NUMBER_PREFIX +
 					pv.pageIndex);
 		} catch (FatalStorageException e) {
 			df.mf.handleException(e); return false;
@@ -246,7 +247,7 @@ class PagesViewer extends JPanel {
 			try {
 				g.setColor(Color.WHITE);
 				g.fillRect(0, 0, getWidth(), getHeight());
-				DataSrc src = pv.df.d.getPage(DocumentFrame.PREVIEW_PREFIX +
+				DataSrc src = pv.df.d.getPage(DocumentTools.PREVIEW_PREFIX +
 						pv.df.pagePrefix() + pageIndex);
 				if (!src.equals(imgSrc)) {
 					imgSrc = src;
@@ -255,8 +256,8 @@ class PagesViewer extends JPanel {
 				g.drawImage(docImg, 0, 0, getWidth(),
 						docImg.getHeight() * getWidth() / docImg.getWidth(), this);
 				hardcopyNum =
-							pv.df.d.has(DocumentFrame.HARDCOPY_NUMBER_PREFIX + pv.df.pagePrefix() + pageIndex)
-							? pv.df.d.get(DocumentFrame.HARDCOPY_NUMBER_PREFIX + pv.df.pagePrefix() + pageIndex)
+							pv.df.d.has(DocumentTools.HARDCOPY_NUMBER_PREFIX + pv.df.pagePrefix() + pageIndex)
+							? pv.df.d.get(DocumentTools.HARDCOPY_NUMBER_PREFIX + pv.df.pagePrefix() + pageIndex)
 							: null;
 				if (hardcopyNum != null) {
 					hardcopyNum = "Hardcopy #" + hardcopyNum;

@@ -6,7 +6,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.metalbeetle.fruitbat.fulltext.FullTextIndex;
 import com.metalbeetle.fruitbat.hierarchicalstorage.HSStore;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
-import com.metalbeetle.fruitbat.storage.ProgressMonitor;
+import com.metalbeetle.fruitbat.ProgressMonitor;
 
 public class S3Store extends HSStore {
 	public static final String BUCKET_NAME_PREFIX = "fruitbat-bucket-";

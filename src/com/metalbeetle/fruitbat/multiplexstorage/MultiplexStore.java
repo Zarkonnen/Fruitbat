@@ -5,7 +5,7 @@ import com.metalbeetle.fruitbat.fulltext.FullTextIndex;
 import com.metalbeetle.fruitbat.storage.Change;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
-import com.metalbeetle.fruitbat.storage.ProgressMonitor;
+import com.metalbeetle.fruitbat.ProgressMonitor;
 import com.metalbeetle.fruitbat.storage.DocIndex;
 import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.EnhancedStore;
@@ -40,7 +40,7 @@ public class MultiplexStore implements Store {
 	}
 	
 	public MultiplexStore(List<EnhancedStore> stores, ProgressMonitor pm) throws FatalStorageException {
-		pm.showProgressBar("Loading Multiplex Store", "", -1);
+		pm.newProcess("Loading Multiplex Store", "", -1);
 		try {
 			this.stores = immute(stores);
 			this.pm = pm;
@@ -57,30 +57,24 @@ public class MultiplexStore implements Store {
 			}
 		} catch (FatalStorageException e) {
 			throw new FatalStorageException("Cannot communicate with master store.", e);
-		} finally {
-			pm.hideProgressBar();
 		}
 	}
 
 	void synchronize() throws FatalStorageException {
-		pm.showProgressBar("Synchronizing stores", "", stores.size());
-		try {
-			if (master().isEmptyStore() && !stores.get(1).isEmptyStore()) {
-					pm.showWarning("storeRecovery", "Recovering data",
-							"Since the master store is empty, Fruitbat will now restore it from " +
-							"backup.");
-					syncStores(stores.get(1), master(), -1, /*secondStoreIsBackupOfFirst*/ false);
+		pm.newProcess("Synchronizing stores", "", stores.size());
+		if (master().isEmptyStore() && !stores.get(1).isEmptyStore()) {
+				pm.showWarning("storeRecovery", "Recovering data",
+						"Since the master store is empty, Fruitbat will now restore it from " +
+						"backup.");
+				syncStores(stores.get(1), master(), -1, /*secondStoreIsBackupOfFirst*/ false);
+		}
+		for (int i = 1; i < stores.size(); i++) {
+			pm.progress("Backup " + stores.get(i), i);
+			try {
+				syncStores(master(), stores.get(i), i, /*secondStoreIsBackupOfFirst*/ true);
+			} catch (FatalStorageException e) {
+				handleSlaveStorageException(i, e);
 			}
-			for (int i = 1; i < stores.size(); i++) {
-				pm.progress("Backup " + stores.get(i), i);
-				try {
-					syncStores(master(), stores.get(i), i, /*secondStoreIsBackupOfFirst*/ true);
-				} catch (FatalStorageException e) {
-					handleSlaveStorageException(i, e);
-				}
-			}
-		} finally {
-			pm.hideProgressBar();
 		}
 	}
 

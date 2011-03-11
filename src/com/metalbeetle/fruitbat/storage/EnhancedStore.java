@@ -1,5 +1,6 @@
 package com.metalbeetle.fruitbat.storage;
 
+import com.metalbeetle.fruitbat.ProgressMonitor;
 import com.metalbeetle.fruitbat.Fruitbat;
 import com.metalbeetle.fruitbat.fulltext.FullTextIndex;
 import java.util.List;

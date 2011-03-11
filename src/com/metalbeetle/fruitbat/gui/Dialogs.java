@@ -1,6 +1,7 @@
 package com.metalbeetle.fruitbat.gui;
 
-import com.metalbeetle.fruitbat.storage.ProgressMonitor;
+import com.metalbeetle.fruitbat.BlockingTask;
+import com.metalbeetle.fruitbat.ProgressMonitor;
 import java.awt.Component;
 import java.awt.Frame;
 import javax.swing.JDialog;
@@ -11,12 +12,11 @@ import static com.metalbeetle.fruitbat.util.Misc.*;
 public class Dialogs implements ProgressMonitor {
 	final JDialog progressDialog;
 		final SimpleProgressPanel2 progressPanel;
-	volatile int progressBarLevel = 0;
 
 	Component dialogParentC;
 
 	public Dialogs() {
-		progressDialog = new JDialog((Frame) null, "Progress", /*modal*/ false);
+		progressDialog = new JDialog((Frame) null, "Progress", /*modal*/ true);
 			progressDialog.setContentPane(progressPanel = new SimpleProgressPanel2());
 		progressDialog.pack();
 		progressDialog.setSize(400, progressDialog.getHeight());
@@ -25,44 +25,57 @@ public class Dialogs implements ProgressMonitor {
 		dialogParentC = progressDialog;
 	}
 
-	public void showProgressBar(final String title, final String detail, final int numSteps) {
-		SwingUtilities.invokeLater(new Runnable() { public void run() { synchronized (progressDialog) {
-			progressBarLevel++;
+	public void runBlockingTask(final String taskName, final BlockingTask bt) {
+		newProcess(taskName, "", -1);
+		progressDialog.setLocationRelativeTo(null);
+		SwingUtilities.invokeLater(new Runnable() { public void run() {
+			new Thread("Worker Thread: " + taskName) {
+				@Override
+				public void run() {
+					if (bt.run()) {
+						progressDialog.setVisible(false);
+						SwingUtilities.invokeLater(new Runnable() { public void run() {
+							bt.onSuccess();
+						}});
+					} else {
+						progressDialog.setVisible(false);
+						SwingUtilities.invokeLater(new Runnable() { public void run() {
+							bt.onFailure();
+						}});
+					}
+
+				}
+			}.start();
+		}});
+		// NB This causes the event dispatch loop to be run inside this call, which is why we need
+		// to put everything after setVisible into an invokeLater.
+		progressDialog.setVisible(true);
+	}
+
+	public void newProcess(final String title, final String detail, final int numSteps) {
+		SwingUtilities.invokeLater(new Runnable() { public void run() {
 			progressDialog.setTitle(title);
 			progressPanel.getInfoLabel().setText(detail);
 			if (numSteps > 0) { progressPanel.getProgressBar().setMaximum(numSteps); }
 			progressPanel.getProgressBar().setIndeterminate(numSteps <= 0);
 			progressPanel.getProgressBar().setValue(0);
-			if (progressBarLevel == 1) {
-				progressDialog.setLocationRelativeTo(null);
-				progressDialog.setVisible(true);
-			}
-		}}});
+		}});
 	}
 
 	public void progress(final String detail, final int step) {
-		SwingUtilities.invokeLater(new Runnable() { public void run() { synchronized (progressDialog) {
+		SwingUtilities.invokeLater(new Runnable() { public void run() {
 			progressPanel.getInfoLabel().setText(detail);
 			progressPanel.getProgressBar().setValue(step);
 			progressPanel.getProgressBar().setIndeterminate(step < 0);
-		}}});
-	}
-
-	public void hideProgressBar() {
-		try { Thread.sleep(100); } catch (InterruptedException e) { Thread.currentThread().interrupt();/*gaaaah*/ }
-		SwingUtilities.invokeLater(new Runnable() { public void run() { synchronized (progressDialog) {
-			if (--progressBarLevel == 0) {
-				progressDialog.setVisible(false);
-			}
-		}}});
+		}});
 	}
 
 	public void changeNumSteps(final int numSteps) {
-		SwingUtilities.invokeLater(new Runnable() { public void run() { synchronized (progressDialog) {
+		SwingUtilities.invokeLater(new Runnable() { public void run() {
 			if (numSteps > 0) { progressPanel.getProgressBar().setMaximum(numSteps); }
 			progressPanel.getProgressBar().setIndeterminate(numSteps <= 0);
 			progressPanel.getProgressBar().setValue(0);
-		}}});
+		}});
 	}
 
 	Component dialogParent() {

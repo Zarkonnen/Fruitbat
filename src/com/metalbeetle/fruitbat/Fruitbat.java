@@ -8,7 +8,6 @@ import com.metalbeetle.fruitbat.gui.ShortcutOverlay;
 import com.metalbeetle.fruitbat.gui.SplashWindow;
 import com.metalbeetle.fruitbat.gui.setup.ConfigsListFrame;
 import com.metalbeetle.fruitbat.prefs.SavedStoreConfigs;
-import com.metalbeetle.fruitbat.storage.ProgressMonitor;
 import com.metalbeetle.fruitbat.storage.StoreConfig;
 import com.metalbeetle.fruitbat.util.Misc;
 import com.metalbeetle.fruitbat.util.Pair;
@@ -31,21 +30,19 @@ public class Fruitbat {
 	ProgressMonitor pm;
 	final StringPool stringPool = new StringPool(POOL_CUTOFF);
 	final HashMap<StoreConfig, MainFrame> configToMainframe = new HashMap<StoreConfig, MainFrame>();
-	final ConfigsListFrame configsList;
+	ConfigsListFrame configsList;
 	public final ShortcutOverlay shortcutOverlay = new ShortcutOverlay();
 	volatile boolean shuttingDown = false;
 
 	public MainFrame openStore(StoreConfig sc) {
 		if (!configToMainframe.containsKey(sc)) {
-			pm.showProgressBar("Loading store", "", -1);
+			pm.newProcess("Loading store", "", -1);
 			try {
 				MainFrame mf = new MainFrame(this, sc.init(pm), sc);
 				configToMainframe.put(sc, mf);
 			} catch (Exception e) {
 				pm.handleException(e, null);
 				return null;
-			} finally {
-				pm.hideProgressBar();
 			}
 		}
 		if (!configToMainframe.get(sc).isVisible()) {
@@ -80,27 +77,38 @@ public class Fruitbat {
 				System.exit(1);
 			}
 		}
-		pm.showProgressBar("Welcome to Fruitbat", "", -1);
-		configsList = new ConfigsListFrame(this, pm);
-		configsList.setLocationRelativeTo(null);
-		configsList.setVisible(true);
-		try {
-			for (Pair<StoreConfig, Preferences> openStores : SavedStoreConfigs.getOpenStores()) {
-				MainFrame mf = openStore(openStores.a);
-				if (mf != null) { mf.readPrefs(openStores.b); }
+		final Fruitbat app = this;
+		pm.runBlockingTask("Launching Fruitbat", new BlockingTask() {
+			public boolean run() {
+				pm.newProcess("Welcome to Fruitbat", "", -1);
+				Dialogs ds = new Dialogs();
+				configsList = new ConfigsListFrame(app, ds);
+				configsList.setLocationRelativeTo(null);
+				configsList.setVisible(true);
+				try {
+					for (Pair<StoreConfig, Preferences> openStores : SavedStoreConfigs.getOpenStores()) {
+						MainFrame mf = openStore(openStores.a);
+						if (mf != null) { mf.readPrefs(openStores.b); }
+					}
+				} catch (Exception e) {
+					pm.handleException(new Exception("Couldn't load open stores.", e), null);
+					return false;
+				}
+				pm = ds;
+				for (MainFrame mf : configToMainframe.values()) {
+					mf.setProgressMonitor(pm);
+				}
+				return true;
 			}
-		} catch (Exception e) {
-			pm.handleException(new Exception("Couldn't load open stores.", e), null);
-		}
-		pm.hideProgressBar();
-		pm = new Dialogs();
-		for (MainFrame mf : configToMainframe.values()) {
-			mf.setProgressMonitor(pm);
-		}
+
+			public void onSuccess() {}
+			public void onFailure() {}
+		});
 	}
 
+	/** Method called by OS X to close the program. */
 	public boolean closeIfAble() {
-		close();
+		runClose();
 		return true;
 	}
 
@@ -110,48 +118,41 @@ public class Fruitbat {
 		aw.setVisible(true);
 	}
 
-	public void close() {
-		new Thread("Closing Fruitbat") { @Override public void run() {
-			if (shuttingDown) { return; }
-			shuttingDown = true;
-			try {
-				shortcutOverlay.shutdown();
-			} catch (Exception e) {
-				// Meh.
-			}
-			try {
-				SavedStoreConfigs.setOpenStores(configToMainframe);
-			} catch (Exception e) {
-				// Meh.
-			}
-			pm.showProgressBar("Closing stores", "", -1);
-			try {
+	public void runClose() {
+		pm.runBlockingTask("Closing Fruitbat", new BlockingTask() {
+			public boolean run() {
+				try {
+					shortcutOverlay.shutdown();
+				} catch (Exception e) {
+					// Meh.
+				}
+				try {
+					SavedStoreConfigs.setOpenStores(configToMainframe);
+				} catch (Exception e) {
+					// Meh.
+				}
+				pm.newProcess("Closing stores", "", -1);
+				boolean closeSuccess = true;
 				for (Iterator<MainFrame> it = configToMainframe.values().iterator(); it.hasNext();) {
 					MainFrame mf = it.next();
-					if (!mf.getUIBusy()) {
-						it.remove();
-						try {
-							mf.close();
-						} catch (Exception e) {
-							pm.handleException(e, null);
-						}
-					}
-				}
-				for (MainFrame mf : configToMainframe.values()) {
-					while (mf.getUIBusy()) {
-						pm.progress("Waiting for " + mf.getStore(), -1);
-						try { Thread.sleep(200); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-					}
+					it.remove();
 					try {
 						mf.close();
 					} catch (Exception e) {
+						closeSuccess = false;
 						pm.handleException(e, null);
 					}
 				}
-			} finally {
-				pm.hideProgressBar();
+				return closeSuccess;
+			}
+
+			public void onSuccess() {
 				System.exit(0);
 			}
-		}}.start();
+
+			public void onFailure() {
+				System.exit(1);
+			}
+		});
 	}
 }

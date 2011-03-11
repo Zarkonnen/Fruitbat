@@ -119,6 +119,10 @@ public class LocationKVFile implements KVFile {
 					if (kv().containsKey(m.srcKey)) {
 						kv().put(m.dstKey, kv().get(m.srcKey));
 						kv().remove(m.srcKey);
+					} else {
+						loaded = false;
+						throw new FatalStorageException("Could not move key \"" + m.srcKey + "\" " +
+								"to \"" + m.dstKey + "\": no mapping exists.");
 					}
 					continue;
 				}

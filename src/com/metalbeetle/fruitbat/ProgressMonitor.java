@@ -1,11 +1,12 @@
-package com.metalbeetle.fruitbat.storage;
+package com.metalbeetle.fruitbat;
 
 import com.metalbeetle.fruitbat.gui.MainFrame;
 
 public interface ProgressMonitor {
-	void hideProgressBar();
+	public void runBlockingTask(String taskName, BlockingTask bt);
+
 	void progress(String detail, int step);
-	void showProgressBar(String title, String detail, int numSteps);
+	void newProcess(String title, String detail, int numSteps);
 	void changeNumSteps(int numSteps);
 	void showWarning(String type, String title, String message);
 	void handleException(Exception e, MainFrame affectedStore);

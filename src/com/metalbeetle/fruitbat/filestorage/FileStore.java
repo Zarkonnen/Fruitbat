@@ -4,7 +4,7 @@ import com.metalbeetle.fruitbat.fulltext.FullTextIndex;
 import com.metalbeetle.fruitbat.fulltext.LuceneIndex;
 import com.metalbeetle.fruitbat.hierarchicalstorage.HSStore;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
-import com.metalbeetle.fruitbat.storage.ProgressMonitor;
+import com.metalbeetle.fruitbat.ProgressMonitor;
 import java.io.File;
 
 public class FileStore extends HSStore {

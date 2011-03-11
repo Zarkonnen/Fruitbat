@@ -1,5 +1,6 @@
 package com.metalbeetle.fruitbat.storage;
 
+import com.metalbeetle.fruitbat.ProgressMonitor;
 import java.util.List;
 
 public interface StorageSystem {

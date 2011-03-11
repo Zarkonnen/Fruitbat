@@ -1,5 +1,6 @@
 package com.metalbeetle.fruitbat.storage;
 
+import com.metalbeetle.fruitbat.ProgressMonitor;
 import com.metalbeetle.fruitbat.atrio.ATRReader;
 import com.metalbeetle.fruitbat.atrio.ATRWriter;
 import java.io.ByteArrayInputStream;

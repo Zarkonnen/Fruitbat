@@ -1,18 +1,13 @@
 package com.metalbeetle.fruitbat.gui;
 
-import com.metalbeetle.fruitbat.gui.blockable.Blockable;
+import com.metalbeetle.fruitbat.BlockingTask;
 import javax.swing.text.BadLocationException;
 import com.metalbeetle.fruitbat.Fruitbat;
-import com.metalbeetle.fruitbat.fulltext.FullTextExtractor;
-import com.metalbeetle.fruitbat.io.DataSrc;
-import com.metalbeetle.fruitbat.io.FileSrc;
 import com.metalbeetle.fruitbat.storage.Change;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.Document;
+import com.metalbeetle.fruitbat.storage.DocumentTools;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
-import com.metalbeetle.fruitbat.storage.PageChange;
-import com.metalbeetle.fruitbat.util.ColorProfiler;
-import com.metalbeetle.fruitbat.util.PreviewImager;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.FlowLayout;
@@ -24,7 +19,6 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,7 +26,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
-import javax.imageio.ImageIO;
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -53,14 +46,6 @@ import static com.metalbeetle.fruitbat.util.Misc.*;
 class DocumentFrame extends JFrame implements FileDrop.Listener {
 	static final List<String> ACCEPTED_EXTENSIONS = l(".jpg", ".tiff", ".tif", ".bmp", ".png",
 			".pdf");
-	static final String PREVIEW_PREFIX = "p";
-	static final String COLOR_PROFILE_1 = Fruitbat.HIDDEN_KEY_PREFIX + "cprof1";
-	static final String COLOR_PROFILE_2 = Fruitbat.HIDDEN_KEY_PREFIX + "cprof2";
-	static final String HARDCOPY_NUMBER_PREFIX = Fruitbat.HIDDEN_KEY_PREFIX + "ret";
-	static final String FULLTEXT_PREFIX = Fruitbat.HIDDEN_KEY_PREFIX + "ft";
-	static final String TMP_MOVE_PAGE_INDEX = "tmp";
-	static final String DELETED_PREFIX = "d";
-	static final String NOT_DELETED_PREFIX = "";
 
 	final Document d;
 	final MainFrame mf;
@@ -69,7 +54,6 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	boolean tagsChanged = false;
 	final Caret tagsFCaret;
 	boolean deletedPageMode = false;
-	boolean blockUIInput = false;
 
 	final Box searchBoxH;
 		final Box searchBoxV;
@@ -156,11 +140,11 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 
 		addWindowListener(new WindowAdapter() {
 			@Override
-			public void windowClosing(WindowEvent e) { if (!blockUIInput) { close(); } }
+			public void windowClosing(WindowEvent e) { close(); }
 			@Override
-			public void windowIconified(WindowEvent e) { if (!blockUIInput) { saveTags(); } }
+			public void windowIconified(WindowEvent e) { saveTags(); }
 			@Override
-			public void windowDeactivated(WindowEvent e) { if (!blockUIInput) { saveTags(); } }
+			public void windowDeactivated(WindowEvent e) { saveTags(); }
 		});
 
 		new FileDrop(viewer, this);
@@ -310,26 +294,73 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		}
 	}
 
-	void setBlockUIInput(final boolean blockUIInput) {
-		final DocumentFrame self = this;
+	void insertPages(final File[] pageFiles, final boolean retainOriginals,
+			final boolean deleteAfterAdding, final int atIndex)
+	{
+		final int numPages = pageFiles.length;
+		saveTags();
+		mf.pm.runBlockingTask("Inserting pages", new BlockingTask() {
+			public boolean run() {
+				return DocumentTools.insertPages(d, mf.store, mf.pm, pageFiles, retainOriginals,
+						deleteAfterAdding, atIndex, numPages);
+			}
+
+			public void onSuccess() {
+				viewer.setPage(Math.min(atIndex, numPages() - 1));
+				suggestedTagsList.update();
+			}
+
+			public void onFailure() {
+				repaint();
+				suggestedTagsList.update();
+			}
+		});
+	}
+
+	public void moveCurrentPage() {
+		final int currentIndex = viewer.getPage();
+		final int numPages = numPages();
+		int newIndex = currentIndex;
+		String newPageNS = mf.pm.askQuestion("New location", "Where do you want to move this page?",
+				string(newIndex + 1));
 		try {
-			SwingUtilities.invokeAndWait(new Runnable() {
-				public void run() {
-					if (!self.blockUIInput && blockUIInput) {
-						setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
-						Blockable.setBlocked(getJMenuBar(), true);
-						setGlassPane(new AllInterceptingPane());
-						getGlassPane().setVisible(true);
-					}
-					if (self.blockUIInput && !blockUIInput) {
-						setGlassPane(new JPanel());
-						getGlassPane().setVisible(false);
-						Blockable.setBlocked(getJMenuBar(), false);
-						setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-					}
-					self.blockUIInput = blockUIInput;
-				}
-			});
+			newIndex = integer(newPageNS) - 1;
+		} catch (Exception e) { /* meh */ }
+		if (newIndex < 0) { newIndex = 0; }
+		if (newIndex > numPages - 1) { newIndex = numPages - 1; }
+		if (newIndex != currentIndex) {
+			try {
+				DocumentTools.movePage(d, mf.store, mf.pm, currentIndex, newIndex);
+				viewer.setPage(newIndex);
+			} catch (FatalStorageException e) {
+				mf.handleException(e);
+			}
+		}
+	}
+
+	public void deleteCurrentPage() {
+		try {
+			if (!deletedPageMode && viewer.validPage()) {
+				final int pageNum = viewer.getPage();
+				DocumentTools.deletePage(d, mf.store, mf.pm, pageNum);
+				int gotoPageNum = pageNum - 1;
+				if (gotoPageNum == -1 && numPages() > 1) { gotoPageNum = 0; }
+				viewer.setPage(gotoPageNum);
+			}
+		} catch (Exception e) {
+			mf.handleException(e);
+		}
+	}
+
+	public void undeleteCurrentPage() {
+		try {
+			if (deletedPageMode && viewer.validPage()) {
+				final int pageNum = viewer.getPage();
+				DocumentTools.undeletePage(d, mf.store, mf.pm, pageNum);
+				int gotoPageNum = pageNum - 1;
+				if (gotoPageNum == -1 && numPages() > 1) { gotoPageNum = 0; }
+				viewer.setPage(gotoPageNum);
+			}
 		} catch (Exception e) {
 			mf.handleException(e);
 		}
@@ -359,223 +390,6 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		}
 	}
 
-	void insertPages(final File[] pageFiles, final boolean retainOriginals,
-			final boolean deleteAfterAdding, final int atIndex)
-	{
-		final int numPages = pageFiles.length;
-		saveTags();
-		new Thread("Adding page(s)") { @Override public void run() {
-			mf.setUIBusy(true);
-			mf.pm.showProgressBar("Adding pages", "", pageFiles.length * 2);
-			ArrayList<DataSrc> fulltexts = new ArrayList<DataSrc>();
-			try {
-				List<Change> cs = new ArrayList<Change>();
-				// Shift later pages out of the way.
-				mf.pm.progress("Renumbering pages...", -1);
-				int shiftIndex = numPages() - 1;
-				while (shiftIndex >= atIndex) {
-					cs.add(PageChange.move(string(shiftIndex), string(shiftIndex + numPages)));
-					if (d.hasPage(PREVIEW_PREFIX + string(shiftIndex))) {
-						cs.add(PageChange.move(PREVIEW_PREFIX + string(shiftIndex),
-								PREVIEW_PREFIX + string(shiftIndex + numPages)));
-					}
-					if (d.hasPage(FULLTEXT_PREFIX + string(shiftIndex))) {
-						cs.add(PageChange.move(FULLTEXT_PREFIX + string(shiftIndex),
-								FULLTEXT_PREFIX + string(shiftIndex + numPages)));
-					}
-					if (d.has(HARDCOPY_NUMBER_PREFIX + string(shiftIndex))) {
-						cs.add(DataChange.move(HARDCOPY_NUMBER_PREFIX + string(shiftIndex),
-								HARDCOPY_NUMBER_PREFIX + string(shiftIndex + numPages)));
-					}
-					shiftIndex--;
-				}
-				int loop = 0;
-				for (File f : pageFiles) {
-					try {
-						// Process page
-						mf.pm.progress("Creating preview image of " + f.getName(), loop * 2);
-						BufferedImage preview = PreviewImager.getPreviewImage(f);
-						File tmp = File.createTempFile("preview", f.getName() + ".jpg");
-						ImageIO.write(preview, "jpg", tmp);
-						final int myIndex = atIndex + loop;
-						cs.add(PageChange.put(string(myIndex), new FileSrc(f)));
-						cs.add(PageChange.put(PREVIEW_PREFIX + string(myIndex), new FileSrc(tmp)));
-						mf.pm.progress("Extracting full text of " + f.getName(), loop * 2 + 1);
-						DataSrc ft = FullTextExtractor.getFullText(f);
-						cs.add(PageChange.put(FULLTEXT_PREFIX + string(myIndex), ft));
-						fulltexts.add(ft);
-						if (myIndex == 0) {
-							String cprof1 = ColorProfiler.profile1(preview);
-							String cprof2 = ColorProfiler.profile2(preview);
-							cs.add(DataChange.put(COLOR_PROFILE_1, cprof1));
-							cs.add(DataChange.put(COLOR_PROFILE_2, cprof2));
-							mf.tagsChanged = true;
-						}
-						if (retainOriginals) {
-							int nextRetN = mf.store.getNextRetainedPageNumber();
-							mf.store.setNextRetainedPageNumber(nextRetN + 1);
-							cs.add(DataChange.put(HARDCOPY_NUMBER_PREFIX + myIndex,
-									string(nextRetN)));
-						}
-					} catch (Exception e) {
-						mf.pm.handleException(new Exception("Could not process " + f.getName() +
-								" as a page.", e), null);
-						return;
-					}
-					loop++;
-				}
-				mf.pm.progress("Committing data to store", -1);
-				d.change(cs);
-				if (mf.store.getFullTextIndex() != null) {
-					mf.pm.progress("Adding pages to full text index", -1);
-					for (DataSrc ft : fulltexts) { mf.store.getFullTextIndex().pageAdded(ft, d); }
-				}
-				if (deleteAfterAdding) {
-					mf.pm.progress("Deleting originals", -1);
-					for (File f : pageFiles) {
-						try { f.delete(); } catch (Exception e) { /* so what */ }
-					}
-				}
-				viewer.setPage(Math.min(atIndex, numPages() - 1));
-				suggestedTagsList.update();
-			} catch (Exception e) {
-				mf.pm.handleException(new Exception("Could not add page(s).", e), null);
-			} finally {
-				mf.pm.hideProgressBar();
-				mf.setUIBusy(false);
-			}
-		}}.start();
-	}
-
-	void moveCurrentPage() {
-		final int currentIndex = viewer.getPage();
-		final int numPages = numPages();
-		int newIndex = currentIndex;
-		String newPageNS = mf.pm.askQuestion("New location", "Where do you want to move this page?",
-				string(newIndex + 1));
-		try {
-			newIndex = integer(newPageNS) - 1;
-		} catch (Exception e) { /* meh */ }
-		if (newIndex < 0) { newIndex = 0; }
-		if (newIndex > numPages - 1) { newIndex = numPages - 1; }
-		if (newIndex != currentIndex) {
-			try {
-				ArrayList<Change> cs = new ArrayList<Change>();
-				cs.addAll(pageMoveChanges(
-						string(currentIndex),
-						string(currentIndex),
-						TMP_MOVE_PAGE_INDEX));
-				if (newIndex < currentIndex) {
-					for (int i = currentIndex - 1; i >= newIndex; i--) {
-						cs.addAll(pageMoveChanges(
-							/* originalFrom */ string(i),
-							/* from */         string(i),
-							/* to */           string(i + 1)
-						));
-					}
-				} else {
-					// newIndex > currentIndex
-					// Shift other pages to the left to make space for the page we move.
-					for (int i = currentIndex + 1; i <= newIndex; i++) {
-						cs.addAll(pageMoveChanges(
-							/* originalFrom */ string(i),
-							/* from */         string(i),
-							/* to */           string(i - 1)
-						));
-					}
-				}
-				cs.addAll(pageMoveChanges(
-						string(currentIndex),
-						TMP_MOVE_PAGE_INDEX,
-						string(newIndex)));
-				d.change(cs);
-				viewer.setPage(newIndex);
-			} catch (FatalStorageException e) {
-				mf.handleException(e);
-			}
-		}
-	}
-
-	List<Change> pageMoveChanges(String originalFrom, String from, String to) throws FatalStorageException {
-		ArrayList<Change> cs = new ArrayList<Change>();
-		cs.add(PageChange.move(from, to));
-		if (d.hasPage(PREVIEW_PREFIX + originalFrom)) {
-			cs.add(PageChange.move(PREVIEW_PREFIX + from,
-					PREVIEW_PREFIX + to));
-		}
-		if (d.hasPage(FULLTEXT_PREFIX + originalFrom)) {
-			cs.add(PageChange.move(FULLTEXT_PREFIX + from,
-					FULLTEXT_PREFIX + to));
-		}
-		if (d.has(HARDCOPY_NUMBER_PREFIX + originalFrom)) {
-			cs.add(DataChange.move(HARDCOPY_NUMBER_PREFIX + from,
-					HARDCOPY_NUMBER_PREFIX + to));
-		}
-		return cs;
-	}
-
-	void deleteCurrentPage() {
-		try {
-			if (!deletedPageMode && viewer.validPage()) {
-				final int pageNum = viewer.getPage();
-				final int delPageNum = numPagesFor(DELETED_PREFIX);
-				final int numPages = numPagesFor(NOT_DELETED_PREFIX);
-				ArrayList<Change> cs = new ArrayList<Change>();
-
-				// Move the page to be deleted.
-				cs.addAll(pageMoveChanges(
-						/* from */        string(pageNum),
-						/* originalFrom */string(pageNum),
-						/* to */          DELETED_PREFIX + delPageNum));
-
-				// Shift any pages beyond this one to cover it up.
-				for (int i = pageNum + 1; i < numPages; i++) {
-					cs.addAll(pageMoveChanges(
-						/* from */        string(i),
-						/* originalFrom */string(i),
-						/* to */          string(i - 1)));
-				}
-				d.change(cs);
-				int gotoPageNum = pageNum - 1;
-				if (gotoPageNum == -1 && numPages > 1) { gotoPageNum = 0; }
-				viewer.setPage(gotoPageNum);
-			}
-		} catch (Exception e) {
-			mf.handleException(new FatalStorageException("Could not delete page.", e));
-		}
-	}
-
-	void undeleteCurrentPage() {
-		try {
-			if (deletedPageMode && viewer.validPage()) {
-				final int pageNum = viewer.getPage();
-				final int unDelPageNum = numPagesFor(NOT_DELETED_PREFIX);
-				final int numDelPages = numPagesFor(DELETED_PREFIX);
-				ArrayList<Change> cs = new ArrayList<Change>();
-
-				// Move the page to be undeleted.
-				cs.addAll(pageMoveChanges(
-						/* from */        DELETED_PREFIX + pageNum,
-						/* originalFrom */DELETED_PREFIX + pageNum,
-						/* to */          string(unDelPageNum)));
-
-				// Shift any pages beyond this one to cover it up.
-				for (int i = pageNum + 1; i < numDelPages; i++) {
-					cs.addAll(pageMoveChanges(
-						/* from */        DELETED_PREFIX + i,
-						/* originalFrom */DELETED_PREFIX + i,
-						/* to */          DELETED_PREFIX + (i - 1)));
-				}
-				d.change(cs);
-				int gotoPageNum = pageNum - 1;
-				if (gotoPageNum == -1 && numDelPages > 1) { gotoPageNum = 0; }
-				viewer.setPage(gotoPageNum);
-			}
-		} catch (Exception e) {
-			mf.handleException(new FatalStorageException("Could not undelete page.", e));
-		}
-	}
-
 	/**
 	 * Called when one or several files are dropped into the viewer. Recursively explores
 	 * directories.
@@ -589,22 +403,14 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		}
 	}
 
-	String pagePrefix() { return deletedPageMode ? DELETED_PREFIX : NOT_DELETED_PREFIX; }
+	String pagePrefix() { return deletedPageMode ? DocumentTools.DELETED_PREFIX : DocumentTools.NOT_DELETED_PREFIX; }
 
-	int numPages() { return numPagesFor(pagePrefix()); }
-
-	int numPagesFor(String prefix) {
+	int numPages() {
 		try {
-			int maxIndex = -1;
-			for (String pKey : d.pageKeys()) {
-				if (!pKey.startsWith(prefix)) { continue; }
-				try {
-					maxIndex = Math.max(maxIndex, integer(pKey.substring(prefix.length())));
-				} catch (Exception e) {}
-			}
-			return maxIndex + 1;
+			return DocumentTools.numPagesFor(d, pagePrefix());
 		} catch (FatalStorageException e) {
-			mf.handleException(e); return -1;
+			mf.handleException(e);
+			return -1;
 		}
 	}
 

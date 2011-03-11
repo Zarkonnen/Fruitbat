@@ -2,7 +2,7 @@ package com.metalbeetle.fruitbat.filestorage;
 
 import com.metalbeetle.fruitbat.storage.ConfigField;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
-import com.metalbeetle.fruitbat.storage.ProgressMonitor;
+import com.metalbeetle.fruitbat.ProgressMonitor;
 import com.metalbeetle.fruitbat.storage.StoreConfig;
 import com.metalbeetle.fruitbat.storage.StorageSystem;
 import com.metalbeetle.fruitbat.storage.Store;

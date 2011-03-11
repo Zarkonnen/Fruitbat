@@ -2,7 +2,7 @@ package com.metalbeetle.fruitbat.hierarchicalstorage;
 
 import com.metalbeetle.fruitbat.Fruitbat;
 import com.metalbeetle.fruitbat.storage.Change;
-import com.metalbeetle.fruitbat.storage.ProgressMonitor;
+import com.metalbeetle.fruitbat.ProgressMonitor;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.DocIndex;
 import com.metalbeetle.fruitbat.storage.Document;
@@ -43,7 +43,7 @@ public abstract class HSStore implements Store {
 	protected boolean revisionUpdated = false;
 
 	public HSStore(Location location, ProgressMonitor pm) throws FatalStorageException {
-		pm.showProgressBar("Loading documents", "", -1);
+		pm.newProcess("Loading documents", "", -1);
 		try {
 			this.location = location;
 			docsL = location.child("docs");
@@ -80,8 +80,6 @@ public abstract class HSStore implements Store {
 		} catch (Exception e) {
 			throw new FatalStorageException("Could not start up document store at " + location +
 					".", e);
-		} finally {
-			pm.hideProgressBar();
 		}
 	}
 

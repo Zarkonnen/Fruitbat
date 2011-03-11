@@ -1,39 +1,39 @@
 package com.metalbeetle.fruitbat.gui;
 
-import com.metalbeetle.fruitbat.gui.blockable.BlockableCheckBoxMenuItem;
-import com.metalbeetle.fruitbat.gui.blockable.BlockableMenuItem;
 import com.metalbeetle.fruitbat.TestDataGenerator;
 import com.metalbeetle.fruitbat.util.Misc;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.KeyStroke;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 
 class MainMenuBar extends JMenuBar {
-	final BlockableMenuItem undeleteMI;
-	final BlockableMenuItem deleteMI;
+	final JMenuItem undeleteMI;
+	final JMenuItem deleteMI;
 	public MainMenuBar(final MainFrame mf) {
 		JMenu fileMenu = new JMenu("File");
 			add(fileMenu);
-			BlockableMenuItem newDocMI = new BlockableMenuItem("New Document");
+			JMenuItem newDocMI = new JMenuItem("New Document");
 				fileMenu.add(newDocMI);
 				newDocMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
 					mf.newDocument();
 				}});
 				newDocMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
-			BlockableMenuItem newDocAndAddPageMI = new BlockableMenuItem("New Document and Add Page");
+			JMenuItem newDocAndAddPageMI = new JMenuItem("New Document and Add Page");
 				fileMenu.add(newDocAndAddPageMI);
 				newDocAndAddPageMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
 					mf.newDocumentAndAddPage();
 				}});
 				newDocAndAddPageMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask() | KeyEvent.SHIFT_MASK));
-			deleteMI = new BlockableMenuItem("Delete Document");
+			deleteMI = new JMenuItem("Delete Document");
 				fileMenu.add(deleteMI);
 				deleteMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
 					mf.deleteSelectedDocument();
@@ -41,7 +41,7 @@ class MainMenuBar extends JMenuBar {
 				deleteMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 				deleteMI.setEnabled(false);
-			undeleteMI = new BlockableMenuItem("Undelete Document");
+			undeleteMI = new JMenuItem("Undelete Document");
 				fileMenu.add(undeleteMI);
 				undeleteMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
 					mf.undeleteSelectedDocument();
@@ -51,7 +51,7 @@ class MainMenuBar extends JMenuBar {
 				undeleteMI.setEnabled(false);
 				undeleteMI.setVisible(false);
 			fileMenu.addSeparator();
-			final BlockableCheckBoxMenuItem graveyardMI = new BlockableCheckBoxMenuItem("Show Deleted Documents");
+			final JCheckBoxMenuItem graveyardMI = new JCheckBoxMenuItem("Show Deleted Documents");
 				fileMenu.add(graveyardMI);
 				graveyardMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
 					mf.setShowDeletedDocs(!mf.showDeletedDocs);
@@ -61,16 +61,15 @@ class MainMenuBar extends JMenuBar {
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask() | KeyEvent.SHIFT_MASK));
 				graveyardMI.setSelected(mf.showDeletedDocs);
 			fileMenu.addSeparator();
-			BlockableMenuItem closeMI = new BlockableMenuItem("Close Store");
+			JMenuItem closeMI = new JMenuItem("Close Store");
 				fileMenu.add(closeMI);
 				closeMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
-					mf.close();
-					mf.dispose();
+					mf.runClose();
 				}});
 				closeMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 			if (!Misc.isMac()) {
-				BlockableMenuItem quitMI = new BlockableMenuItem("Quit");
+				JMenuItem quitMI = new JMenuItem("Quit");
 					fileMenu.add(quitMI);
 					quitMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
 						System.exit(0);
@@ -83,7 +82,7 @@ class MainMenuBar extends JMenuBar {
 		// Create temp test data.
 		JMenu testMenu = new JMenu("Test");
 			add(testMenu);
-			BlockableMenuItem createTestDataMI = new BlockableMenuItem("Create Test Data");
+			JMenuItem createTestDataMI = new JMenuItem("Create Test Data");
 				testMenu.add(createTestDataMI);
 				createTestDataMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
 					try {

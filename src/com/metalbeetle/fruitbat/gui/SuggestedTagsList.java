@@ -2,6 +2,7 @@ package com.metalbeetle.fruitbat.gui;
 
 import com.metalbeetle.fruitbat.Fruitbat;
 import com.metalbeetle.fruitbat.storage.DocIndex;
+import com.metalbeetle.fruitbat.storage.DocumentTools;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import java.awt.Component;
 import java.util.ArrayList;
@@ -102,12 +103,12 @@ class SuggestedTagsList extends TagsList {
 				DocIndex di = l.df.mf.store.getIndex();
 
 				// By profile
-				String newCProf1 = l.df.d.has(DocumentFrame.COLOR_PROFILE_1)
-						? l.df.d.get(DocumentFrame.COLOR_PROFILE_1)
+				String newCProf1 = l.df.d.has(DocumentTools.COLOR_PROFILE_1)
+						? l.df.d.get(DocumentTools.COLOR_PROFILE_1)
 						: "";
 
-				String newCProf2 = l.df.d.has(DocumentFrame.COLOR_PROFILE_2)
-						? l.df.d.get(DocumentFrame.COLOR_PROFILE_2)
+				String newCProf2 = l.df.d.has(DocumentTools.COLOR_PROFILE_2)
+						? l.df.d.get(DocumentTools.COLOR_PROFILE_2)
 						: "";
 
 				if (!cProf1.equals(newCProf1) || !cProf2.equals(newCProf2)) {
@@ -116,12 +117,12 @@ class SuggestedTagsList extends TagsList {
 					colorProfileSuggestedTags.clear();
 					if (cProf1.length() > 0) {
 						colorProfileSuggestedTags.addAll(
-								di.search(m(p(DocumentFrame.COLOR_PROFILE_1, cProf1)),
+								di.search(m(p(DocumentTools.COLOR_PROFILE_1, cProf1)),
 								DocIndex.ALL_DOCS).narrowingTags);
 					}
 					if (cProf2.length() > 0) {
 						colorProfileSuggestedTags.addAll(
-								di.search(m(p(DocumentFrame.COLOR_PROFILE_2, cProf2)),
+								di.search(m(p(DocumentTools.COLOR_PROFILE_2, cProf2)),
 								DocIndex.ALL_DOCS).narrowingTags);
 					}
 				}

@@ -1,6 +1,7 @@
 package com.metalbeetle.fruitbat.gui;
 
-import com.metalbeetle.fruitbat.storage.ProgressMonitor;
+import com.metalbeetle.fruitbat.BlockingTask;
+import com.metalbeetle.fruitbat.ProgressMonitor;
 import com.metalbeetle.fruitbat.Fruitbat;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -8,9 +9,10 @@ import java.awt.Graphics;
 import java.awt.Image;
 import java.io.IOException;
 import javax.imageio.ImageIO;
-import javax.swing.JWindow;
+import javax.swing.JDialog;
+import javax.swing.SwingUtilities;
 
-public class SplashWindow extends JWindow implements ProgressMonitor {
+public class SplashWindow extends JDialog implements ProgressMonitor {
 	static final Image SPLASH_IMG;
 	static final int NO_BAR = -1001;
 	final Dialogs dialogs = new Dialogs();
@@ -26,16 +28,41 @@ public class SplashWindow extends JWindow implements ProgressMonitor {
 	String detail;
 	int numSteps;
 	int step;
-	long appearance;
-
-	int progressBarLevel = 0;
 
     public SplashWindow() {
+		setModal(true);
+		setUndecorated(true);
 		pack();
 		setSize(400, 320);
 		setPreferredSize(new Dimension(400, 320));
 		dialogs.dialogParentC = this;
     }
+
+	public void runBlockingTask(final String taskName, final BlockingTask bt) {
+		newProcess(taskName, "", -1);
+		setLocationRelativeTo(null);
+		SwingUtilities.invokeLater(new Runnable() { public void run() {
+			new Thread("Worker Thread: " + taskName) {
+				@Override
+				public void run() {
+					if (bt.run()) {
+						setVisible(false);
+						SwingUtilities.invokeLater(new Runnable() { public void run() {
+							bt.onSuccess();
+						}});
+					} else {
+						setVisible(false);
+						SwingUtilities.invokeLater(new Runnable() { public void run() {
+							bt.onFailure();
+						}});
+					}
+				}
+			}.start();
+		}});
+		// NB This causes the event dispatch loop to be run inside this call, which is why we need
+		// to put everything after setVisible into an invokeLater.
+		setVisible(true);
+	}
 
 	@Override
 	public void paint(Graphics g) {
@@ -57,31 +84,16 @@ public class SplashWindow extends JWindow implements ProgressMonitor {
 		}
 	}
 
-	public void hideProgressBar() {
-		progress("", NO_BAR);
-		if (--progressBarLevel == 0) {
-			if (System.currentTimeMillis() - appearance < 1000) {
-				try { Thread.sleep(1000 - System.currentTimeMillis() + appearance); } catch (InterruptedException e) {Thread.currentThread().interrupt();}
-			}
-			setVisible(false);
-		}
-	}
-
 	public void progress(String detail, int step) {
 		this.detail = detail;
 		this.step = step;
 		repaint();
 	}
 
-	public void showProgressBar(String title, String detail, int numSteps) {
+	public void newProcess(String title, String detail, int numSteps) {
 		changeNumSteps(numSteps);
 		this.detail = detail;
-		if (progressBarLevel++ == 0) {
-			setLocationRelativeTo(null);
-			setVisible(true);
-			setAlwaysOnTop(true);
-			appearance = System.currentTimeMillis();
-		}
+		setTitle(title);
 	}
 
 	public void changeNumSteps(int numSteps) {

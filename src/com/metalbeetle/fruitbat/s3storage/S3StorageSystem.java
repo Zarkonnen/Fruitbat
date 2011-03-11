@@ -5,7 +5,7 @@ import com.metalbeetle.fruitbat.storage.StoreConfig;
 import java.util.ArrayList;
 import com.metalbeetle.fruitbat.storage.ConfigField;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
-import com.metalbeetle.fruitbat.storage.ProgressMonitor;
+import com.metalbeetle.fruitbat.ProgressMonitor;
 import com.metalbeetle.fruitbat.storage.StorageSystem;
 import com.metalbeetle.fruitbat.storage.Store;
 import com.metalbeetle.fruitbat.storage.StoreConfigInvalidException;

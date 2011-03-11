@@ -4,6 +4,7 @@ import com.metalbeetle.fruitbat.hierarchicalstorage.KVFile;
 import com.metalbeetle.fruitbat.KVFileManagers;
 import com.metalbeetle.fruitbat.KVFileManager;
 import com.metalbeetle.fruitbat.storage.DataChange;
+import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import static com.metalbeetle.fruitbat.util.Collections.*;
@@ -96,6 +97,61 @@ public class KVFileTest {
 				m.reboot();
 				kvf = m.get();
 				assertEquals("quux", kvf.get("foo"));
+			} finally {
+				m.tearDown();
+			}
+		}
+	}
+
+	@Test
+	/**
+	 * Tests whether data remains coherent after submitting a bogus move change.
+	 */
+	public void dataCoherentAfterBogusMove() throws Exception {
+		for (KVFileManager m : KVFileManagers.get()) {
+			try {
+				m.setUp(true);
+				KVFile kvf = m.get();
+				kvf.change(l(DataChange.put("foo", "bar")));
+				try {
+					kvf.change(l(
+							DataChange.put("partOfTransaction", "bar"),
+							DataChange.move("iDontExist", "kitties!")));
+					// The above line should throw a FatalStorageException.
+					assertTrue("FatalStorageException not thrown.", false);
+				} catch (FatalStorageException e) {
+					assertFalse(kvf.has("partOfTransaction"));
+					assertFalse(kvf.has("kitties!"));
+					assertEquals("bar", kvf.get("foo"));
+				}
+			} finally {
+				m.tearDown();
+			}
+		}
+	}
+
+	@Test
+	/**
+	 * Tests whether data remains coherent after submitting a bogus move change.
+	 */
+	public void dataCoherentAfterBogusMoveWithCaching() throws Exception {
+		for (KVFileManager m : KVFileManagers.get()) {
+			try {
+				m.setUp(true);
+				KVFile kvf = m.get();
+				kvf.change(l(DataChange.put("foo", "bar")));
+				kvf.saveToCache();
+				try {
+					kvf.change(l(
+							DataChange.put("partOfTransaction", "bar"),
+							DataChange.move("iDontExist", "kitties!")));
+					// The above line should throw a FatalStorageException.
+					assertTrue("FatalStorageException not thrown.", false);
+				} catch (FatalStorageException e) {
+					assertFalse(kvf.has("partOfTransaction"));
+					assertFalse(kvf.has("kitties!"));
+					assertEquals("bar", kvf.get("foo"));
+				}
 			} finally {
 				m.tearDown();
 			}
