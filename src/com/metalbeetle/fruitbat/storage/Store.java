@@ -6,6 +6,12 @@ import java.util.List;
 
 /** Interface for storing documents. */
 public interface Store {
+	/**
+	 * @return An approximate measure of the store's delay. 1000 is hard drive access, lower
+	 * numbers are better.
+	 */
+	public int getLag();
+
 	/** This needs to be set to an unique string at store creation time. */
 	public String getUUID() throws FatalStorageException;
 	/**

@@ -245,6 +245,13 @@ class PagesViewer extends JPanel {
 		@Override
 		public void paint(Graphics g) {
 			try {
+				if (!pv.df.d.hasPage(DocumentTools.PREVIEW_PREFIX +
+						pv.df.pagePrefix() + pageIndex))
+				{
+					g.setColor(Color.GRAY);
+					g.fillRect(0, 0, getWidth(), getHeight());
+					return;
+				}
 				g.setColor(Color.WHITE);
 				g.fillRect(0, 0, getWidth(), getHeight());
 				DataSrc src = pv.df.d.getPage(DocumentTools.PREVIEW_PREFIX +

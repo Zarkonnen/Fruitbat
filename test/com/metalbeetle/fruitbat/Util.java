@@ -49,7 +49,7 @@ public final class Util {
 		try {
 			return (r = new BufferedReader(new InputStreamReader(src.getInputStream()))).readLine().equals(contents);
 		} finally {
-			r.close();
+			try { r.close(); } catch (Exception e) {}
 		}
 	}
 }

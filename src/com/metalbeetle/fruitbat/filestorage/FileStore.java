@@ -20,4 +20,7 @@ public class FileStore extends HSStore {
 	public FullTextIndex getFullTextIndex() { return luceneIndex; }
 
 	public File getFile() { return f; }
+
+	/** @return 1000 - Local file system based storage is quite fast. */
+	public int getLag() { return 1000; }
 }

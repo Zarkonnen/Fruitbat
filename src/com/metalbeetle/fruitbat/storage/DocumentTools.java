@@ -25,7 +25,6 @@ public class DocumentTools {
 	public static final String COLOR_PROFILE_1 = Fruitbat.HIDDEN_KEY_PREFIX + "cprof1";
 	public static final String COLOR_PROFILE_2 = Fruitbat.HIDDEN_KEY_PREFIX + "cprof2";
 	public static final String HARDCOPY_NUMBER_PREFIX = Fruitbat.HIDDEN_KEY_PREFIX + "ret";
-	public static final String FULLTEXT_PREFIX = Fruitbat.HIDDEN_KEY_PREFIX + "ft";
 	public static final String TMP_MOVE_PAGE_INDEX = "tmp";
 	public static final String DELETED_PREFIX = "d";
 	public static final String NOT_DELETED_PREFIX = "";
@@ -66,9 +65,9 @@ public class DocumentTools {
 					cs.add(PageChange.move(PREVIEW_PREFIX + string(shiftIndex),
 							PREVIEW_PREFIX + string(shiftIndex + numPages)));
 				}
-				if (d.hasPage(FULLTEXT_PREFIX + string(shiftIndex))) {
-					cs.add(PageChange.move(FULLTEXT_PREFIX + string(shiftIndex),
-							FULLTEXT_PREFIX + string(shiftIndex + numPages)));
+				if (d.hasPage(Fruitbat.FULLTEXT_PREFIX + string(shiftIndex))) {
+					cs.add(PageChange.move(Fruitbat.FULLTEXT_PREFIX + string(shiftIndex),
+							Fruitbat.FULLTEXT_PREFIX + string(shiftIndex + numPages)));
 				}
 				if (d.has(HARDCOPY_NUMBER_PREFIX + string(shiftIndex))) {
 					cs.add(DataChange.move(HARDCOPY_NUMBER_PREFIX + string(shiftIndex),
@@ -89,7 +88,7 @@ public class DocumentTools {
 					cs.add(PageChange.put(PREVIEW_PREFIX + string(myIndex), new FileSrc(tmp)));
 					pm.progress("Extracting full text of " + f.getName(), loop * 2 + 1);
 					DataSrc ft = FullTextExtractor.getFullText(f);
-					cs.add(PageChange.put(FULLTEXT_PREFIX + string(myIndex), ft));
+					cs.add(PageChange.put(Fruitbat.FULLTEXT_PREFIX + string(myIndex), ft));
 					fulltexts.add(ft);
 					if (myIndex == 0) {
 						String cprof1 = ColorProfiler.profile1(preview);
@@ -112,10 +111,6 @@ public class DocumentTools {
 			}
 			pm.progress("Committing data to store", -1);
 			d.change(cs);
-			if (store.getFullTextIndex() != null) {
-				pm.progress("Adding pages to full text index", -1);
-				for (DataSrc ft : fulltexts) { store.getFullTextIndex().pageAdded(ft, d); }
-			}
 			if (deleteAfterAdding) {
 				pm.progress("Deleting originals", -1);
 				for (File f : pageFiles) {
@@ -172,9 +167,9 @@ public class DocumentTools {
 			cs.add(PageChange.move(PREVIEW_PREFIX + from,
 					PREVIEW_PREFIX + to));
 		}
-		if (d.hasPage(FULLTEXT_PREFIX + originalFrom)) {
-			cs.add(PageChange.move(FULLTEXT_PREFIX + from,
-					FULLTEXT_PREFIX + to));
+		if (d.hasPage(Fruitbat.FULLTEXT_PREFIX + originalFrom)) {
+			cs.add(PageChange.move(Fruitbat.FULLTEXT_PREFIX + from,
+					Fruitbat.FULLTEXT_PREFIX + to));
 		}
 		if (d.has(HARDCOPY_NUMBER_PREFIX + originalFrom)) {
 			cs.add(DataChange.move(HARDCOPY_NUMBER_PREFIX + from,

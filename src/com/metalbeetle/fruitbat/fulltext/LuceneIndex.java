@@ -52,7 +52,7 @@ public class LuceneIndex implements FullTextIndex {
 			for (List<String> phrase : phrases) {
 				PhraseQuery pq = new PhraseQuery();
 				for (String term : phrase) {
-					pq.add(new Term("text", term));
+					pq.add(new Term("text", term.toLowerCase()));
 				}
 				bq.add(pq, Occur.MUST);
 			}
@@ -92,7 +92,8 @@ public class LuceneIndex implements FullTextIndex {
 
 	public void pageRemoved(DataSrc text, Document doc) throws FatalStorageException {
 		try {
-			writer.deleteDocuments(new Term("hash", string(srcToString(text).hashCode())));
+			String hash = string(srcToString(text).hashCode()) + string(doc.getID());
+			writer.deleteDocuments(new Term("hash", hash));
 			writer.commit();
 		} catch (Exception e) {
 			throw new FatalStorageException("Could not remove page from full text index.", e);

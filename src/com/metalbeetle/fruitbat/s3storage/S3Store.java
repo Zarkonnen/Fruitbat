@@ -25,6 +25,9 @@ public class S3Store extends HSStore {
 		);
 	}
 
+	/** @return 100 000 - S3 is not very fast or responsive. */
+	public int getLag() { return 100000; }
+
 	static class MyCredentials implements AWSCredentials {
 		final String accessKey; final String secretKey;
 

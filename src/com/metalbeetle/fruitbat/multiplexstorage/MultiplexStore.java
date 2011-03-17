@@ -15,12 +15,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 
 public class MultiplexStore implements Store {
 	static final String SLAVE_FAILURE = "SLAVE_FAILURE";
+	static final int MASTER_INDEX = 0;
 
 	// The multiplex store stores the slaves' revisions in metadata keyed by the slaves' UUID, so it
 	// can tell when the slaves have been modified independently.
@@ -28,19 +30,51 @@ public class MultiplexStore implements Store {
 			Fruitbat.HIDDEN_KEY_PREFIX + Fruitbat.HIDDEN_KEY_PREFIX + "slave rev for ";
 	static final String SLAVE_REVISION_KEY_INFIX = " of ";
 
+	EnhancedStore fastest;
+	EnhancedStore fastestWithFullText;
 	final List<EnhancedStore> stores;
 	final ProgressMonitor pm;
 	final HashMap<Integer, Document> idToDoc = new HashMap<Integer, Document>();
 	final ArrayList<Document> docs = new ArrayList<Document>();
 	final BitSet storeEnabled;
+	final MultiplexDocIndex index;
+	final MultiplexFullTextIndex fullTextIndex;
 	boolean masterIDUpdated = false;
 
 	EnhancedStore master() {
-		return stores.get(0);
+		return stores.get(MASTER_INDEX);
+	}
+
+	EnhancedStore fastest() {
+		if (fastest == null) {
+			for (int i = 0; i < stores.size(); i++) {
+				if (storeEnabled.get(i) &&
+						(fastest == null || fastest.getLag() > stores.get(i).getLag()))
+				{
+					fastest = stores.get(i);
+				}
+			}
+		}
+		return fastest;
+	}
+
+	EnhancedStore fastestWithFullText() {
+		if (fastestWithFullText == null) {
+			for (int i = 0; i < stores.size(); i++) {
+				if (storeEnabled.get(i) && stores.get(i).getFullTextIndex() != null &&
+						(fastestWithFullText == null || fastestWithFullText.getLag() > stores.get(i).getLag()))
+				{
+					fastestWithFullText = stores.get(i);
+				}
+			}
+		}
+		return fastestWithFullText;
 	}
 	
 	public MultiplexStore(List<EnhancedStore> stores, ProgressMonitor pm) throws FatalStorageException {
 		pm.newProcess("Loading Multiplex Store", "", -1);
+		index = new MultiplexDocIndex(this);
+		fullTextIndex = new MultiplexFullTextIndex(this);
 		try {
 			this.stores = immute(stores);
 			this.pm = pm;
@@ -51,7 +85,18 @@ public class MultiplexStore implements Store {
 			synchronize();
 			// Create MultiplexDocuments
 			for (Document d : master().docs()) {
-				Document myD = new MultiplexDocument(d, this);
+				IdentityHashMap<EnhancedStore, Document> ds = new IdentityHashMap<EnhancedStore, Document>();
+				ds.put(master(), d);
+				for (int i = 1; i < stores.size(); i++) {
+					if (storeEnabled.get(i)) {
+						try {
+							ds.put(stores.get(i), stores.get(i).get(d.getID()));
+						} catch (FatalStorageException e) {
+							handleStorageException(stores.get(i), e);
+						}
+					}
+				}
+				Document myD = new MultiplexDocument(ds, this);
 				idToDoc.put(myD.getID(), myD);
 				docs.add(myD);
 			}
@@ -73,7 +118,7 @@ public class MultiplexStore implements Store {
 			try {
 				syncStores(master(), stores.get(i), i, /*secondStoreIsBackupOfFirst*/ true);
 			} catch (FatalStorageException e) {
-				handleSlaveStorageException(i, e);
+				handleStorageException(stores.get(i), e);
 			}
 		}
 	}
@@ -186,16 +231,27 @@ public class MultiplexStore implements Store {
 	public Document create() throws FatalStorageException {
 		try {
 			Document d = master().create();
-			MultiplexDocument md = new MultiplexDocument(d, this);
 			for (int i = 1; i < stores.size(); i++) {
 				if (storeEnabled.get(i)) {
 					try {
 						syncDocs(d, stores.get(i).getCreateOrUndelete(d.getID()), i);
 					} catch (FatalStorageException e) {
-						handleSlaveStorageException(i, e);
+						handleStorageException(stores.get(i), e);
 					}
 				}
 			}
+			IdentityHashMap<EnhancedStore, Document> ds = new IdentityHashMap<EnhancedStore, Document>();
+			for (int i = 1; i < stores.size(); i++) {
+				if (storeEnabled.get(i)) {
+					try {
+						ds.put(stores.get(i), stores.get(i).get(d.getID()));
+					} catch (FatalStorageException e) {
+						handleStorageException(stores.get(i), e);
+					}
+				}
+			}
+			ds.put(master(), d);
+			MultiplexDocument md = new MultiplexDocument(ds, this);
 			idToDoc.put(md.getID(), md);
 			docs.add(md);
 			return md;
@@ -214,11 +270,22 @@ public class MultiplexStore implements Store {
 					try {
 						syncDocs(d, stores.get(i).getCreateOrUndelete(id), i);
 					} catch (FatalStorageException e) {
-						handleSlaveStorageException(i, e);
+						handleStorageException(stores.get(i), e);
 					}
 				}
 			}
-			MultiplexDocument md = new MultiplexDocument(d, this);
+			IdentityHashMap<EnhancedStore, Document> ds = new IdentityHashMap<EnhancedStore, Document>();
+			ds.put(master(), d);
+			for (int i = 1; i < stores.size(); i++) {
+				if (storeEnabled.get(i)) {
+					try {
+						ds.put(stores.get(i), stores.get(i).get(d.getID()));
+					} catch (FatalStorageException e) {
+						handleStorageException(stores.get(i), e);
+					}
+				}
+			}
+			MultiplexDocument md = new MultiplexDocument(ds, this);
 			idToDoc.put(md.getID(), md);
 			docs.add(md);
 			return md;
@@ -237,7 +304,7 @@ public class MultiplexStore implements Store {
 					try {
 						stores.get(i).delete(stores.get(i).get(id));
 					} catch (FatalStorageException e) {
-						handleSlaveStorageException(i, e);
+						handleStorageException(stores.get(i), e);
 					}
 				}
 			}
@@ -273,7 +340,7 @@ public class MultiplexStore implements Store {
 					try {
 						stores.get(i).setNextRetainedPageNumber(nextRetainedPageNumber);
 					} catch (FatalStorageException e) {
-						handleSlaveStorageException(i, e);
+						handleStorageException(stores.get(i), e);
 					}
 				}
 			}
@@ -289,7 +356,7 @@ public class MultiplexStore implements Store {
 					try {
 						stores.get(i).close();
 					} catch (FatalStorageException e) {
-						handleSlaveStorageException(i, e);
+						handleStorageException(stores.get(i), e);
 					}
 				}
 			}
@@ -300,17 +367,23 @@ public class MultiplexStore implements Store {
 		}
 	}
 
-	public DocIndex getIndex() { return master().getIndex(); }
-	public FullTextIndex getFullTextIndex() { return master().getFullTextIndex(); }
+	public DocIndex getIndex() { return index; }
+	public FullTextIndex getFullTextIndex() { return fullTextIndex; }
 
-	void handleSlaveStorageException(int slaveIndex, FatalStorageException e) {
-		pm.showWarning(SLAVE_FAILURE, "Backup store " + stores.get(slaveIndex) + " disabled",
-				"Unable to communicate with backup store " + stores.get(slaveIndex) +
+	void handleStorageException(Store s, FatalStorageException e) throws FatalStorageException {
+		if (s == master()) {
+			throw e;
+		}
+		if (s == fastest) {
+			fastest = null;
+		}
+		pm.showWarning(SLAVE_FAILURE, "Backup store " + s + " disabled",
+				"Unable to communicate with backup store " + s +
 				". You can continue working, and your changes will be pushed into the backup " +
 				"when communication is restored.\n\n" +
 				"The backup store gave the following reason for its failure:\n" +
 				getFullMessage(e));
-		storeEnabled.clear(slaveIndex);
+		storeEnabled.clear(stores.indexOf(s));
 	}
 
 	@Override
@@ -328,7 +401,7 @@ public class MultiplexStore implements Store {
 					try {
 						stores.get(i).changeMetaData(changes);
 					} catch (FatalStorageException e) {
-						handleSlaveStorageException(i, e);
+						handleStorageException(stores.get(i), e);
 					}
 				}
 			}
@@ -390,5 +463,9 @@ public class MultiplexStore implements Store {
 		} catch (FatalStorageException e) {
 			throw new FatalStorageException("Cannot communicate with master store.", e);
 		}
+	}
+
+	public int getLag() {
+		return fastest().getLag();
 	}
 }

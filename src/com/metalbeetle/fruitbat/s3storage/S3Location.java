@@ -12,6 +12,7 @@ import com.metalbeetle.fruitbat.io.Crypto.CryptoInputStream;
 import com.metalbeetle.fruitbat.io.Crypto.CryptoOutputStream;
 import com.metalbeetle.fruitbat.io.DataSrc;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -158,11 +159,23 @@ public class S3Location implements Location {
 	public void put(DataSrc data) throws FatalStorageException {
 		f.create(path);
 		try {
+			// qqDPS This is realllllly inefficient!
+			CommittableOutputStream cos = getOutputStream();
+			int amt = 0;
+			InputStream in = data.getInputStream();
+			byte[] buf = new byte[2048];
+			while ((amt = in.read(buf)) != -1) {
+				cos.stream().write(buf, 0, amt);
+			}
+			cos.stream().close();
+			cos.commitIfNotAborted();
+			/*
 			ObjectMetadata omd = new ObjectMetadata();
 			if (data.getLength() != DataSrc.UNKNOWN_DATA_LENGTH) {
 				omd.setContentLength(data.getLength());
 			}
 			f.s3.putObject(f.bucketName, path, data.getInputStream(), omd);
+			 */
 		} catch (IOException e) {
 			throw new FatalStorageException("Could not store data on S3.", e);
 		}
@@ -200,7 +213,13 @@ public class S3Location implements Location {
 		public void commitIfNotAborted() throws IOException {
 			if (aborted) { return; }
 			try {
-				put(new ByteArraySrc(stream.toByteArray(), "streamed data"));
+				// qqDPS
+				//put(new ByteArraySrc(stream.toByteArray(), "streamed data"));
+				f.create(path);
+				ObjectMetadata omd = new ObjectMetadata();
+				byte[] data = stream.toByteArray();
+				omd.setContentLength(data.length);
+				f.s3.putObject(f.bucketName, path, new ByteArrayInputStream(data), omd);
 			} catch (FatalStorageException e) {
 				throw new IOException("Could not save data to " + getName() + ".\n" +
 						e.getMessage());

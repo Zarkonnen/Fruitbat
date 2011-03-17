@@ -1,12 +1,7 @@
-package com.metalbeetle.fruitbat.filestorage;
+package com.metalbeetle.fruitbat.storage;
 
 import com.metalbeetle.fruitbat.TestStoreManagers;
 import com.metalbeetle.fruitbat.TestStoreManager;
-import com.metalbeetle.fruitbat.storage.DocIndex;
-import com.metalbeetle.fruitbat.storage.DataChange;
-import com.metalbeetle.fruitbat.storage.Document;
-import com.metalbeetle.fruitbat.storage.EnhancedStore;
-import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import static com.metalbeetle.fruitbat.util.Collections.*;
@@ -16,6 +11,29 @@ public class DataStorageTest {
 
 	EnhancedStore s;
 	DocIndex i;
+
+	@Test
+	public void testInstantCrossDocChanges() throws Exception {
+		for (TestStoreManager m : TestStoreManagers.get()) {
+			try {
+				m.setUp();
+				Document d = m.getStore().create();
+				d.change(l(DataChange.put("a", "b")));
+				Document d2 = m.getStore().get(d.getID());
+				d2.change(l(DataChange.put("a", "c")));
+				assertEquals("c", d.get("a"));
+				Document d3 = m.getIndex().search(m(p("a", "c")), 1).docs.get(0);
+				d3.change(l(DataChange.put("a", "d")));
+				assertEquals("d", d.get("a"));
+				assertEquals("d", d2.get("a"));
+				d.change(l(DataChange.put("a", "b")));
+				assertEquals("b", d2.get("a"));
+				assertEquals("b", d3.get("a"));
+			} finally {
+				m.tearDown();
+			}
+		}
+	}
 
 	@Test
 	public void testCleanStoreValues() throws Exception {

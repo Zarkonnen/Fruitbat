@@ -10,8 +10,10 @@ import com.amazonaws.auth.AWSCredentials;
 import com.metalbeetle.fruitbat.filestorage.FileStore;
 import com.metalbeetle.fruitbat.gui.DummyProgressMonitor;
 import com.metalbeetle.fruitbat.hierarchicalstorage.HSIndex;
+import com.metalbeetle.fruitbat.multiplexstorage.MultiplexStore;
 import com.metalbeetle.fruitbat.s3storage.S3StorageSystem;
 import com.metalbeetle.fruitbat.s3storage.S3Store;
+import com.metalbeetle.fruitbat.storage.DocIndex;
 import com.metalbeetle.fruitbat.storage.EnhancedStore;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.storage.StoreConfig;
@@ -23,7 +25,48 @@ public final class TestStoreManagers {
 	private TestStoreManagers() {}
 
 	public static List<TestStoreManager> get() {
-		return typedL(TestStoreManager.class, new FileSM(), new S3SM());
+		return typedL(TestStoreManager.class, new FileSM(), new S3SM(), new MultiplexSM());
+	}
+
+	public static class MultiplexSM implements TestStoreManager {
+		final S3SM masterM = new S3SM();
+		final FileSM backupM = new FileSM();
+
+		EnhancedStore s;
+
+		public void setUp() throws Exception {
+			masterM.setUp();
+			backupM.setUp();
+			s = new EnhancedStore(new MultiplexStore(l(masterM.getStore(), backupM.getStore()),
+					new DummyProgressMonitor()));
+		}
+
+		public void reboot() throws Exception {
+			masterM.reboot();
+			backupM.reboot();
+			s = new EnhancedStore(new MultiplexStore(l(masterM.getStore(), backupM.getStore()),
+					new DummyProgressMonitor()));
+		}
+
+		public void crashAndReboot() throws Exception {
+			masterM.crashAndReboot();
+			backupM.crashAndReboot();
+			s = new EnhancedStore(new MultiplexStore(l(masterM.getStore(), backupM.getStore()),
+					new DummyProgressMonitor()));
+		}
+
+		public void tearDown() throws Exception {
+			masterM.tearDown();
+			backupM.tearDown();
+		}
+
+		public EnhancedStore getStore() throws Exception {
+			return s;
+		}
+
+		public DocIndex getIndex() throws Exception {
+			return s.getIndex();
+		}
 	}
 
 	static class FileSM implements TestStoreManager {
@@ -55,10 +98,10 @@ public final class TestStoreManagers {
 		}
 
 		public EnhancedStore getStore() { return s; }
-		public HSIndex getIndex() { return i; }
+		public DocIndex getIndex() { return i; }
 	}
 
-	static class S3SM implements TestStoreManager {
+	public static class S3SM implements TestStoreManager {
 		static String accessKey;
 		static String secretKey;
 		static {
@@ -126,6 +169,6 @@ public final class TestStoreManagers {
 
 		public EnhancedStore getStore() throws Exception { return s; }
 
-		public HSIndex getIndex() throws Exception { return i; }
+		public DocIndex getIndex() throws Exception { return i; }
 	}
 }

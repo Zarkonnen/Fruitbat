@@ -1,5 +1,6 @@
 package com.metalbeetle.fruitbat.hierarchicalstorage;
 
+import com.metalbeetle.fruitbat.Fruitbat;
 import com.metalbeetle.fruitbat.io.DataSrc;
 import com.metalbeetle.fruitbat.storage.Change;
 import com.metalbeetle.fruitbat.storage.DataChange;
@@ -110,6 +111,17 @@ public class HSDocument implements Comparable<HSDocument>, Document {
 				continue;
 			}
 		}
+		// If we are removing fulltext data, we need to tell the index before we change the data.
+		if (s.getFullTextIndex() != null) {
+			for (Change c : changes) {
+				if (c instanceof PageChange.Remove) {
+					PageChange.Remove r = (PageChange.Remove) c;
+					if (r.key.startsWith(Fruitbat.FULLTEXT_PREFIX)) {
+						s.getFullTextIndex().pageRemoved(getPage(r.key), this);
+					}
+				}
+			}
+		}
 		// Commit the changes to disk.
 		data.change(dataChanges);
 		// Inform the index of data/revision changes.
@@ -130,6 +142,28 @@ public class HSDocument implements Comparable<HSDocument>, Document {
 				DataChange.Remove r = (DataChange.Remove) c;
 				myIndex().keyRemoved(this, r.key);
 				continue;
+			}
+			if (s.getFullTextIndex() != null) {
+				if (c instanceof PageChange.Put) {
+					PageChange.Put p = (PageChange.Put) c;
+					if (p.key.startsWith(Fruitbat.FULLTEXT_PREFIX)) {
+						s.getFullTextIndex().pageAdded(p.value, this);
+					}
+					continue;
+				}
+				if (c instanceof PageChange.Move) {
+					PageChange.Move m = (PageChange.Move) c;
+					if (m.srcKey.startsWith(Fruitbat.FULLTEXT_PREFIX) &&
+						!m.dstKey.startsWith(Fruitbat.FULLTEXT_PREFIX))
+					{
+						s.getFullTextIndex().pageRemoved(getPage(m.dstKey), this);
+					}
+					if (!m.srcKey.startsWith(Fruitbat.FULLTEXT_PREFIX) &&
+						m.dstKey.startsWith(Fruitbat.FULLTEXT_PREFIX))
+					{
+						s.getFullTextIndex().pageAdded(getPage(m.dstKey), this);
+					}
+				}
 			}
 		}
 		return revision;

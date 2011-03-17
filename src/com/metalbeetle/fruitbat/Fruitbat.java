@@ -23,6 +23,8 @@ public class Fruitbat {
 	public static final String HIDDEN_KEY_PREFIX = ":";
 	public static final String DATE_KEY = "d";
 	public static final String CREATION_DATE_KEY = HIDDEN_KEY_PREFIX + "cd";
+	/** Documents with this prefix will be fulltext indexed. */
+	public static final String FULLTEXT_PREFIX = Fruitbat.HIDDEN_KEY_PREFIX + "ft";
 	public static final String ALIVE_KEY = HIDDEN_KEY_PREFIX + "a";
 	public static final String DEAD_KEY = HIDDEN_KEY_PREFIX + "d";
 	static final int POOL_CUTOFF = 128;
