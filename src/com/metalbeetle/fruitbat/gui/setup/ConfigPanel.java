@@ -223,7 +223,7 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 	public StoreConfig getConfig() {
 		ArrayList<Object> vals = new ArrayList<Object>();
 		for (FieldJComponent c : fieldJCs) {
-			vals.add(c.getValue());
+			vals.add(c.getField().clean(c.getValue()));
 		}
 		return new StoreConfig(nameF.getText(), system, vals);
 	}

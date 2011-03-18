@@ -31,13 +31,13 @@ public final class Utils {
 				badStuff += "Please supply a value for " + f.getName() + ".\n";
 			} else {
 				if (!f.getExpectedValueClass().isAssignableFrom(v.getClass())) {
-					badStuff += "Field " + f.getName() + ": Incompatible field value supplied. " +
+					badStuff += "Configuration field \"" + f.getName() + "\": Incompatible field value supplied. " +
 							"Expected a " + f.getExpectedValueClass().getSimpleName() + ", but " +
 							"got a " + v.getClass().getSimpleName() + ".\n";
 				} else {
 					String validError = f.validate(v);
 					if (validError != null) {
-						badStuff += "Field " + f.getName() + ": " + validError + "\n";
+						badStuff += "Configuration field \"" + f.getName() + "\": " + validError + "\n";
 					}
 				}
 			}

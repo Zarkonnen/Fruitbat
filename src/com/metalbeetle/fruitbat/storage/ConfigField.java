@@ -18,23 +18,27 @@ public interface ConfigField<T> {
 	public String toString(T value) throws StoreConfigInvalidException;
 	/** Converts a String to a T value. */
 	public T toValue(String s) throws StoreConfigInvalidException;
+	/** Cleans up value. */
+	public T clean(T t);
 	/** @return FieldJComponent for displaying this field. */
 	public FieldJComponent<T> getFieldJComponent();
 
 	public abstract class StringField implements ConfigField<String>{
 		final String name;
-		public StringField(String name) { this.name = name; }
+		final boolean trim;
+		public StringField(String name, boolean trim) { this.name = name; this.trim = trim; }
 		public String getName() { return name; }
 		public Class getExpectedValueClass() { return String.class; }
 		public String toString(String value) { return value; }
 		public String toValue(String s) { return s; }
+		public String clean(String s) { return trim ? s.trim() : s; }
 	}
 
 	public class RegexStringField extends StringField {
 		final Pattern regex;
 		final String errorMessage;
 		public RegexStringField(String name, String regex, String errorMessage) {
-			super(name);
+			super(name, false);
 			this.regex = Pattern.compile(regex);
 			this.errorMessage = errorMessage;
 		}
@@ -49,10 +53,10 @@ public interface ConfigField<T> {
 	}
 
 	public class NonEmptyStringField extends StringField {
-		public NonEmptyStringField(String name) { super(name); }
+		public NonEmptyStringField(String name, boolean trim) { super(name, trim); }
 
 		public String validate(String input) {
-			if (input.length() == 0) {
+			if ((super.trim ? input.trim() : input).length() == 0) {
 				return "Please enter a " + name;
 			} else {
 				return null;
@@ -88,5 +92,6 @@ public interface ConfigField<T> {
 			ffc.setField(this);
 			return ffc;
 		}
+		public File clean(File f) { return f; }
 	}
 }

@@ -67,7 +67,7 @@ public class MultiplexedStoresField implements ConfigField<List<StoreConfig>> {
 			}
 			return immute(vals);
 		} catch (Exception e) {
-			throw new StoreConfigInvalidException("Could not read multiplexed store " + "configuration.");
+			throw new StoreConfigInvalidException("Could not read multiplexed store configuration.");
 		}
 	}
 
@@ -76,4 +76,6 @@ public class MultiplexedStoresField implements ConfigField<List<StoreConfig>> {
 		c.setField(this);
 		return c;
 	}
+
+	public List<StoreConfig> clean(List<StoreConfig> t) { return t; }
 }

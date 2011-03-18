@@ -16,11 +16,11 @@ public class S3StorageSystem implements StorageSystem {
 	static final List<ConfigField> CONFIG_FIELDS;
 	static {
 		ArrayList<ConfigField> l = new ArrayList<ConfigField>();
-		l.add(new ConfigField.NonEmptyStringField("Access Key"));
-		l.add(new ConfigField.NonEmptyStringField("Secret Key"));
+		l.add(new ConfigField.NonEmptyStringField("Access Key", /*trim*/ true));
+		l.add(new ConfigField.NonEmptyStringField("Secret Key", /*trim*/ true));
 		l.add(new ConfigField.RegexStringField("Bucket Name", "[a-z0-9]+",
 				"Lowercase letters and numbers only"));
-		l.add(new ConfigField.NonEmptyStringField("Encryption Password"));
+		l.add(new ConfigField.NonEmptyStringField("Encryption Password", /*trim*/ false));
 		CONFIG_FIELDS = immute(l);
 	}
 

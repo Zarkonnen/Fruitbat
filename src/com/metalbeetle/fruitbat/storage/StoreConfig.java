@@ -43,7 +43,6 @@ public final class StoreConfig {
 		} catch (Exception e) {
 			throw new StoreConfigInvalidException("Could not read store configuration.");
 		}
-		Utils.checkConfigValues(this);
 	}
 
 	public String toStringRepresentation() throws StoreConfigInvalidException {
@@ -65,8 +64,13 @@ public final class StoreConfig {
 		}
 	}
 
-	public EnhancedStore init(ProgressMonitor pm) throws FatalStorageException, StoreConfigInvalidException {
-		return new EnhancedStore(system.init(configFieldValues, pm));
+	public EnhancedStore init(ProgressMonitor pm) throws FatalStorageException {
+		try {
+			Utils.checkConfigValues(this);
+			return new EnhancedStore(system.init(configFieldValues, pm));
+		} catch (StoreConfigInvalidException e) {
+			throw new FatalStorageException("Could not initialise store.", e);
+		}
 	}
 
 	@Override
