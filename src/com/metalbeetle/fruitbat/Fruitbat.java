@@ -6,6 +6,7 @@ import com.metalbeetle.fruitbat.gui.Dialogs;
 import com.metalbeetle.fruitbat.gui.MainFrame;
 import com.metalbeetle.fruitbat.gui.ShortcutOverlay;
 import com.metalbeetle.fruitbat.gui.SplashWindow;
+import com.metalbeetle.fruitbat.gui.WindowMenuManager;
 import com.metalbeetle.fruitbat.gui.setup.ConfigsListFrame;
 import com.metalbeetle.fruitbat.prefs.SavedStoreConfigs;
 import com.metalbeetle.fruitbat.storage.StoreConfig;
@@ -32,6 +33,7 @@ public class Fruitbat {
 	ProgressMonitor pm;
 	final StringPool stringPool = new StringPool(POOL_CUTOFF);
 	final HashMap<StoreConfig, MainFrame> configToMainframe = new HashMap<StoreConfig, MainFrame>();
+	public final WindowMenuManager wmm;
 	ConfigsListFrame configsList;
 	public final ShortcutOverlay shortcutOverlay = new ShortcutOverlay();
 	volatile boolean shuttingDown = false;
@@ -42,6 +44,7 @@ public class Fruitbat {
 			try {
 				MainFrame mf = new MainFrame(this, sc.init(pm), sc);
 				configToMainframe.put(sc, mf);
+				wmm.storeOpened(mf);
 			} catch (Exception e) {
 				pm.handleException(e, null);
 				return null;
@@ -57,6 +60,7 @@ public class Fruitbat {
 
 	public void storeClosed(MainFrame mf) {
 		configToMainframe.remove(mf.getConfig());
+		wmm.storeClosed(mf);
 		if (configToMainframe.isEmpty() && !shuttingDown) {
 			configsList.setVisible(true);
 		}
@@ -80,11 +84,13 @@ public class Fruitbat {
 			}
 		}
 		final Fruitbat app = this;
+		wmm = new WindowMenuManager();
 		pm.runBlockingTask("Launching Fruitbat", new BlockingTask() {
 			public boolean run() {
 				pm.newProcess("Welcome to Fruitbat", "", -1);
 				Dialogs ds = new Dialogs();
 				configsList = new ConfigsListFrame(app, ds);
+				wmm.setConfigsList(configsList);
 				configsList.setLocationRelativeTo(null);
 				configsList.setVisible(true);
 				try {
@@ -93,6 +99,7 @@ public class Fruitbat {
 						if (mf != null) { mf.readPrefs(openStores.b); }
 					}
 				} catch (Exception e) {
+					e.printStackTrace();
 					pm.handleException(new Exception("Couldn't load open stores.", e), null);
 					return false;
 				}

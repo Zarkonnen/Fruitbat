@@ -13,10 +13,10 @@ import javax.swing.JMenuItem;
 import javax.swing.KeyStroke;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 
-class MainMenuBar extends JMenuBar {
+class StoreMenuBar extends JMenuBar {
 	final JMenuItem undeleteMI;
 	final JMenuItem deleteMI;
-	public MainMenuBar(final MainFrame mf) {
+	public StoreMenuBar(final MainFrame mf) {
 		JMenu fileMenu = new JMenu("File");
 			add(fileMenu);
 			JMenuItem newDocMI = new JMenuItem("New Document");
@@ -78,7 +78,8 @@ class MainMenuBar extends JMenuBar {
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 			}
 
-				
+		add(mf.app.wmm.getMenu(mf));
+		
 		// Create temp test data.
 		JMenu testMenu = new JMenu("Test");
 			add(testMenu);
@@ -98,6 +99,6 @@ class MainMenuBar extends JMenuBar {
 						mf.search(mf.lastSearch, MainFrame.DEFAULT_MAX_DOCS, true);
 					} catch (Exception ex) { ex.printStackTrace(); }
 				}});
-				
+
 	}
 }

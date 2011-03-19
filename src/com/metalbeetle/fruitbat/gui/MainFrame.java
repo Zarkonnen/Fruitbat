@@ -73,7 +73,7 @@ public class MainFrame extends JFrame implements FileDrop.Listener {
 	File lastDirectory = new File("");
 	boolean tagsChanged = false;
 
-	final MainMenuBar menuBar;
+	final StoreMenuBar menuBar;
 	final Box searchBoxH;
 		final Box searchBoxV;
 			final JTextPane searchF;
@@ -166,7 +166,7 @@ public class MainFrame extends JFrame implements FileDrop.Listener {
 				}
 			}
 		});
-		setJMenuBar(menuBar = new MainMenuBar(this));
+		setJMenuBar(menuBar = new StoreMenuBar(this));
 		app.shortcutOverlay.attachTo(this);
 		pack();
 		setSize(800, 700);

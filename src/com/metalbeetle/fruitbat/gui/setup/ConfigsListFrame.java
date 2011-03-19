@@ -101,6 +101,8 @@ public class ConfigsListFrame extends JFrame {
 			public void windowClosing(WindowEvent e) { app.runClose(); }
 		});
 
+		setJMenuBar(new ConfigsListMenuBar(this));
+
 		pack();
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		setSize(600, 400);

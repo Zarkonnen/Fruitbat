@@ -3,6 +3,7 @@ package com.metalbeetle.fruitbat.gui;
 import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 import static com.metalbeetle.fruitbat.util.Misc.*;
@@ -10,7 +11,16 @@ import static com.metalbeetle.fruitbat.util.Misc.*;
 class OpenDocManager {
 	static final int DOC_WIN_OFFSET = 10;
 	final HashMap<Document, DocumentFrame> openFrames = new HashMap<Document, DocumentFrame>();
+	final HashSet<Listener> listeners = new HashSet<Listener>();
 	final MainFrame mf;
+
+	static interface Listener {
+		void documentOpened(MainFrame mf, DocumentFrame df);
+		void documentClosed(MainFrame mf, DocumentFrame df);
+	}
+
+	public void addListener(Listener l) { listeners.add(l); }
+	public void removeListener(Listener l) { listeners.remove(l); }
 
 	public OpenDocManager(MainFrame mf) {
 		this.mf = mf;
@@ -22,6 +32,9 @@ class OpenDocManager {
 			df.setLocationRelativeTo(null);
 			df.setVisible(true);
 			openFrames.put(d, df);
+			for (Listener l : listeners) {
+				l.documentOpened(mf, df);
+			}
 		}
 		DocumentFrame df = openFrames.get(d);
 		df.toFront();
@@ -38,6 +51,9 @@ class OpenDocManager {
 	}
 
 	void close(Document d) {
+		for (Listener l : listeners) {
+			l.documentClosed(mf, openFrames.get(d));
+		}
 		openFrames.get(d).dispose();
 		openFrames.remove(d);
 	}

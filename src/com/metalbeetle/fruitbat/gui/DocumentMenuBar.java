@@ -170,5 +170,7 @@ class DocumentMenuBar extends JMenuBar {
 				}});
 				showDeletedPagesMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_MINUS,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask() | KeyEvent.SHIFT_MASK));
+		
+		add(df.mf.app.wmm.getMenu(df));
 	}
 }
