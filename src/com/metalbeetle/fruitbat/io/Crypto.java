@@ -55,8 +55,102 @@ public class Crypto {
 		return dst2;
 	}
 
+	/** Encrypting wrapper for input stream. */
+	public static final class EncryptingInputStream extends InputStream {
+		final InputStream s;
+		final PaddedBufferedBlockCipher c;
+		final byte[] plainBuf;
+		final byte[] cipherBuf;
+		final byte[] ivBlock;
+		final int ivBlockLength;
+		int bufOffset = 0;
+		int bufLength = 0;
+		int ivOffset = 0;
+		boolean done = false;
+
+		public EncryptingInputStream(InputStream s, String pwd) throws UnsupportedEncodingException {
+			pwd = pwd + SALT;
+			this.s = s;
+			c = new PaddedBufferedBlockCipher(
+					new CBCBlockCipher(new AESEngine()));
+			SHA256Digest dig = new SHA256Digest();
+			byte[] key = new byte[dig.getDigestSize()];
+			dig.update(pwd.getBytes("UTF-8"), 0, pwd.getBytes("UTF-8").length);
+			dig.doFinal(key, 0);
+			c.init(true, new KeyParameter(key));
+			plainBuf = new byte[c.getBlockSize()];
+			cipherBuf = new byte[c.getBlockSize() * 2];
+			byte[] iv = new byte[c.getBlockSize()];
+			SR.nextBytes(iv);
+			// Generate the IV.
+			ivBlock = new byte[c.getUpdateOutputSize(iv.length) + c.getBlockSize()];
+			ivBlockLength = c.processBytes(iv, 0, iv.length, ivBlock, 0);
+		}
+
+		@Override
+		public int read() throws IOException {
+			byte[] b = new byte[1];
+			int length = read(b);
+			return length == -1 ? -1 : b[0];
+		}
+
+		@Override
+		public int read(byte[] b) throws IOException {
+			return read(b, 0, b.length);
+		}
+
+		@Override
+		public int read(byte[] b, int offset, int length) throws IOException {
+			int left = length;
+			// First, supply the IV.
+			if (ivOffset < ivBlockLength) {
+				int amountToReadFromIV = Math.min(left, ivBlockLength - ivOffset);
+				System.arraycopy(ivBlock, ivOffset, b, offset, amountToReadFromIV);
+				ivOffset += amountToReadFromIV;
+				left -= amountToReadFromIV;
+				offset += amountToReadFromIV;
+			}
+
+			// Then, supply the rest of the stream.
+			while (left > 0 && bufLength != -1) {
+				int readFromBuf = Math.min(left, bufLength);
+				System.arraycopy(cipherBuf, bufOffset, b, offset, readFromBuf);
+				bufLength -= readFromBuf;
+				bufOffset += readFromBuf;
+				offset += readFromBuf;
+				left -= readFromBuf;
+				if (bufLength == 0 && left > 0) {
+					nextBlock();
+				}
+			}
+			if (length - left == 0 && bufLength == -1) { return -1; }
+			return length - left;
+		}
+
+		void nextBlock() throws IOException {
+			bufOffset = 0;
+			if (done) { bufLength = -1; return; }
+			bufLength = s.read(plainBuf);
+			if (bufLength == -1) {
+				done = true;
+				try {
+					bufLength = c.doFinal(cipherBuf, 0);
+				} catch (InvalidCipherTextException e) {
+					throw new IOException("Invalid ciphertext: " + e.getMessage());
+				}
+			} else {
+				bufLength = c.processBytes(plainBuf, 0, bufLength, cipherBuf, 0);
+			}
+		}
+
+		@Override
+		public void close() throws IOException {
+			s.close();
+		}
+	}
+
 	/** Decrypting wrapper for input stream. */
-	public static final class CryptoInputStream extends InputStream {
+	public static final class DecryptingInputStream extends InputStream {
 		final InputStream s;
 		final PaddedBufferedBlockCipher c;
 		final byte[] cipherBuf;
@@ -65,7 +159,7 @@ public class Crypto {
 		int bufLength = 0;
 		boolean done = false;
 
-		public CryptoInputStream(InputStream s, String pwd) throws UnsupportedEncodingException, IOException {
+		public DecryptingInputStream(InputStream s, String pwd) throws UnsupportedEncodingException, IOException {
 			pwd = pwd + SALT;
 			this.s = s;
 			c = new PaddedBufferedBlockCipher(
@@ -138,12 +232,12 @@ public class Crypto {
 	}
 
 	/** Encrypting wrapper for output stream. */
-	public static class CryptoOutputStream extends OutputStream {
+	public static class EncryptingOutputStream extends OutputStream {
 		final OutputStream s;
 		final PaddedBufferedBlockCipher c;
 		byte[] buf;
 
-		public CryptoOutputStream(OutputStream s, String pwd) throws UnsupportedEncodingException, IOException {
+		public EncryptingOutputStream(OutputStream s, String pwd) throws UnsupportedEncodingException, IOException {
 			pwd = pwd + SALT;
 			this.s = s;
 			c = new PaddedBufferedBlockCipher(

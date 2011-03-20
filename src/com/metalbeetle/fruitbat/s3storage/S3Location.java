@@ -7,9 +7,8 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.metalbeetle.fruitbat.hierarchicalstorage.KVFile;
 import com.metalbeetle.fruitbat.hierarchicalstorage.Location;
-import com.metalbeetle.fruitbat.io.ByteArraySrc;
-import com.metalbeetle.fruitbat.io.Crypto.CryptoInputStream;
-import com.metalbeetle.fruitbat.io.Crypto.CryptoOutputStream;
+import com.metalbeetle.fruitbat.io.Crypto.DecryptingInputStream;
+import com.metalbeetle.fruitbat.io.Crypto.EncryptingOutputStream;
 import com.metalbeetle.fruitbat.io.DataSrc;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import java.io.ByteArrayInputStream;
@@ -191,7 +190,7 @@ public class S3Location implements Location {
 
 	public InputStream getInputStream() throws IOException {
 		try {
-			return new CryptoInputStream(f.s3.getObject(f.bucketName, path).getObjectContent(),
+			return new DecryptingInputStream(f.s3.getObject(f.bucketName, path).getObjectContent(),
 					f.password);
 		} catch (FatalStorageException e) {
 			throw new IOException(e.getMessage());
@@ -200,12 +199,12 @@ public class S3Location implements Location {
 
 	class MyCOS implements CommittableOutputStream {
 		final ByteArrayOutputStream stream;
-		final CryptoOutputStream cryptoStream;
+		final EncryptingOutputStream cryptoStream;
 		boolean aborted = false;
 
 		MyCOS() throws IOException {
 			stream = new ByteArrayOutputStream();
-			cryptoStream = new CryptoOutputStream(stream, f.password);
+			cryptoStream = new EncryptingOutputStream(stream, f.password);
 		}
 
 		public OutputStream stream() throws IOException { return cryptoStream; }
