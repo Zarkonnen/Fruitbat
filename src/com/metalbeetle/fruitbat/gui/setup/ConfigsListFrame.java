@@ -85,11 +85,19 @@ public class ConfigsListFrame extends JFrame {
 				editB.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
 					edit();
 				}});
+			final ConfigsListFrame self = this;
 			buttonP.add(removeB = new JButton("Remove"));
 				removeB.setEnabled(false);
 				removeB.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
-					configs.remove(configsList.getSelectedIndex());
-					updateAndSave();
+					if (JOptionPane.showConfirmDialog(self,
+							"Are you sure you want to remove this store configuration?\n" +
+							"The data in the store won't be deleted, but you'll have to re-enter the configuration to access it again.",
+							"Remove store configuration",
+							JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION)
+					{
+						configs.remove(configsList.getSelectedIndex());
+						updateAndSave();
+					}
 				}});
 
 		if (configs.size() > 0) {
