@@ -111,4 +111,19 @@ public class CryptoTest {
 			}
 		} }
 	}
+
+	@Test
+	public void testEncryptedLength() throws UnsupportedEncodingException, IOException {
+		Random r = new Random();
+		int[] sizes = {0, 1, 8, 16, 17, 15, 31, 33, 100, r.nextInt(1000)};
+		String[] pwds = {"", "jamcat"};
+		for (int size : sizes) { for (String pwd : pwds) {
+			byte[] plain = new byte[size];
+			r.nextBytes(plain);
+			ByteArrayInputStream bis = new ByteArrayInputStream(plain);
+			Crypto.EncryptingInputStream eis = new Crypto.EncryptingInputStream(bis, pwd);
+			byte[] cipher = new byte[size + 256];
+			assertEquals("encrypted length with plaintext length of " + size, eis.computeEncryptedLength(plain.length), eis.read(cipher));
+		}}
+	}
 }

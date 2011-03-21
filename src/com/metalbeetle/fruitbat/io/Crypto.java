@@ -17,7 +17,7 @@ import org.bouncycastle.crypto.params.KeyParameter;
  * Cryptographic functions based on BouncyCastle's crypto systems. Uses AES/CBC/SHA256.
  */
 public class Crypto {
-	private static final SecureRandom SR = new SecureRandom();
+	static final SecureRandom SR = new SecureRandom();
 	private static final String SALT = "sodium chloride is delicious";
 
 	public static byte[] encrypt(byte[] src, String pwd) throws UnsupportedEncodingException, DataLengthException, IllegalStateException, InvalidCipherTextException {
@@ -61,8 +61,6 @@ public class Crypto {
 		final PaddedBufferedBlockCipher c;
 		final byte[] plainBuf;
 		final byte[] cipherBuf;
-		final byte[] ivBlock;
-		final int ivBlockLength;
 		int bufOffset = 0;
 		int bufLength = 0;
 		int ivOffset = 0;
@@ -83,8 +81,13 @@ public class Crypto {
 			byte[] iv = new byte[c.getBlockSize()];
 			SR.nextBytes(iv);
 			// Generate the IV.
-			ivBlock = new byte[c.getUpdateOutputSize(iv.length) + c.getBlockSize()];
-			ivBlockLength = c.processBytes(iv, 0, iv.length, ivBlock, 0);
+			byte[] ivBlock = new byte[c.getUpdateOutputSize(iv.length) + c.getBlockSize()];
+			c.processBytes(iv, 0, iv.length, ivBlock, 0);
+		}
+
+		/** @return Total length of stream after encryption. */
+		public int computeEncryptedLength(int plainTextLength) {
+			return c.getOutputSize(plainTextLength);
 		}
 
 		@Override
@@ -102,16 +105,6 @@ public class Crypto {
 		@Override
 		public int read(byte[] b, int offset, int length) throws IOException {
 			int left = length;
-			// First, supply the IV.
-			if (ivOffset < ivBlockLength) {
-				int amountToReadFromIV = Math.min(left, ivBlockLength - ivOffset);
-				System.arraycopy(ivBlock, ivOffset, b, offset, amountToReadFromIV);
-				ivOffset += amountToReadFromIV;
-				left -= amountToReadFromIV;
-				offset += amountToReadFromIV;
-			}
-
-			// Then, supply the rest of the stream.
 			while (left > 0 && bufLength != -1) {
 				int readFromBuf = Math.min(left, bufLength);
 				System.arraycopy(cipherBuf, bufOffset, b, offset, readFromBuf);
