@@ -38,7 +38,7 @@ class SuggestedTagsList extends TagsList {
 
 	@Override
 	void postChange() {
-		df.saveTags();
+		df.saveTagsAndNotes();
 		lm.update();
 	}
 

@@ -28,6 +28,7 @@ public class DocumentTools {
 	public static final String TMP_MOVE_PAGE_INDEX = "tmp";
 	public static final String DELETED_PREFIX = "d";
 	public static final String NOT_DELETED_PREFIX = "";
+	public static final String NOTES_KEY = Fruitbat.FULLTEXT_PREFIX + "docnotes";
 	
 	public static int numPagesFor(Document d, String prefix) throws FatalStorageException {
 		int maxIndex = -1;

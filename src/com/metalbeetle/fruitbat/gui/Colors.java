@@ -34,6 +34,9 @@ public final class Colors {
 	public static final Color FULL_TEXT = Color.BLACK;
 	public static final String FULL_TEXT_HTML = toHTMLColor(FULL_TEXT);
 
+	public static final Color NOTES_BG = new Color(255, 255, 233);
+	public static final Color NOTES_HINT = new Color(31, 31, 29);
+
 	static String toHTMLColor(Color c) {
 		return "#" + toHex(c.getRed()) + toHex(c.getGreen()) + toHex(c.getBlue());
 	}

@@ -38,7 +38,7 @@ class InputTagCompleteMenu extends JPopupMenu {
 									text.substring(caretPos));
 							df.tagsF.setCaretPosition(caretPos + tag.length() -
 									tagFragment.length());
-							df.saveTags();
+							df.saveTagsAndNotes();
 							df.completeMenu = null;
 						}});
 						add(tagItem);
@@ -74,7 +74,7 @@ class InputTagCompleteMenu extends JPopupMenu {
 						df.tagsF.setText(text.substring(0, colonPos) + v +
 								text.substring(caretPos));
 						df.tagsF.setCaretPosition(caretPos + v.length() - valueFragment.length());
-						df.saveTags();
+						df.saveTagsAndNotes();
 						df.completeMenu = null;
 					}});
 					add(valueItem);

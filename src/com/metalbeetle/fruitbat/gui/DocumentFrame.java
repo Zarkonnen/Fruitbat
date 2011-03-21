@@ -3,11 +3,13 @@ package com.metalbeetle.fruitbat.gui;
 import com.metalbeetle.fruitbat.BlockingTask;
 import javax.swing.text.BadLocationException;
 import com.metalbeetle.fruitbat.Fruitbat;
+import com.metalbeetle.fruitbat.io.StringSrc;
 import com.metalbeetle.fruitbat.storage.Change;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.DocumentTools;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
+import com.metalbeetle.fruitbat.storage.PageChange;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.FlowLayout;
@@ -20,6 +22,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -52,6 +55,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	final DocumentMenuBar menuBar;
 	InputTagCompleteMenu completeMenu;
 	boolean tagsChanged = false;
+	boolean notesChanged = false;
 	final Caret tagsFCaret;
 	boolean deletedPageMode = false;
 
@@ -60,17 +64,20 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 			final JTextPane tagsF;
 		final JPanel buttonP;
 			final JButton addPageB;
-	final JSplitPane split;
-		final JSplitPane tagSplit;
-			final JPanel suggestedTagsP;
-				final JLabel suggestedTagsL;
-				final JScrollPane suggestedTagsListSP;
-					final SuggestedTagsList suggestedTagsList;
-			final JPanel allTagsP;
-				final JLabel allTagsL;
-				final JScrollPane allTagsListSP;
-					final AllTagsList allTagsList;
-		final PagesViewer viewer;
+	final JSplitPane hSplit;
+		final JSplitPane split;
+			final JSplitPane tagSplit;
+				final JPanel suggestedTagsP;
+					final JLabel suggestedTagsL;
+					final JScrollPane suggestedTagsListSP;
+						final SuggestedTagsList suggestedTagsList;
+				final JPanel allTagsP;
+					final JLabel allTagsL;
+					final JScrollPane allTagsListSP;
+						final AllTagsList allTagsList;
+			final PagesViewer viewer;
+		final JScrollPane notesSP;
+			final FixedTextPane notesPane;
 
 	public DocumentFrame(final Document d, final MainFrame mf) throws HeadlessException {
 		super("Fruitbat Document ");
@@ -122,34 +129,45 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 					addPageB.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
 						addPage();
 					}});
-		c.add(split = new JSplitPane(), BorderLayout.CENTER);
-			split.setBorder(new EmptyBorder(0, 5, 5, 5));
-				split.setLeftComponent(tagSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT));
-					tagSplit.setBorder(new EmptyBorder(0, 5, 5, 5));
-					tagSplit.setTopComponent(suggestedTagsP = new JPanel(new BorderLayout(5, 5)));
-						suggestedTagsP.add(suggestedTagsL = new JLabel("Suggested tags"), BorderLayout.NORTH);
-						suggestedTagsP.add(suggestedTagsListSP = new JScrollPane(), BorderLayout.CENTER);
-							suggestedTagsListSP.setViewportView(suggestedTagsList = new SuggestedTagsList(this));
-					tagSplit.setBottomComponent(allTagsP = new JPanel(new BorderLayout(5, 5)));
-						allTagsP.add(allTagsL = new JLabel("All tags"), BorderLayout.NORTH);
-						allTagsP.add(allTagsListSP = new JScrollPane(), BorderLayout.CENTER);
-							allTagsListSP.setViewportView(allTagsList = new AllTagsList(this));
-					tagSplit.setDividerLocation(200);
-				split.setRightComponent(viewer = new PagesViewer(this));
-				split.setDividerLocation(200);
-
+		c.add(hSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT), BorderLayout.CENTER);
+			hSplit.setTopComponent(split = new JSplitPane());
+				split.setBorder(new EmptyBorder(0, 5, 5, 5));
+					split.setLeftComponent(tagSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT));
+						tagSplit.setBorder(new EmptyBorder(0, 5, 5, 5));
+						tagSplit.setTopComponent(suggestedTagsP = new JPanel(new BorderLayout(5, 5)));
+							suggestedTagsP.add(suggestedTagsL = new JLabel("Suggested tags"), BorderLayout.NORTH);
+							suggestedTagsP.add(suggestedTagsListSP = new JScrollPane(), BorderLayout.CENTER);
+								suggestedTagsListSP.setViewportView(suggestedTagsList = new SuggestedTagsList(this));
+						tagSplit.setBottomComponent(allTagsP = new JPanel(new BorderLayout(5, 5)));
+							allTagsP.add(allTagsL = new JLabel("All tags"), BorderLayout.NORTH);
+							allTagsP.add(allTagsListSP = new JScrollPane(), BorderLayout.CENTER);
+								allTagsListSP.setViewportView(allTagsList = new AllTagsList(this));
+						tagSplit.setDividerLocation(200);
+					split.setRightComponent(viewer = new PagesViewer(this));
+					split.setDividerLocation(200);
+			hSplit.setBottomComponent(notesSP = new JScrollPane());
+				notesSP.setViewportView(notesPane = new FixedTextPane());
+					notesPane.setToolTipText("Notes");
+					notesPane.setBackground(Colors.NOTES_BG);
+				notesPane.getDocument().addDocumentListener(new DocumentListener() {
+					public void insertUpdate(DocumentEvent de) { notesChanged = true; }
+					public void removeUpdate(DocumentEvent de) { notesChanged = true; }
+					public void changedUpdate(DocumentEvent de) { notesChanged = true; }
+				});
+			hSplit.setBorder(null);
+			hSplit.setDividerLocation(600);
 		addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) { close(); }
 			@Override
-			public void windowIconified(WindowEvent e) { saveTags(); }
+			public void windowIconified(WindowEvent e) { saveTagsAndNotes(); }
 			@Override
-			public void windowDeactivated(WindowEvent e) { saveTags(); }
+			public void windowDeactivated(WindowEvent e) { saveTagsAndNotes(); }
 		});
 
 		new FileDrop(viewer, this);
 
-		updateTags();
+		updateTagsAndNotes();
 		updateDisplay();
 		tagsChanged = false;
 		mf.app.shortcutOverlay.attachTo(this);
@@ -167,7 +185,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	}
 
 	void close() {
-		saveTags();
+		saveTagsAndNotes();
 		mf.openDocManager.close(d);
 	}
 
@@ -229,7 +247,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		}
 	}
 
-	void saveTags() {
+	void saveTagsAndNotes() {
 		if (isDeleted()) { return; }
 		try {
 			if (tagsChanged && !mf.isEmergencyShutdown) {
@@ -260,16 +278,23 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 					d.change(changes);
 				}
 			}
+			if (notesChanged && !mf.isEmergencyShutdown) {
+				d.change(l(PageChange.put(DocumentTools.NOTES_KEY, new StringSrc(notesPane.getText()))));
+			}
 			if (tagsChanged) {
 				mf.tagsChanged = true;
 				tagsChanged = false;
+			}
+			if (notesChanged) {
+				mf.tagsChanged = true;
+				notesChanged = false;
 			}
 		} catch (FatalStorageException e) {
 			mf.handleException(e);
 		}
 	}
 
-	void updateTags() {
+	void updateTagsAndNotes() {
 		try {
 			if (d.keys().isEmpty()) {
 				tagsF.setText("");
@@ -289,6 +314,17 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 			}
 			tagsF.setText(sb.length() == 0 ? "" : sb.substring(0, sb.length() - 1));
 			tagsF.setCaretPosition(tagsF.getText().length());
+
+			if (d.hasPage(DocumentTools.NOTES_KEY)) {
+				try {
+					notesPane.setText(srcToString(d.getPage(DocumentTools.NOTES_KEY)));
+				} catch (IOException e) {
+					throw new FatalStorageException("Could not load notes.", e);
+				}
+			} else {
+				notesPane.setText("");
+			}
+			notesChanged = false;
 		} catch (FatalStorageException e) {
 			mf.handleException(e);
 		}
@@ -298,7 +334,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 			final boolean deleteAfterAdding, final int atIndex)
 	{
 		final int numPages = pageFiles.length;
-		saveTags();
+		saveTagsAndNotes();
 		mf.pm.runBlockingTask("Inserting pages", new BlockingTask() {
 			public boolean run() {
 				return DocumentTools.insertPages(d, mf.store, mf.pm, pageFiles, retainOriginals,
@@ -433,6 +469,10 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 			p.putInt("suggestedTagsScrollY", suggestedTagsListSP.getViewport().getViewPosition().y);
 			p.putInt("allTagsScrollX", allTagsListSP.getViewport().getViewPosition().x);
 			p.putInt("allTagsScrollY", allTagsListSP.getViewport().getViewPosition().y);
+			p.putInt("splitDivider", split.getDividerLocation());
+			p.putInt("hSplitDivider", hSplit.getDividerLocation());
+			p.putInt("notesScrollX", notesSP.getViewport().getViewPosition().x);
+			p.putInt("notesScrollY", notesSP.getViewport().getViewPosition().y);
 		}
 	}
 
@@ -447,6 +487,10 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 					new Point(p.getInt("suggestedTagsScrollX", 0), p.getInt("suggestedTagsScrollY", 0)));
 			allTagsListSP.getViewport().setViewPosition(
 					new Point(p.getInt("allTagsScrollX", 0), p.getInt("allTagsScrollY", 0)));
+			notesSP.getViewport().setViewPosition(
+					new Point(p.getInt("notesScrollX", 0), p.getInt("notesScrollY", 0)));
+			split.setDividerLocation(p.getInt("splitDivider", 200));
+			hSplit.setDividerLocation(p.getInt("hSplitDivider", 600));
 		}});
 	}
 }
