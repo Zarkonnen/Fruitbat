@@ -6,7 +6,6 @@ import com.metalbeetle.fruitbat.storage.EnhancedStore;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.storage.SearchResult;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -34,7 +33,7 @@ class MultiplexDocIndex implements DocIndex {
 			docs.add(s.get(d.getID()));
 		}
 
-		return new SearchResult(Collections.unmodifiableList(docs), sr.narrowingTags,
+		return new SearchResult(docs, sr.narrowingTags,
 				sr.outcome, sr.minimumAvailableDocs);
 	}
 

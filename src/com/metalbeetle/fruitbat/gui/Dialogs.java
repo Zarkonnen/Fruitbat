@@ -98,6 +98,7 @@ public class Dialogs implements ProgressMonitor {
 	}
 
 	public void handleException(Exception e, MainFrame affectedStore) {
+		e.printStackTrace();
 		JOptionPane.showMessageDialog(dialogParent(), toExceptionMsg(getFullMessage(e)),
 				"Error Message", JOptionPane.ERROR_MESSAGE);
 		if (affectedStore != null) {

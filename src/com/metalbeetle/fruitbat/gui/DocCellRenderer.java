@@ -5,6 +5,9 @@ import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.DocumentTools;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import java.awt.Component;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JList;
 import static com.metalbeetle.fruitbat.gui.Colors.*;
@@ -17,6 +20,21 @@ class DocCellRenderer extends DefaultListCellRenderer {
 	DocCellRenderer(MainFrame mf) {
 		this.mf = mf;
 	}
+
+	class KeyComparator implements Comparator<String> {
+		public int compare(String k1, String k2) {
+			if (k1.equals(Fruitbat.DATE_KEY)) { return -1; }
+			if (k2.equals(Fruitbat.DATE_KEY)) { return 1; }
+			boolean c1 = mf.lastSearchKV.get(k1) != null;
+			boolean c2 = mf.lastSearchKV.get(k2) != null;
+			if (c1 == c2) {
+				return k1.compareToIgnoreCase(k2);
+			}
+			return c1 ? -1 : 1;
+		}
+	}
+
+	final KeyComparator kc = new KeyComparator();
 
 	@Override
 	public Component getListCellRendererComponent(JList list, Object o, int index,
@@ -50,7 +68,9 @@ class DocCellRenderer extends DefaultListCellRenderer {
 				sb.append("<s>");
 			}
 			boolean hasKeys = false;
-			for (String key : d.keys()) {
+			ArrayList<String> keys = new ArrayList<String>(d.keys());
+			Collections.sort(keys, kc);
+			for (String key : keys) {
 				if (key.startsWith(Fruitbat.HIDDEN_KEY_PREFIX)) { continue; }
 				hasKeys = true;
 				sb.append(" <font color=\"");
