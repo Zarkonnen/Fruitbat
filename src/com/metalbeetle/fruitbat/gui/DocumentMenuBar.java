@@ -71,6 +71,10 @@ class DocumentMenuBar extends JMenuBar {
 				}});
 				deleteMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+				
+		add(new EditMenu());
+
+
 		JMenu pageMenu = new JMenu("Page");
 			add(pageMenu);
 			addPageMI = new JMenuItem("Add Page");
@@ -170,7 +174,7 @@ class DocumentMenuBar extends JMenuBar {
 				}});
 				showDeletedPagesMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_MINUS,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask() | KeyEvent.SHIFT_MASK));
-		
+
 		add(df.mf.app.wmm.getMenu(df));
 	}
 }

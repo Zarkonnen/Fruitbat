@@ -78,6 +78,8 @@ class StoreMenuBar extends JMenuBar {
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 			}
 
+		add(new EditMenu());
+
 		add(mf.app.wmm.getMenu(mf));
 		
 		// Create temp test data.
