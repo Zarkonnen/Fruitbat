@@ -147,14 +147,14 @@ class PagesViewer extends JPanel {
 
 	void assignHardcopyNumber() {
 		try {
-			int nextRetN = df.mf.store.getNextRetainedPageNumber();
-			df.mf.store.setNextRetainedPageNumber(nextRetN + 1);
+			int nextRetN = df.sf.store.getNextRetainedPageNumber();
+			df.sf.store.setNextRetainedPageNumber(nextRetN + 1);
 			df.d.change(l(DataChange.put(df.pagePrefix() + DocumentTools.HARDCOPY_NUMBER_PREFIX +
 					pv.pageIndex, string(nextRetN))));
 			updateDisplay();
 			pv.repaint();
 		} catch (FatalStorageException e) {
-			df.mf.handleException(e);
+			df.sf.handleException(e);
 		}
 	}
 
@@ -165,7 +165,7 @@ class PagesViewer extends JPanel {
 			updateDisplay();
 			pv.repaint();
 		} catch (FatalStorageException e) {
-			df.mf.handleException(e);
+			df.sf.handleException(e);
 		}
 	}
 
@@ -227,7 +227,7 @@ class PagesViewer extends JPanel {
 			return validPage() && df.d.has(df.pagePrefix() + DocumentTools.HARDCOPY_NUMBER_PREFIX +
 					pv.pageIndex);
 		} catch (FatalStorageException e) {
-			df.mf.handleException(e); return false;
+			df.sf.handleException(e); return false;
 		}
 	}
 

@@ -12,14 +12,14 @@ import static com.metalbeetle.fruitbat.gui.Colors.*;
 
 /** List of suitable tags for narrowing search. */
 class NarrowSearchTagsList extends TagsList {
-	final MainFrame mf;
+	final StoreFrame mf;
 	final NarrowSearchTagsListModel m;
 
-	NarrowSearchTagsList(MainFrame mf) {
+	NarrowSearchTagsList(StoreFrame mf) {
 		this(mf, new NarrowSearchTagsListModel(mf));
 	}
 
-	private NarrowSearchTagsList(final MainFrame mf, final NarrowSearchTagsListModel m) {
+	private NarrowSearchTagsList(final StoreFrame mf, final NarrowSearchTagsListModel m) {
 		super();
 		this.m = m;
 		this.mf = mf;
@@ -39,9 +39,9 @@ class NarrowSearchTagsList extends TagsList {
 
 	static class TagCellRenderer extends DefaultListCellRenderer {
 		final StringBuilder sb = new StringBuilder();
-		final MainFrame mf;
+		final StoreFrame mf;
 
-		TagCellRenderer(MainFrame mf) { this.mf = mf; }
+		TagCellRenderer(StoreFrame mf) { this.mf = mf; }
 
 		@Override
 		public Component getListCellRendererComponent(JList list, Object o, int index,
@@ -75,9 +75,9 @@ class NarrowSearchTagsList extends TagsList {
 	}
 
 	static class NarrowSearchTagsListModel extends AbstractListModel {
-		final MainFrame mf;
+		final StoreFrame mf;
 
-		NarrowSearchTagsListModel(MainFrame mf) { this.mf = mf; }
+		NarrowSearchTagsListModel(StoreFrame mf) { this.mf = mf; }
 
 		List<String> visibleNarrowingTags() {
 			ArrayList<String> l = new ArrayList<String>();

@@ -66,12 +66,18 @@ public class FileFieldComponent extends JPanel implements FieldJComponent<File>,
 		jfc.setFileFilter(field.getFileFilter());
 		if (field.lookingForFolders()) { jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY); }
 		if (jfc.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-			setValue(jfc.getSelectedFile());
-			if (l != null) { l.valueChanged(this); }
+			File newValue = jfc.getSelectedFile();
+			File oldValue = getValue();
+			setValue(newValue);
+			broadcastChange(oldValue, newValue);
 		}
 	}
 
 	public void setValueListener(ValueListener l) { this.l = l; }
 
 	public Dimension getExtraSize() { return new Dimension(0, 0); }
+
+	void broadcastChange(File oldValue, File newValue) {
+		if (l != null) { l.valueChanged(this); }
+	}
 }

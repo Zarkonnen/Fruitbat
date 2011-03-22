@@ -20,6 +20,7 @@ import javax.swing.JSeparator;
 import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.UndoableEditListener;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 
 public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener {
@@ -34,6 +35,10 @@ public class ConfigPanel extends JPanel implements FieldJComponent.ValueListener
 
 	public void setConfigChangedListener(ConfigChangedListener ccl) { this.ccl = ccl; }
 	ConfigChangedListener ccl;
+
+	public void addUndoableEditListener(UndoableEditListener uel) {
+		nameF.getDocument().addUndoableEditListener(uel);
+	}
 
 	public ConfigPanel(StorageSystem system) {
 		this.system = system;

@@ -100,7 +100,7 @@ class SuggestedTagsList extends TagsList {
 			try {
 				suggestedTags.clear();
 				HashSet<String> usedKeys = l.getUsedKeys();
-				DocIndex di = l.df.mf.store.getIndex();
+				DocIndex di = l.df.sf.store.getIndex();
 
 				// By profile
 				String newCProf1 = l.df.d.has(DocumentTools.COLOR_PROFILE_1)
@@ -164,7 +164,7 @@ class SuggestedTagsList extends TagsList {
 
 				fireContentsChanged(this, 0, getSize());
 			} catch (FatalStorageException e) {
-				l.df.mf.handleException(e);
+				l.df.sf.handleException(e);
 			}
 		}
 	}

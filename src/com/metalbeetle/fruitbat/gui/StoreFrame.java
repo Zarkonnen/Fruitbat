@@ -48,7 +48,7 @@ import javax.swing.text.BadLocationException;
 import static com.metalbeetle.fruitbat.util.Misc.*;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 
-public class MainFrame extends JFrame implements FileDrop.Listener {
+public class StoreFrame extends JFrame implements FileDrop.Listener {
 	static final int DEFAULT_MAX_DOCS = 50;
 
 	final Fruitbat app;
@@ -77,6 +77,7 @@ public class MainFrame extends JFrame implements FileDrop.Listener {
 	final Box searchBoxH;
 		final Box searchBoxV;
 			final JTextPane searchF;
+				final SearchColorizingDocument searchD;
 		final JPanel buttonP;
 			final JButton undeleteDocumentB;
 			final JButton newDocumentB;
@@ -90,7 +91,7 @@ public class MainFrame extends JFrame implements FileDrop.Listener {
 			final JScrollPane tagsListSP;
 				final NarrowSearchTagsList tagsList;
 
-	public MainFrame(Fruitbat application, EnhancedStore store, StoreConfig config) {
+	public StoreFrame(Fruitbat application, EnhancedStore store, StoreConfig config) {
 		super("Fruitbat: " + store);
 		app = application;
 		this.store = store;
@@ -107,7 +108,8 @@ public class MainFrame extends JFrame implements FileDrop.Listener {
 			searchBoxH.add(searchBoxV = Box.createVerticalBox());
 				searchBoxV.add(Box.createVerticalStrut(5));
 				searchBoxV.add(searchF = new FixedTextPane());
-					searchF.setDocument(new SearchColorizingDocument(this));
+					searchF.setDocument(searchD = new SearchColorizingDocument(this));
+					searchD.addUndoableEditListener(new WindowExpirationWrapper(this, app.undoManager));
 					searchF.addKeyListener(new KeyAdapter() {
 						@Override
 						public void keyReleased(KeyEvent e) {
@@ -485,7 +487,9 @@ public class MainFrame extends JFrame implements FileDrop.Listener {
 	public void readPrefs(final Preferences p) throws BackingStoreException, FatalStorageException {
 		setLocation(p.getInt("x", getX()), p.getInt("y", getY()));
 		setSize(p.getInt("width", getWidth()), p.getInt("height", getHeight()));
+		searchD.setUndosEnabled(false);
 		searchF.setText(p.get("searchTerms", ""));
+		searchD.setUndosEnabled(true);
 		search(p.get("searchTerms", ""), p.getInt("maxDocs", DEFAULT_MAX_DOCS), /*force*/ true);
 		searchF.setCaretPosition(p.getInt("searchCaret", searchF.getText().length()));
 		try { docsList.setSelectedIndex(p.getInt("selectedDoc", -1)); } catch (Exception e) {}

@@ -2,23 +2,28 @@ package com.metalbeetle.fruitbat.gui;
 
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import java.util.HashSet;
+import javax.swing.event.UndoableEditEvent;
+import javax.swing.event.UndoableEditListener;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 
-class SearchColorizingDocument extends DefaultStyledDocument {
+class SearchColorizingDocument extends DefaultStyledDocument implements UndoableEditListener {
 	final Style tagStyle;
 	final Style unknownTagStyle;
 	final Style valueStyle;
 	final Style ignoredTagStyle;
 	final Style fullTextStyle;
 	final Style disabledFullTextStyle;
-	final MainFrame mf;
+	final StoreFrame mf;
 	final HashSet<String> encounteredKeys = new HashSet<String>();
+	final HashSet<UndoableEditListener> uels = new HashSet<UndoableEditListener>();
+	boolean undosEnabled = true;
+	boolean undosEnabled2 = true;
 
-	SearchColorizingDocument(MainFrame mf) {
+	SearchColorizingDocument(StoreFrame mf) {
 		this.mf = mf;
 		tagStyle = mf.searchF.addStyle("Tag", null);
 		StyleConstants.setForeground(tagStyle, Colors.MATCHED_TAG);
@@ -35,6 +40,21 @@ class SearchColorizingDocument extends DefaultStyledDocument {
 		StyleConstants.setForeground(disabledFullTextStyle, Colors.FULL_TEXT);
 		StyleConstants.setItalic(disabledFullTextStyle, true);
 		StyleConstants.setStrikeThrough(disabledFullTextStyle, true);
+		super.addUndoableEditListener(this);
+	}
+
+	public void setUndosEnabled(boolean undosEnabled) {
+		this.undosEnabled = undosEnabled;
+	}
+
+	@Override
+	public void addUndoableEditListener(UndoableEditListener uel) {
+		uels.add(uel);
+	}
+
+	@Override
+	public void removeUndoableEditListener(UndoableEditListener uel) {
+		uels.remove(uel);
 	}
 
 	@Override
@@ -51,6 +71,7 @@ class SearchColorizingDocument extends DefaultStyledDocument {
 
 	void colorize() {
 		try {
+			undosEnabled2 = false;
 			int start = 0;
 			int nextSpace;
 			int nextColon;
@@ -109,6 +130,14 @@ class SearchColorizingDocument extends DefaultStyledDocument {
 			} while (nextSpace != text.length());
 		} catch (FatalStorageException e) {
 			mf.handleException(e);
+		} finally {
+			undosEnabled2 = true;
+		}
+	}
+
+	public void undoableEditHappened(UndoableEditEvent uee) {
+		if (undosEnabled && undosEnabled2) {
+			for (UndoableEditListener uel : uels) { uel.undoableEditHappened(uee); }
 		}
 	}
 }

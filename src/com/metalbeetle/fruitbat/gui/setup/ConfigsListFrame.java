@@ -139,7 +139,7 @@ public class ConfigsListFrame extends JFrame {
 				Utils.getAvailableStorageSystems().toArray(),
 				Utils.getAvailableStorageSystems().get(0));
 		if (ss != null) {
-			final StoreConfig sc = ConfigDialog.newConfig(ss, this);
+			final StoreConfig sc = ConfigDialog.newConfig(ss, this, app);
 			if (sc != null) {
 				configs.add(sc);
 				updateAndSave();
@@ -158,7 +158,7 @@ public class ConfigsListFrame extends JFrame {
 	void edit() {
 		int i = configsList.getSelectedIndex();
 		if (i != -1) {
-			configs.set(i, ConfigDialog.editConfig(configs.get(i), this));
+			configs.set(i, ConfigDialog.editConfig(configs.get(i), this, app));
 			updateAndSave();
 		}
 	}

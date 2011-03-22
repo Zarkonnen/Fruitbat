@@ -15,6 +15,8 @@ import javax.swing.Action;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.KeyStroke;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MenuListener;
 import javax.swing.text.JTextComponent;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 
@@ -50,6 +52,14 @@ public class EditMenu extends JMenu {
 		super("Edit");
 		this.app = app;
 		app.undoManager.register(this);
+
+		addMenuListener(new MenuListener() {
+			public void menuSelected(MenuEvent me) {
+				update();
+			}
+			public void menuDeselected(MenuEvent me) {}
+			public void menuCanceled(MenuEvent me) {}
+		});
 
 		add(undoItem = new JMenuItem("Undo"));
 		undoItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z,

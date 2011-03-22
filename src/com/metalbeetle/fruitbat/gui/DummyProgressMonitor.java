@@ -19,6 +19,6 @@ public class DummyProgressMonitor implements ProgressMonitor {
 	public void showWarning(String type, String title, String message) {
         System.err.println(type + ": " + title + ": " + message);
     }
-	public void handleException(Exception e, MainFrame mf) {}
+	public void handleException(Exception e, StoreFrame mf) {}
 	public String askQuestion(String title, String question, String initialValue) { return initialValue; }
 }

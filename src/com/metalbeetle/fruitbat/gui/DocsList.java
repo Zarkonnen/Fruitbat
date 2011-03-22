@@ -11,14 +11,14 @@ import javax.swing.JList;
 
 /** List of documents in MainFrame. */
 class DocsList extends JList {
-	final MainFrame mf;
+	final StoreFrame mf;
 	final DocsListModel m;
 
-	DocsList(MainFrame mf) {
+	DocsList(StoreFrame mf) {
 		this(mf, new DocsListModel(mf));
 	}
 
-	private DocsList(final MainFrame mf, final DocsListModel m) {
+	private DocsList(final StoreFrame mf, final DocsListModel m) {
 		super(m);
 		this.m = m;
 		this.mf = mf;

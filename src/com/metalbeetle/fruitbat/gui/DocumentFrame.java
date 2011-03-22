@@ -51,7 +51,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 			".pdf");
 
 	final Document d;
-	final MainFrame mf;
+	final StoreFrame sf;
 	final DocumentMenuBar menuBar;
 	InputTagCompleteMenu completeMenu;
 	boolean tagsChanged = false;
@@ -80,10 +80,10 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		final JScrollPane notesSP;
 			final FixedTextPane notesPane;
 
-	public DocumentFrame(final Document d, final MainFrame mf) throws HeadlessException {
+	public DocumentFrame(final Document d, final StoreFrame sf) throws HeadlessException {
 		super("Fruitbat Document ");
 		this.d = d;
-		this.mf = mf;
+		this.sf = sf;
 
 		setJMenuBar(menuBar = new DocumentMenuBar(this));
 
@@ -97,7 +97,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 				searchBoxV.add(tagsF = new FixedTextPane());
 					tagsFCaret = tagsF.getCaret();
 					tagsF.setDocument(tagsD = new TagColorizingDocument(tagsF));
-					tagsF.getDocument().addUndoableEditListener(mf.app.undoManager);
+					tagsF.getDocument().addUndoableEditListener(new WindowExpirationWrapper(this, sf.app.undoManager));
 					tagsF.getDocument().addDocumentListener(new DocumentListener() {
 						public void insertUpdate(DocumentEvent e) {
 							allTagsList.update();
@@ -151,7 +151,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 				notesSP.setViewportView(notesPane = new FixedTextPane());
 					notesPane.setToolTipText("Notes");
 					notesPane.setBackground(Colors.NOTES_BG);
-					notesPane.getDocument().addUndoableEditListener(mf.app.undoManager);
+					notesPane.getDocument().addUndoableEditListener(new WindowExpirationWrapper(this, sf.app.undoManager));
 					notesPane.getDocument().addDocumentListener(new DocumentListener() {
 						public void insertUpdate(DocumentEvent de) { notesChanged = true; }
 						public void removeUpdate(DocumentEvent de) { notesChanged = true; }
@@ -173,7 +173,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		updateTagsAndNotes();
 		updateDisplay();
 		tagsChanged = false;
-		mf.app.shortcutOverlay.attachTo(this);
+		sf.app.shortcutOverlay.attachTo(this);
 		pack();
 		setSize(800, 800);
 	}
@@ -182,14 +182,14 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		try {
 			return d.has(Fruitbat.DEAD_KEY);
 		} catch (FatalStorageException e) {
-			mf.handleException(e);
+			sf.handleException(e);
 			return false;
 		}
 	}
 
 	void close() {
 		saveTagsAndNotes();
-		mf.openDocManager.close(d);
+		sf.openDocManager.close(d);
 	}
 
 	/**
@@ -219,12 +219,12 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 
 	void delete() {
 		try {
-			mf.store.delete(d);
-			mf.tagsChanged = true;
+			sf.store.delete(d);
+			sf.tagsChanged = true;
 			close();
 			dispose();
 		} catch (FatalStorageException e) {
-			mf.handleException(e);
+			sf.handleException(e);
 		}
 	}
 
@@ -253,7 +253,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	void saveTagsAndNotes() {
 		if (isDeleted()) { return; }
 		try {
-			if (tagsChanged && !mf.isEmergencyShutdown) {
+			if (tagsChanged && !sf.isEmergencyShutdown) {
 				// Generate a mapping of tags.
 				String[] terms = tagsF.getText().split(" +");
 				HashMap<String, String> tags = new HashMap<String, String>();
@@ -281,19 +281,19 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 					d.change(changes);
 				}
 			}
-			if (notesChanged && !mf.isEmergencyShutdown) {
+			if (notesChanged && !sf.isEmergencyShutdown) {
 				d.change(l(PageChange.put(DocumentTools.NOTES_KEY, new StringSrc(notesPane.getText()))));
 			}
 			if (tagsChanged) {
-				mf.tagsChanged = true;
+				sf.tagsChanged = true;
 				tagsChanged = false;
 			}
 			if (notesChanged) {
-				mf.tagsChanged = true;
+				sf.tagsChanged = true;
 				notesChanged = false;
 			}
 		} catch (FatalStorageException e) {
-			mf.handleException(e);
+			sf.handleException(e);
 		}
 	}
 
@@ -322,7 +322,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 
 
 			try {
-				notesPane.getDocument().removeUndoableEditListener(mf.app.undoManager);
+				notesPane.getDocument().removeUndoableEditListener(new WindowExpirationWrapper(this, sf.app.undoManager));
 				if (d.hasPage(DocumentTools.NOTES_KEY)) {
 					notesPane.setText(srcToString(d.getPage(DocumentTools.NOTES_KEY)));
 				} else {
@@ -331,11 +331,11 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 			} catch (IOException e) {
 				throw new FatalStorageException("Could not load notes.", e);
 			} finally {
-				notesPane.getDocument().addUndoableEditListener(mf.app.undoManager);
+				notesPane.getDocument().addUndoableEditListener(new WindowExpirationWrapper(this, sf.app.undoManager));
 			}
 			notesChanged = false;
 		} catch (FatalStorageException e) {
-			mf.handleException(e);
+			sf.handleException(e);
 		}
 	}
 
@@ -344,9 +344,9 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	{
 		final int numPages = pageFiles.length;
 		saveTagsAndNotes();
-		mf.pm.runBlockingTask("Inserting pages", new BlockingTask() {
+		sf.pm.runBlockingTask("Inserting pages", new BlockingTask() {
 			public boolean run() {
-				return DocumentTools.insertPages(d, mf.store, mf.pm, pageFiles, retainOriginals,
+				return DocumentTools.insertPages(d, sf.store, sf.pm, pageFiles, retainOriginals,
 						deleteAfterAdding, atIndex, numPages);
 			}
 
@@ -366,7 +366,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		final int currentIndex = viewer.getPage();
 		final int numPages = numPages();
 		int newIndex = currentIndex;
-		String newPageNS = mf.pm.askQuestion("New location", "Where do you want to move this page?",
+		String newPageNS = sf.pm.askQuestion("New location", "Where do you want to move this page?",
 				string(newIndex + 1));
 		try {
 			newIndex = integer(newPageNS) - 1;
@@ -375,10 +375,10 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		if (newIndex > numPages - 1) { newIndex = numPages - 1; }
 		if (newIndex != currentIndex) {
 			try {
-				DocumentTools.movePage(d, mf.store, mf.pm, currentIndex, newIndex);
+				DocumentTools.movePage(d, sf.store, sf.pm, currentIndex, newIndex);
 				viewer.setPage(newIndex);
 			} catch (FatalStorageException e) {
-				mf.handleException(e);
+				sf.handleException(e);
 			}
 		}
 	}
@@ -387,13 +387,13 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		try {
 			if (!deletedPageMode && viewer.validPage()) {
 				final int pageNum = viewer.getPage();
-				DocumentTools.deletePage(d, mf.store, mf.pm, pageNum);
+				DocumentTools.deletePage(d, sf.store, sf.pm, pageNum);
 				int gotoPageNum = pageNum - 1;
 				if (gotoPageNum == -1 && numPages() > 1) { gotoPageNum = 0; }
 				viewer.setPage(gotoPageNum);
 			}
 		} catch (Exception e) {
-			mf.handleException(e);
+			sf.handleException(e);
 		}
 	}
 
@@ -401,13 +401,13 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		try {
 			if (deletedPageMode && viewer.validPage()) {
 				final int pageNum = viewer.getPage();
-				DocumentTools.undeletePage(d, mf.store, mf.pm, pageNum);
+				DocumentTools.undeletePage(d, sf.store, sf.pm, pageNum);
 				int gotoPageNum = pageNum - 1;
 				if (gotoPageNum == -1 && numPages() > 1) { gotoPageNum = 0; }
 				viewer.setPage(gotoPageNum);
 			}
 		} catch (Exception e) {
-			mf.handleException(e);
+			sf.handleException(e);
 		}
 	}
 
@@ -417,7 +417,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	}
 
 	void insertPagesAt(int atIndex) {
-		JFileChooser c = new JFileChooser(mf.lastDirectory);
+		JFileChooser c = new JFileChooser(sf.lastDirectory);
 		c.setDialogTitle("Choose one or several pages to " +
 				(atIndex == numPages() ? "add" : "insert"));
 		c.setAcceptAllFileFilterUsed(false);
@@ -426,7 +426,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		ImportFileAccessory ifa = new ImportFileAccessory();
 		c.setAccessory(ifa);
 		if (c.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-			mf.lastDirectory = c.getCurrentDirectory();
+			sf.lastDirectory = c.getCurrentDirectory();
 			File[] fs = c.getSelectedFiles();
 			if (fs != null && fs.length > 0) {
 				insertPages(fs, ifa.retainedOriginal.isSelected(), !ifa.storeCopy.isSelected(),
@@ -454,7 +454,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 		try {
 			return DocumentTools.numPagesFor(d, pagePrefix());
 		} catch (FatalStorageException e) {
-			mf.handleException(e);
+			sf.handleException(e);
 			return -1;
 		}
 	}

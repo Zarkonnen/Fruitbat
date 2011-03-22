@@ -16,7 +16,7 @@ import static com.metalbeetle.fruitbat.util.Misc.*;
 class StoreMenuBar extends JMenuBar {
 	final JMenuItem undeleteMI;
 	final JMenuItem deleteMI;
-	public StoreMenuBar(final MainFrame mf) {
+	public StoreMenuBar(final StoreFrame mf) {
 		JMenu fileMenu = new JMenu("File");
 			add(fileMenu);
 			JMenuItem newDocMI = new JMenuItem("New Document");
@@ -98,7 +98,7 @@ class StoreMenuBar extends JMenuBar {
 							"Which year should these docs be from?",
 							"2009"));
 						TestDataGenerator.generate(mf.store, quantity, year);
-						mf.search(mf.lastSearch, MainFrame.DEFAULT_MAX_DOCS, true);
+						mf.search(mf.lastSearch, StoreFrame.DEFAULT_MAX_DOCS, true);
 					} catch (Exception ex) { ex.printStackTrace(); }
 				}});
 

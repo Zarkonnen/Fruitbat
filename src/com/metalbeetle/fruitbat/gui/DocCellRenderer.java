@@ -15,9 +15,9 @@ import static com.metalbeetle.fruitbat.gui.Colors.*;
 class DocCellRenderer extends DefaultListCellRenderer {
 	static final int VALUE_TRUNCATE = 20;
 	final StringBuilder sb = new StringBuilder();
-	final MainFrame mf;
+	final StoreFrame mf;
 
-	DocCellRenderer(MainFrame mf) {
+	DocCellRenderer(StoreFrame mf) {
 		this.mf = mf;
 	}
 

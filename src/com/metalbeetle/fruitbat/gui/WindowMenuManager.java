@@ -11,7 +11,7 @@ import javax.swing.JMenuItem;
 
 public class WindowMenuManager implements OpenDocManager.Listener {
 	private WeakHashMap<Object, WindowMenu> menus = new WeakHashMap<Object, WindowMenu>();
-	private ArrayList<MainFrame> mfs = new ArrayList<MainFrame>();
+	private ArrayList<StoreFrame> mfs = new ArrayList<StoreFrame>();
 	private ConfigsListFrame configsList;
 
 	public JMenu getMenu(Object key) {
@@ -27,7 +27,7 @@ public class WindowMenuManager implements OpenDocManager.Listener {
 		if (configsList != null) {
 			wm.setConfigsList(configsList);
 		}
-		for (MainFrame mf : mfs) {
+		for (StoreFrame mf : mfs) {
 			wm.storeOpened(mf);
 			for (DocumentFrame df : mf.openDocManager.openFrames.values()) {
 				wm.documentOpened(mf, df);
@@ -44,27 +44,27 @@ public class WindowMenuManager implements OpenDocManager.Listener {
 		}
 	}
 
-	public void storeOpened(MainFrame mf) {
+	public void storeOpened(StoreFrame mf) {
 		mfs.add(mf);
 		for (WindowMenu wm : menus.values()) {
 			wm.storeOpened(mf);
 		}
 	}
 
-	public void storeClosed(MainFrame mf) {
+	public void storeClosed(StoreFrame mf) {
 		mfs.remove(mf);
 		for (WindowMenu wm : menus.values()) {
 			wm.storeClosed(mf);
 		}
 	}
 
-	public void documentOpened(MainFrame mf, final DocumentFrame df) {
+	public void documentOpened(StoreFrame mf, final DocumentFrame df) {
 		for (WindowMenu wm : menus.values()) {
 			wm.documentOpened(mf, df);
 		}
 	}
 
-	public void documentClosed(MainFrame mf, DocumentFrame df) {
+	public void documentClosed(StoreFrame mf, DocumentFrame df) {
 		for (WindowMenu wm : menus.values()) {
 			wm.documentClosed(mf, df);
 		}
@@ -86,10 +86,10 @@ public class WindowMenuManager implements OpenDocManager.Listener {
 		}
 
 		JMenuItem configsListItem;
-		HashMap<MainFrame, JMenu> storeMenus = new HashMap<MainFrame, JMenu>();
-		HashMap<MainFrame, HashMap<DocumentFrame, JMenuItem>> docItems = new HashMap<MainFrame, HashMap<DocumentFrame, JMenuItem>>();
+		HashMap<StoreFrame, JMenu> storeMenus = new HashMap<StoreFrame, JMenu>();
+		HashMap<StoreFrame, HashMap<DocumentFrame, JMenuItem>> docItems = new HashMap<StoreFrame, HashMap<DocumentFrame, JMenuItem>>();
 
-		public void storeOpened(final MainFrame mf) {
+		public void storeOpened(final StoreFrame mf) {
 			mf.openDocManager.addListener(this);
 			JMenu storeMenu = new JMenu(mf.store.toString());
 			JMenuItem storeItem = new JMenuItem("Store");
@@ -104,13 +104,13 @@ public class WindowMenuManager implements OpenDocManager.Listener {
 			add(storeMenu);
 		}
 
-		public void storeClosed(MainFrame mf) {
+		public void storeClosed(StoreFrame mf) {
 			remove(storeMenus.get(mf));
 			storeMenus.remove(mf);
 			docItems.remove(mf);
 		}
 
-		public void documentOpened(MainFrame mf, final DocumentFrame df) {
+		public void documentOpened(StoreFrame mf, final DocumentFrame df) {
 			JMenuItem docItem = new JMenuItem(df.d.toString());
 			docItem.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent ae) {
@@ -121,7 +121,7 @@ public class WindowMenuManager implements OpenDocManager.Listener {
 			docItems.get(mf).put(df, docItem);
 		}
 
-		public void documentClosed(MainFrame mf, DocumentFrame df) {
+		public void documentClosed(StoreFrame mf, DocumentFrame df) {
 			storeMenus.get(mf).remove(docItems.get(mf).get(df));
 			docItems.get(mf).remove(df);
 		}

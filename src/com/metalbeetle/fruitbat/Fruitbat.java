@@ -4,7 +4,7 @@ import apple.dts.samplecode.osxadapter.OSXAdapter;
 import com.metalbeetle.fruitbat.gui.AboutWindow;
 import com.metalbeetle.fruitbat.gui.Dialogs;
 import com.metalbeetle.fruitbat.gui.EnhancedUndoManager;
-import com.metalbeetle.fruitbat.gui.MainFrame;
+import com.metalbeetle.fruitbat.gui.StoreFrame;
 import com.metalbeetle.fruitbat.gui.ShortcutOverlay;
 import com.metalbeetle.fruitbat.gui.SplashWindow;
 import com.metalbeetle.fruitbat.gui.WindowMenuManager;
@@ -33,18 +33,18 @@ public class Fruitbat {
 
 	ProgressMonitor pm;
 	final StringPool stringPool = new StringPool(POOL_CUTOFF);
-	final HashMap<StoreConfig, MainFrame> configToMainframe = new HashMap<StoreConfig, MainFrame>();
+	final HashMap<StoreConfig, StoreFrame> configToMainframe = new HashMap<StoreConfig, StoreFrame>();
 	public final WindowMenuManager wmm;
 	public final EnhancedUndoManager undoManager = new EnhancedUndoManager();
 	ConfigsListFrame configsList;
 	public final ShortcutOverlay shortcutOverlay = new ShortcutOverlay();
 	volatile boolean shuttingDown = false;
 
-	public MainFrame openStore(StoreConfig sc) {
+	public StoreFrame openStore(StoreConfig sc) {
 		if (!configToMainframe.containsKey(sc)) {
 			pm.newProcess("Loading store", "", -1);
 			try {
-				MainFrame mf = new MainFrame(this, sc.init(pm), sc);
+				StoreFrame mf = new StoreFrame(this, sc.init(pm), sc);
 				configToMainframe.put(sc, mf);
 				wmm.storeOpened(mf);
 			} catch (Exception e) {
@@ -60,7 +60,7 @@ public class Fruitbat {
 		return configToMainframe.get(sc);
 	}
 
-	public void storeClosed(MainFrame mf) {
+	public void storeClosed(StoreFrame mf) {
 		configToMainframe.remove(mf.getConfig());
 		wmm.storeClosed(mf);
 		if (configToMainframe.isEmpty() && !shuttingDown) {
@@ -69,7 +69,7 @@ public class Fruitbat {
 	}
 
 	void setProgressMonitor(ProgressMonitor pm) {
-		for (MainFrame mf : configToMainframe.values()) {
+		for (StoreFrame mf : configToMainframe.values()) {
 			mf.setProgressMonitor(pm);
 		}
 	}
@@ -97,7 +97,7 @@ public class Fruitbat {
 				configsList.setVisible(true);
 				try {
 					for (Pair<StoreConfig, Preferences> openStores : SavedStoreConfigs.getOpenStores()) {
-						MainFrame mf = openStore(openStores.a);
+						StoreFrame mf = openStore(openStores.a);
 						if (mf != null) { mf.readPrefs(openStores.b); }
 					}
 				} catch (Exception e) {
@@ -106,7 +106,7 @@ public class Fruitbat {
 					return false;
 				}
 				pm = ds;
-				for (MainFrame mf : configToMainframe.values()) {
+				for (StoreFrame mf : configToMainframe.values()) {
 					mf.setProgressMonitor(pm);
 				}
 				return true;
@@ -144,8 +144,8 @@ public class Fruitbat {
 				}
 				pm.newProcess("Closing stores", "", -1);
 				boolean closeSuccess = true;
-				for (Iterator<MainFrame> it = configToMainframe.values().iterator(); it.hasNext();) {
-					MainFrame mf = it.next();
+				for (Iterator<StoreFrame> it = configToMainframe.values().iterator(); it.hasNext();) {
+					StoreFrame mf = it.next();
 					it.remove();
 					try {
 						mf.close();

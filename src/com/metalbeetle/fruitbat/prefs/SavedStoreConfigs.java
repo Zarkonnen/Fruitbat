@@ -1,6 +1,6 @@
 package com.metalbeetle.fruitbat.prefs;
 
-import com.metalbeetle.fruitbat.gui.MainFrame;
+import com.metalbeetle.fruitbat.gui.StoreFrame;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.ProgressMonitor;
 import com.metalbeetle.fruitbat.storage.StoreConfig;
@@ -55,7 +55,7 @@ public final class SavedStoreConfigs {
 		return l;
 	}
 
-	public static void setOpenStores(HashMap<StoreConfig, MainFrame> openStores) throws BackingStoreException, StoreConfigInvalidException, FatalStorageException {
+	public static void setOpenStores(HashMap<StoreConfig, StoreFrame> openStores) throws BackingStoreException, StoreConfigInvalidException, FatalStorageException {
 		Preferences p = Preferences.userNodeForPackage(SavedStoreConfigs.class).
 				node("openStores");
 		p.clear();
@@ -63,7 +63,7 @@ public final class SavedStoreConfigs {
 			p.node(cn).removeNode();
 		}
 		int i = 0;
-		for (Entry<StoreConfig, MainFrame> e : openStores.entrySet()) {
+		for (Entry<StoreConfig, StoreFrame> e : openStores.entrySet()) {
 			Preferences n = p.node(string(i++));
 			n.put("config", e.getKey().toStringRepresentation());
 			e.getValue().writePrefs(n.node("prefs"));

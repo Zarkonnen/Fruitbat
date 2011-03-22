@@ -1,5 +1,7 @@
 package com.metalbeetle.fruitbat.gui.setup;
 
+import com.metalbeetle.fruitbat.Fruitbat;
+import com.metalbeetle.fruitbat.gui.WindowExpirationWrapper;
 import com.metalbeetle.fruitbat.gui.setup.ConfigPanel.ConfigChangedListener;
 import com.metalbeetle.fruitbat.storage.StoreConfig;
 import com.metalbeetle.fruitbat.storage.StorageSystem;
@@ -23,31 +25,32 @@ public class ConfigDialog extends JDialog implements ConfigChangedListener {
 		final JButton cancelB;
 	StoreConfig config = null;
 
-	public static StoreConfig newConfig(StorageSystem sys, JFrame parent) {
-		ConfigDialog cf = new ConfigDialog(sys, parent);
+	public static StoreConfig newConfig(StorageSystem sys, JFrame parent, Fruitbat app) {
+		ConfigDialog cf = new ConfigDialog(sys, parent, app);
 		cf.setLocationRelativeTo(parent);
 		cf.setVisible(true);
 		return cf.config;
 	}
 
-	public static StoreConfig editConfig(StoreConfig conf, JFrame parent) {
-		ConfigDialog cf = new ConfigDialog(conf, parent);
+	public static StoreConfig editConfig(StoreConfig conf, JFrame parent, Fruitbat app) {
+		ConfigDialog cf = new ConfigDialog(conf, parent, app);
 		cf.setLocationRelativeTo(parent);
 		cf.setVisible(true);
 		return cf.config == null ? conf : cf.config;
 	}
 
-	ConfigDialog(StoreConfig conf, JFrame parent) {
-		this(conf.system, parent);
+	ConfigDialog(StoreConfig conf, JFrame parent, Fruitbat app) {
+		this(conf.system, parent, app);
 		cp.setConfig(conf);
 	}
 
-	ConfigDialog(StorageSystem sys, JFrame parent) {
+	ConfigDialog(StorageSystem sys, JFrame parent, Fruitbat app) {
 		super(parent, "Configure " + sys);
 		setModal(true);
 		setLayout(new BorderLayout());
 		add(cp = new ConfigPanel(sys), BorderLayout.CENTER);
 			cp.setConfigChangedListener(this);
+			cp.addUndoableEditListener(new WindowExpirationWrapper(parent, app.undoManager));
 		add(buttonP = new JPanel(new FlowLayout()), BorderLayout.SOUTH);
 			buttonP.add(cancelB = new JButton("Cancel"));
 				cancelB.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {

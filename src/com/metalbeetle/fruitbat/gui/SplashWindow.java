@@ -107,7 +107,7 @@ public class SplashWindow extends JDialog implements ProgressMonitor {
 		dialogs.showWarning(type, title, message);
 	}
 
-	public void handleException(Exception e, MainFrame affectedStore) {
+	public void handleException(Exception e, StoreFrame affectedStore) {
 		toBack();
 		dialogs.handleException(e, affectedStore);
 	}

@@ -21,7 +21,7 @@ import static com.metalbeetle.fruitbat.gui.Colors.*;
 class SearchTagCompleteMenu extends JPopupMenu {
 	static final int MAX_SUGGESTED_VALUES = 30;
 
-	SearchTagCompleteMenu(final MainFrame mf) {
+	SearchTagCompleteMenu(final StoreFrame mf) {
 		try {
 			final String text = mf.searchF.getText();
 			final int caretPos = mf.searchF.getCaretPosition();

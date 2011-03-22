@@ -39,7 +39,7 @@ class DocumentMenuBar extends JMenuBar {
 			JMenuItem newDocMI = new JMenuItem("New Document");
 				fileMenu.add(newDocMI);
 				newDocMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
-					df.mf.newDocument();
+					df.sf.newDocument();
 				}});
 				newDocMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
@@ -55,10 +55,10 @@ class DocumentMenuBar extends JMenuBar {
 				fileMenu.add(undeleteMI);
 				undeleteMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
 					try {
-						df.mf.store.undelete(df.d);
+						df.sf.store.undelete(df.d);
 						df.updateDisplay();
 					} catch (Exception ex) {
-						df.mf.pm.handleException(new FatalStorageException(
+						df.sf.pm.handleException(new FatalStorageException(
 								"Could not undelete document.", ex), null);
 					}
 				}});
@@ -72,7 +72,7 @@ class DocumentMenuBar extends JMenuBar {
 				deleteMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 				
-		add(new EditMenu(df.mf.app));
+		add(new EditMenu(df.sf.app));
 
 
 		JMenu pageMenu = new JMenu("Page");
@@ -141,7 +141,7 @@ class DocumentMenuBar extends JMenuBar {
 			gotoPageMI = new JMenuItem("Go to Page...");
 				pageMenu.add(gotoPageMI);
 				gotoPageMI.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
-					String pageS = df.mf.pm.askQuestion("Go to Page",
+					String pageS = df.sf.pm.askQuestion("Go to Page",
 							"Which page do you want to go to?", "");
 					int page = -1;
 					try { page = integer(pageS); } catch (Exception ex) {}
@@ -175,6 +175,6 @@ class DocumentMenuBar extends JMenuBar {
 				showDeletedPagesMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_MINUS,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask() | KeyEvent.SHIFT_MASK));
 
-		add(df.mf.app.wmm.getMenu(df));
+		add(df.sf.app.wmm.getMenu(df));
 	}
 }

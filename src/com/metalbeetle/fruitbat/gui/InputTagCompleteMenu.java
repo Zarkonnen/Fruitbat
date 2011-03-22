@@ -51,7 +51,7 @@ class InputTagCompleteMenu extends JPopupMenu {
 				final String key = text.substring(spacePos, colonPos - 1);
 				final String valueFragment = text.substring(colonPos, caretPos);
 				HashSet<String> values = new HashSet<String>(MAX_SUGGESTED_VALUES * 2);
-				for (final Document d : df.mf.store.docs()) {
+				for (final Document d : df.sf.store.docs()) {
 					if (d.has(key)) {
 						String dValue = d.get(key);
 						if (dValue.startsWith(valueFragment)) {
@@ -81,7 +81,7 @@ class InputTagCompleteMenu extends JPopupMenu {
 				}
 			}
 		} catch (FatalStorageException e) {
-			df.mf.handleException(e);
+			df.sf.handleException(e);
 		}
 	}
 

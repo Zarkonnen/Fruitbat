@@ -88,14 +88,14 @@ class AllTagsList extends TagsList {
 				usedTags.clear();
 				usedTags.addAll(l.getUsedKeys());
 				Collections.sort(usedTags);
-				unusedTags = l.df.mf.store.getIndex().allKeys();
+				unusedTags = l.df.sf.store.getIndex().allKeys();
 				unusedTags.removeAll(usedTags);
 				for (Iterator<String> it = unusedTags.iterator(); it.hasNext();) {
 					if (it.next().startsWith(Fruitbat.HIDDEN_KEY_PREFIX)) { it.remove(); }
 				}
 				fireContentsChanged(this, 0, getSize());
 			} catch (FatalStorageException e) {
-				l.df.mf.handleException(e);
+				l.df.sf.handleException(e);
 			}
 		}
 	}

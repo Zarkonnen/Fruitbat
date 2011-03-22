@@ -13,13 +13,14 @@ import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
-import javax.swing.border.BevelBorder;
-import static com.metalbeetle.fruitbat.util.Collections.*;
+import javax.swing.event.UndoableEditEvent;
+import javax.swing.event.UndoableEditListener;
 
 public class MultiplexedStoresFieldComponent extends JPanel implements
 		FieldJComponent<List<StoreConfig>>, ConfigPanel.ConfigChangedListener

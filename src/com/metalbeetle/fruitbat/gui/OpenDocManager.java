@@ -12,17 +12,17 @@ class OpenDocManager {
 	static final int DOC_WIN_OFFSET = 10;
 	final HashMap<Document, DocumentFrame> openFrames = new HashMap<Document, DocumentFrame>();
 	final HashSet<Listener> listeners = new HashSet<Listener>();
-	final MainFrame mf;
+	final StoreFrame mf;
 
 	static interface Listener {
-		void documentOpened(MainFrame mf, DocumentFrame df);
-		void documentClosed(MainFrame mf, DocumentFrame df);
+		void documentOpened(StoreFrame mf, DocumentFrame df);
+		void documentClosed(StoreFrame mf, DocumentFrame df);
 	}
 
 	public void addListener(Listener l) { listeners.add(l); }
 	public void removeListener(Listener l) { listeners.remove(l); }
 
-	public OpenDocManager(MainFrame mf) {
+	public OpenDocManager(StoreFrame mf) {
 		this.mf = mf;
 	}
 
