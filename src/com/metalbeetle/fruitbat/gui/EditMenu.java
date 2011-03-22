@@ -1,10 +1,12 @@
 package com.metalbeetle.fruitbat.gui;
 
+import com.metalbeetle.fruitbat.Fruitbat;
 import com.metalbeetle.fruitbat.util.Pair;
 import java.awt.Component;
 import java.awt.Event;
 import java.awt.KeyboardFocusManager;
 import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.beans.PropertyChangeEvent;
@@ -14,7 +16,6 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.KeyStroke;
 import javax.swing.text.JTextComponent;
-import static com.metalbeetle.fruitbat.util.Misc.*;
 import static com.metalbeetle.fruitbat.util.Collections.*;
 
 public class EditMenu extends JMenu {
@@ -24,18 +25,48 @@ public class EditMenu extends JMenu {
 	final JMenuItem copyItem;
 	final JMenuItem pasteItem;
 	final JMenuItem selectAllItem;
+	final Fruitbat app;
 
 	JTextComponent editingComponent = null;
 
-	public EditMenu() {
+	public void update() {
+		if (app.undoManager.canUndo()) {
+			undoItem.setEnabled(true);
+			undoItem.setText(app.undoManager.getUndoPresentationName());
+		} else {
+			undoItem.setEnabled(false);
+			undoItem.setText("Undo");
+		}
+		if (app.undoManager.canRedo()) {
+			redoItem.setEnabled(true);
+			redoItem.setText(app.undoManager.getRedoPresentationName());
+		} else {
+			redoItem.setEnabled(false);
+			redoItem.setText("Redo");
+		}
+	}
+
+	public EditMenu(final Fruitbat app) {
 		super("Edit");
+		this.app = app;
+		app.undoManager.register(this);
 
 		add(undoItem = new JMenuItem("Undo"));
 		undoItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+		undoItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent ae) {
+				app.undoManager.undo();
+			}
+		});
 		add(redoItem = new JMenuItem("Redo"));
 		redoItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask() | Event.SHIFT_MASK));
+		redoItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent ae) {
+				app.undoManager.redo();
+			}
+		});
 		addSeparator();
 		add(cutItem = new JMenuItem("Cut"));
 		cutItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X,
@@ -56,6 +87,8 @@ public class EditMenu extends JMenu {
 				focusChangedTo((Component) pce.getNewValue());
 			}
 		});
+
+		update();
 	}
 
 	void focusChangedTo(Component c) {

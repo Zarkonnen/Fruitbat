@@ -3,6 +3,7 @@ package com.metalbeetle.fruitbat;
 import apple.dts.samplecode.osxadapter.OSXAdapter;
 import com.metalbeetle.fruitbat.gui.AboutWindow;
 import com.metalbeetle.fruitbat.gui.Dialogs;
+import com.metalbeetle.fruitbat.gui.EnhancedUndoManager;
 import com.metalbeetle.fruitbat.gui.MainFrame;
 import com.metalbeetle.fruitbat.gui.ShortcutOverlay;
 import com.metalbeetle.fruitbat.gui.SplashWindow;
@@ -34,6 +35,7 @@ public class Fruitbat {
 	final StringPool stringPool = new StringPool(POOL_CUTOFF);
 	final HashMap<StoreConfig, MainFrame> configToMainframe = new HashMap<StoreConfig, MainFrame>();
 	public final WindowMenuManager wmm;
+	public final EnhancedUndoManager undoManager = new EnhancedUndoManager();
 	ConfigsListFrame configsList;
 	public final ShortcutOverlay shortcutOverlay = new ShortcutOverlay();
 	volatile boolean shuttingDown = false;

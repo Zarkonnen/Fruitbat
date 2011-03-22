@@ -72,7 +72,7 @@ class DocumentMenuBar extends JMenuBar {
 				deleteMI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D,
 						Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 				
-		add(new EditMenu());
+		add(new EditMenu(df.mf.app));
 
 
 		JMenu pageMenu = new JMenu("Page");

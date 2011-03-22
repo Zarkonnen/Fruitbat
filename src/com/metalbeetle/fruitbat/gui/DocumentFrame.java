@@ -62,6 +62,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	final Box searchBoxH;
 		final Box searchBoxV;
 			final JTextPane tagsF;
+				final TagColorizingDocument tagsD;
 		final JPanel buttonP;
 			final JButton addPageB;
 	final JSplitPane hSplit;
@@ -95,7 +96,8 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 				searchBoxV.add(Box.createVerticalStrut(5));
 				searchBoxV.add(tagsF = new FixedTextPane());
 					tagsFCaret = tagsF.getCaret();
-					tagsF.setDocument(new TagColorizingDocument(tagsF));
+					tagsF.setDocument(tagsD = new TagColorizingDocument(tagsF));
+					tagsF.getDocument().addUndoableEditListener(mf.app.undoManager);
 					tagsF.getDocument().addDocumentListener(new DocumentListener() {
 						public void insertUpdate(DocumentEvent e) {
 							allTagsList.update();
@@ -149,11 +151,12 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 				notesSP.setViewportView(notesPane = new FixedTextPane());
 					notesPane.setToolTipText("Notes");
 					notesPane.setBackground(Colors.NOTES_BG);
-				notesPane.getDocument().addDocumentListener(new DocumentListener() {
-					public void insertUpdate(DocumentEvent de) { notesChanged = true; }
-					public void removeUpdate(DocumentEvent de) { notesChanged = true; }
-					public void changedUpdate(DocumentEvent de) { notesChanged = true; }
-				});
+					notesPane.getDocument().addUndoableEditListener(mf.app.undoManager);
+					notesPane.getDocument().addDocumentListener(new DocumentListener() {
+						public void insertUpdate(DocumentEvent de) { notesChanged = true; }
+						public void removeUpdate(DocumentEvent de) { notesChanged = true; }
+						public void changedUpdate(DocumentEvent de) { notesChanged = true; }
+					});
 			hSplit.setBorder(null);
 			hSplit.setDividerLocation(600);
 		addWindowListener(new WindowAdapter() {
@@ -296,6 +299,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 
 	void updateTagsAndNotes() {
 		try {
+			tagsD.setUndosEnabled(false);
 			if (d.keys().isEmpty()) {
 				tagsF.setText("");
 			}
@@ -314,15 +318,20 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 			}
 			tagsF.setText(sb.length() == 0 ? "" : sb.substring(0, sb.length() - 1));
 			tagsF.setCaretPosition(tagsF.getText().length());
+			tagsD.setUndosEnabled(true);
 
-			if (d.hasPage(DocumentTools.NOTES_KEY)) {
-				try {
+
+			try {
+				notesPane.getDocument().removeUndoableEditListener(mf.app.undoManager);
+				if (d.hasPage(DocumentTools.NOTES_KEY)) {
 					notesPane.setText(srcToString(d.getPage(DocumentTools.NOTES_KEY)));
-				} catch (IOException e) {
-					throw new FatalStorageException("Could not load notes.", e);
+				} else {
+					notesPane.setText("");
 				}
-			} else {
-				notesPane.setText("");
+			} catch (IOException e) {
+				throw new FatalStorageException("Could not load notes.", e);
+			} finally {
+				notesPane.getDocument().addUndoableEditListener(mf.app.undoManager);
 			}
 			notesChanged = false;
 		} catch (FatalStorageException e) {
