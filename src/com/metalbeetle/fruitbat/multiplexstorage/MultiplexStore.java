@@ -41,6 +41,14 @@ public class MultiplexStore implements Store {
 	final MultiplexFullTextIndex fullTextIndex;
 	boolean masterIDUpdated = false;
 
+	public int enabledStores() {
+		int i = 0;
+		for (int j = 0; j < storeEnabled.size(); j++) {
+			if (storeEnabled.get(j)) { i++; }
+		}
+		return i;
+	}
+
 	EnhancedStore master() {
 		return stores.get(MASTER_INDEX);
 	}

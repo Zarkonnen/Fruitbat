@@ -2,10 +2,16 @@ package com.metalbeetle.fruitbat.filestorage;
 
 import com.metalbeetle.fruitbat.Util;
 import com.metalbeetle.fruitbat.gui.DummyProgressMonitor;
+import com.metalbeetle.fruitbat.multiplexstorage.MultiplexStore;
 import com.metalbeetle.fruitbat.storage.DataChange;
+import com.metalbeetle.fruitbat.storage.DocIndex;
 import com.metalbeetle.fruitbat.storage.Document;
+import com.metalbeetle.fruitbat.storage.EnhancedStore;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
+import com.metalbeetle.fruitbat.storage.SearchResult;
 import java.io.File;
+import java.util.List;
+import java.util.Map;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import static com.metalbeetle.fruitbat.util.Collections.*;
@@ -37,6 +43,59 @@ public class ReliabilityTest {
 			}
 		} finally {
 			Util.deleteRecursively(loc);
+		}
+	}
+
+	@Test
+	public void testSwitchoverDuringSearch() throws FatalStorageException {
+		File loc1 = Util.createTempFolder();
+		File loc2 = Util.createTempFolder();
+		try {
+			FileStore backupS = new FileStore(loc1, new DummyProgressMonitor()) {
+				@Override
+				/** Pretend to be fast so we get to be the store that gets read from. */
+				public int getLag() { return 100; }
+			};
+			FileStore mainS = new FileStore(loc2, new DummyProgressMonitor());
+			MultiplexStore ms = new MultiplexStore(l(
+					new EnhancedStore(mainS),
+					new EnhancedStore(backupS)
+			), new DummyProgressMonitor());
+			Document d = ms.create();
+			int id = d.getID();
+			d.change(l(DataChange.put("jam", "jam")));
+			ms.close();
+
+			backupS = new FileStore(loc1, new DummyProgressMonitor()) {
+				@Override
+				/** Pretend to be fast so we get to be the store that gets read from. */
+				public int getLag() { return 100; }
+			};
+			mainS = new FileStore(loc2, new DummyProgressMonitor());
+			ms = new MultiplexStore(l(
+					new EnhancedStore(mainS),
+					new EnhancedStore(backupS) {
+						@Override
+						public DocIndex getIndex() {
+							final DocIndex di = super.getIndex();
+							return new DocIndex() {
+								public SearchResult search(Map<String, String> searchKV, int maxDocs) throws FatalStorageException {
+									throw new FatalStorageException("Planned exception.");
+								}
+								public boolean isKey(String key) throws FatalStorageException { return di.isKey(key); }
+								public List<String> allKeys() throws FatalStorageException { return di.allKeys(); }
+								public void close() { di.close(); }
+							};
+						}
+					}
+			), new DummyProgressMonitor());
+
+			assertEquals(2, ms.enabledStores());
+			assertEquals(1, ms.getIndex().search(m(p("jam", "")), 1).docs.size());
+			assertEquals(1, ms.enabledStores());
+		} finally {
+			Util.deleteRecursively(loc1);
+			Util.deleteRecursively(loc2);
 		}
 	}
 }
