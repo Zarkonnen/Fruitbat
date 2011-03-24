@@ -1,15 +1,19 @@
 package com.metalbeetle.fruitbat.filestorage;
 
+import com.metalbeetle.fruitbat.Fruitbat;
 import com.metalbeetle.fruitbat.Util;
 import com.metalbeetle.fruitbat.gui.DummyProgressMonitor;
+import com.metalbeetle.fruitbat.io.FileSrc;
 import com.metalbeetle.fruitbat.multiplexstorage.MultiplexStore;
 import com.metalbeetle.fruitbat.storage.DataChange;
 import com.metalbeetle.fruitbat.storage.DocIndex;
 import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.EnhancedStore;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
+import com.metalbeetle.fruitbat.storage.PageChange;
 import com.metalbeetle.fruitbat.storage.SearchResult;
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import org.junit.Test;
@@ -99,9 +103,10 @@ public class ReliabilityTest {
 	}
 
 	@Test
-	public void testSaveCrashResiliency() throws FatalStorageException {
+	public void testSaveCrashResiliency() throws FatalStorageException, IOException {
 		File loc1 = Util.createTempFolder();
 		File loc2 = Util.createTempFolder();
+		File fullTextFile = Util.createFile("mene mene jamcat upharsin");
 		try {
 			IntentionallyCrashingFileStreamFactory crashy = new IntentionallyCrashingFileStreamFactory();
 			FileStore backupS = new FileStore(loc1, new DummyProgressMonitor(), crashy) {
@@ -121,6 +126,9 @@ public class ReliabilityTest {
 			d.change(l(DataChange.put("cat", "cat")));
 			assertEquals(1, ms.enabledStores());
 			assertEquals(1, ms.getIndex().search(m(p("cat", "")), 1).docs.size());
+			d.change(l(PageChange.put(Fruitbat.FULLTEXT_PREFIX + "x", new FileSrc(fullTextFile))));
+			assertEquals(1, ms.getFullTextIndex().query(l(l("jamcat")), ms.docs()).size());
+			assertEquals(0, ms.getFullTextIndex().query(l(l("unjamcat")), ms.docs()).size());
 			ms.close();
 
 			backupS = new FileStore(loc1, new DummyProgressMonitor()) {
@@ -138,6 +146,8 @@ public class ReliabilityTest {
 			assertEquals(1, ms.getIndex().search(m(p("jam", "")), 1).docs.size());
 			assertEquals(1, ms.getIndex().search(m(p("cat", "")), 1).docs.size());
 			assertEquals(2, ms.enabledStores());
+			assertEquals(1, ms.getFullTextIndex().query(l(l("jamcat")), ms.docs()).size());
+			assertEquals(0, ms.getFullTextIndex().query(l(l("unjamcat")), ms.docs()).size());
 
 			d = ms.get(id);
 			assertTrue(d.has("jam"));
@@ -145,6 +155,7 @@ public class ReliabilityTest {
 		} finally {
 			Util.deleteRecursively(loc1);
 			Util.deleteRecursively(loc2);
+			fullTextFile.delete();
 		}
 	}
 }
