@@ -9,8 +9,6 @@ import java.io.File;
 import java.util.HashMap;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -27,17 +25,19 @@ public final class AppendingKVFile implements KVFile {
 
 	final File f;
 	final File cacheF;
+	final FileStreamFactory fsf;
 	private final Map<String, String> defaults;
 	private final HashMap<String, String> keyValueMap = new HashMap<String, String>();
 	private final TreeSet<String> keys = new TreeSet<String>();
 
 	private boolean loaded = false;
 
-	public AppendingKVFile(File f, File cacheF,  Map<String, String> defaults) {
+	public AppendingKVFile(File f, File cacheF,  Map<String, String> defaults, FileStreamFactory fsf) {
 		this.f = f; this.cacheF = cacheF; this.defaults = new HashMap<String, String>(defaults);
+		this.fsf = fsf;
 	}
-	public AppendingKVFile(File f, Map<String, String> defaults) { this(f, null, defaults); }
-	public AppendingKVFile(File f) { this(f, Collections.<String, String>emptyMap()); }
+	public AppendingKVFile(File f, Map<String, String> defaults, FileStreamFactory fsf) { this(f, null, defaults, fsf); }
+	public AppendingKVFile(File f, FileStreamFactory fsf) { this(f, Collections.<String, String>emptyMap(), fsf); }
 
 	/** @return The key/value map in the file. Never use keyValueMap directly! */
 	HashMap<String, String> kv() throws FatalStorageException {
@@ -60,7 +60,7 @@ public final class AppendingKVFile implements KVFile {
 			if (cacheF != null && cacheF.exists()) {
 				ATRReader r = null;
 				try {
-					r = new ATRReader(new BufferedInputStream(new FileInputStream(cacheF)));
+					r = new ATRReader(new BufferedInputStream(fsf.inputStream(cacheF)));
 					String[] fields = new String[2];
 					int fieldsRead;
 					while ((fieldsRead = r.readRecord(fields, 0, 2)) != -1) {
@@ -89,7 +89,7 @@ public final class AppendingKVFile implements KVFile {
 				keys.addAll(defaults.keySet());
 				ATRReader r = null;
 				try {
-					r = new ATRReader(new BufferedInputStream(new FileInputStream(f)));
+					r = new ATRReader(new BufferedInputStream(fsf.inputStream(f)));
 					List<String> rec;
 					while ((rec = r.readRecord()) != null) {
 						int i = 0;
@@ -135,7 +135,7 @@ public final class AppendingKVFile implements KVFile {
 
 			ATRWriter w = null;
 			try {
-				w = new ATRWriter(new BufferedOutputStream(new FileOutputStream(cacheF,
+				w = new ATRWriter(new BufferedOutputStream(fsf.outputStream(cacheF,
 						/*append*/ false)));
 				for (Map.Entry<String, String> kv : keyValueMap.entrySet()) {
 					w.startRecord();
@@ -147,6 +147,7 @@ public final class AppendingKVFile implements KVFile {
 				w.write(END_OF_CACHE);
 				w.endRecord();
 				loaded = false;
+				w.flush();
 			} catch (Exception e) {
 				throw new FatalStorageException("Couldn't append to " + f + ".", e);
 			} finally {
@@ -210,7 +211,7 @@ public final class AppendingKVFile implements KVFile {
 
 		ATRWriter w = null;
 		try {
-			w = new ATRWriter(new BufferedOutputStream(new FileOutputStream(f, /*append*/ true)));
+			w = new ATRWriter(/*new BufferedOutputStream(*/fsf.outputStream(f, /*append*/ true)/*)*/);
 			w.startRecord();
 			for (DataChange c : changes) {
 				if (c instanceof DataChange.Put) {
@@ -232,6 +233,7 @@ public final class AppendingKVFile implements KVFile {
 				}
 			}
 			w.endRecord();
+			w.flush();
 		} catch (Exception e) {
 			loaded = false;
 			throw new FatalStorageException("Couldn't append to " + f + ".", e);

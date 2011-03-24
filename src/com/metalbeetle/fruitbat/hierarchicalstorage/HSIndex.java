@@ -285,6 +285,7 @@ public class HSIndex implements DocIndex {
 			w.startRecord();
 			w.endRecord();
 			pm.progress("Finishing...", valueCache.size());
+			w.flush();
 		} catch (Exception e) {
 			// We couldn't write the index, so let's just try to delete it.
 			if (tos.isAbortable()) {

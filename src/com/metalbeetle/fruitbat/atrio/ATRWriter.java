@@ -46,6 +46,7 @@ public class ATRWriter {
 	/** Note: ATRWriter is unbuffered. */
 	public ATRWriter(OutputStream out) { this.out = out; }
 	public void close() throws IOException { out.close(); }
+	public void flush() throws IOException { out.flush(); }
 
 	public void startRecord() throws IOException {
 		out.write(R_START);

@@ -1,5 +1,7 @@
 package com.metalbeetle.fruitbat.util;
 
+import com.metalbeetle.fruitbat.filestorage.DefaultFileStreamFactory;
+import com.metalbeetle.fruitbat.filestorage.FileStreamFactory;
 import com.metalbeetle.fruitbat.io.DataSrc;
 import com.metalbeetle.fruitbat.io.FileSrc;
 import com.metalbeetle.fruitbat.io.StringSrc;
@@ -98,6 +100,31 @@ public final class Misc {
 			while ((bytesRead = in.read(buffer)) != -1) {
 				out.write(buffer, 0, bytesRead);
 			}
+			out.flush();
+		} finally {
+			try { in.close(); } catch (Exception e) {}
+			out.close();
+		}
+	}
+
+	public static void srcToFile(DataSrc src, File target, FileStreamFactory fsf) throws IOException {
+		if (src instanceof FileSrc && fsf instanceof DefaultFileStreamFactory) {
+			try {
+				FileUtils.copyFile(((FileSrc) src).f, target);
+				return;
+			} catch (IOException e) { /* try manually */ }
+		}
+		BufferedInputStream in = null;
+		BufferedOutputStream out = null;
+		try {
+			in = new BufferedInputStream(src.getInputStream());
+			out = new BufferedOutputStream(fsf.outputStream(target));
+			int bytesRead = -1;
+			byte[] buffer = new byte[BLOCK_SIZE];
+			while ((bytesRead = in.read(buffer)) != -1) {
+				out.write(buffer, 0, bytesRead);
+			}
+			out.flush();
 		} finally {
 			try { in.close(); } catch (Exception e) {}
 			out.close();

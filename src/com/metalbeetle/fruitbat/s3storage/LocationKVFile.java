@@ -77,6 +77,7 @@ public class LocationKVFile implements KVFile {
 				w.write(kv.getValue());
 				w.endRecord();
 			}
+			w.flush();
 		} catch (Exception e) {
 			cos.abort();
 			throw new FatalStorageException("Unable to save data to " + l.getName() + ".", e);

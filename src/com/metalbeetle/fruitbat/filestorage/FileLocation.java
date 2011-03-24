@@ -7,8 +7,6 @@ import com.metalbeetle.fruitbat.io.LocalFile;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import com.metalbeetle.fruitbat.util.Misc;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -19,8 +17,9 @@ import java.util.List;
 /** A location pointing to a file on the local file system. */
 public class FileLocation implements Location, LocalFile {
 	final File f;
+	final FileStreamFactory fsf;
 
-	public FileLocation(File f) { this.f = f; }
+	public FileLocation(File f, FileStreamFactory fsf) { this.f = f; this.fsf = fsf; }
 
 	public String getName() { return f.getName(); }
 
@@ -28,27 +27,27 @@ public class FileLocation implements Location, LocalFile {
 
 	public Location parent() throws FatalStorageException {
 		File parent = f.getParentFile();
-		return parent == null ? null : new FileLocation(parent);
+		return parent == null ? null : new FileLocation(parent, fsf);
 	}
 
 	public Location child(String name) throws FatalStorageException {
-		return new FileLocation(new File(f, name));
+		return new FileLocation(new File(f, name), fsf);
 	}
 
 	public List<Location> children() throws FatalStorageException {
 		ArrayList<Location> l = new ArrayList<Location>();
 		for (File c : f.listFiles()) {
-			l.add(new FileLocation(c));
+			l.add(new FileLocation(c, fsf));
 		}
 		return l;
 	}
 
 	public KVFile kvFile() throws FatalStorageException {
-		return new AppendingKVFile(f);
+		return new AppendingKVFile(f, fsf);
 	}
 
 	public KVFile kvFile(Location cache, HashMap<String, String> defaults) throws FatalStorageException {
-		return new AppendingKVFile(f, ((FileLocation) cache).f, defaults);
+		return new AppendingKVFile(f, ((FileLocation) cache).f, defaults, fsf);
 	}
 
 	public void put(DataSrc data) throws FatalStorageException {
@@ -83,7 +82,7 @@ public class FileLocation implements Location, LocalFile {
 
 	class MyCOS implements CommittableOutputStream {
 		public OutputStream stream() throws IOException {
-			return new FileOutputStream(f);
+			return fsf.outputStream(f);
 		}
 
 		public void commitIfNotAborted() throws IOException {
@@ -98,7 +97,7 @@ public class FileLocation implements Location, LocalFile {
 	}
 
 	public InputStream getInputStream() throws IOException {
-		return new FileInputStream(f);
+		return fsf.inputStream(f);
 	}
 
 	public long getLength() throws IOException {

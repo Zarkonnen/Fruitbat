@@ -9,6 +9,7 @@ import java.util.Properties;
 import java.util.Map;
 import java.util.Collections;
 import com.metalbeetle.fruitbat.filestorage.AppendingKVFile;
+import com.metalbeetle.fruitbat.filestorage.DefaultFileStreamFactory;
 import com.metalbeetle.fruitbat.hierarchicalstorage.KVFile;
 import com.metalbeetle.fruitbat.s3storage.S3Location;
 import java.util.HashMap;
@@ -44,7 +45,7 @@ public final class KVFileManagers {
 		}
 
 		public void reboot() throws Exception {
-			kvf = new AppendingKVFile(f, cf, defaults);
+			kvf = new AppendingKVFile(f, cf, defaults, new DefaultFileStreamFactory());
 		}
 
 		public void tearDown() throws Exception {

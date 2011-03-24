@@ -43,7 +43,7 @@ public class ATRStorageSystem implements StorageSystem {
 			throws FatalStorageException, StoreConfigInvalidException
 	{
 		Utils.checkConfigValues(new StoreConfig(this, configValues));
-		return new FileStore((File) configValues.get(0), pm);
+		return new FileStore((File) configValues.get(0), pm, new DefaultFileStreamFactory());
 	}
 
 	@Override

@@ -38,6 +38,7 @@ public class CryptoTest {
 			ByteArrayOutputStream os = new ByteArrayOutputStream();
 			Crypto.EncryptingOutputStream cos = new Crypto.EncryptingOutputStream(os, pwd);
 			cos.write(plain);
+			cos.flush();
 			cos.close();
 			ByteArrayInputStream is = new ByteArrayInputStream(os.toByteArray());
 			Crypto.DecryptingInputStream cis = new Crypto.DecryptingInputStream(is, pwd);
@@ -61,6 +62,7 @@ public class CryptoTest {
 			ByteArrayOutputStream os = new ByteArrayOutputStream();
 			Crypto.EncryptingOutputStream cos = new Crypto.EncryptingOutputStream(os, pwd);
 			cos.write(plain);
+			cos.flush();
 			cos.close();
 			ByteArrayInputStream is = new ByteArrayInputStream(os.toByteArray());
 			Crypto.DecryptingInputStream cis = new Crypto.DecryptingInputStream(is, pwd);

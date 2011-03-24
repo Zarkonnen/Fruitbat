@@ -71,6 +71,7 @@ public class ATRTest {
 		ATRWriter w = new ATRWriter(out);
 		w.writeRecord(l("a", "b", "c", "d"));
 		w.writeRecord(l("x"));
+		w.flush();
 		w.close();
 		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
 		ATRReader r = new ATRReader(in);

@@ -12,7 +12,11 @@ public class FileStore extends HSStore {
 	final LuceneIndex luceneIndex;
 
 	public FileStore(File f, ProgressMonitor pm) throws FatalStorageException {
-		super(new FileLocation(f), pm);
+		this(f, pm, new DefaultFileStreamFactory());
+	}
+
+	public FileStore(File f, ProgressMonitor pm, FileStreamFactory fsf) throws FatalStorageException {
+		super(new FileLocation(f, fsf), pm);
 		this.f = f;
 		luceneIndex = new LuceneIndex(new File(f, "lucene-index"));
 	}

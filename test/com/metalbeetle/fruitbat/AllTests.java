@@ -12,6 +12,7 @@ import com.metalbeetle.fruitbat.storage.DataStorageTest;
 import com.metalbeetle.fruitbat.storage.PageStorageTest;
 import com.metalbeetle.fruitbat.storage.DocIndexTest;
 import com.metalbeetle.fruitbat.filestorage.KVFileTest;
+import com.metalbeetle.fruitbat.filestorage.ReliabilityTest;
 import com.metalbeetle.fruitbat.storage.NecromancyTest;
 import com.metalbeetle.fruitbat.io.CryptoTest;
 import com.metalbeetle.fruitbat.multiplexstorage.MultiplexTest;
@@ -35,6 +36,7 @@ import org.junit.runners.Suite;
 	ATRWriterTest.class,
 	SimpleReaderTest.class,
 	KVFileTest.class,
+	ReliabilityTest.class,
 	DataStorageTest.class,
 	PageStorageTest.class,
 	DocIndexTest.class,

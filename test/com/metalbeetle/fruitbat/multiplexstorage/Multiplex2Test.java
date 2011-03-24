@@ -100,6 +100,7 @@ public class Multiplex2Test {
 			fw = new FileWriter(f);
 			fw.write(contents);
 		} finally {
+			fw.flush();
 			fw.close();
 		}
 		return f;

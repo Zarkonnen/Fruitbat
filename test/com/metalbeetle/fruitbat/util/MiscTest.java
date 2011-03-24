@@ -28,6 +28,7 @@ public class MiscTest {
 		for (int i = 0; i < 3000; i++) { longStringB.append(i); }
 		String longString = longStringB.toString();
 		bw.write(longString);
+		bw.flush();
 		bw.close();
 		File f2 = File.createTempFile("foo", "quux");
 		Misc.srcToFile(new UrlSrc(f.toURL()), f2);

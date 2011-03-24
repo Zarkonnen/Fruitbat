@@ -276,6 +276,7 @@ public class Crypto {
 				ensureBufSize(c.getOutputSize(0));
 				int offset = c.doFinal(buf, 0);
 				s.write(buf, 0, offset);
+				s.flush();
 				s.close();
 			} catch (InvalidCipherTextException e) {
 				throw new IOException("Invalid ciphertext: " + e.getMessage());

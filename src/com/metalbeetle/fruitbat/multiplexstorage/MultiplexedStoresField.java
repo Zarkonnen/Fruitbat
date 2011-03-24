@@ -50,6 +50,7 @@ public class MultiplexedStoresField implements ConfigField<List<StoreConfig>> {
 				w.write(sc.toStringRepresentation());
 			}
 			w.endRecord();
+			w.flush();
 			w.close();
 			return new String(out.toByteArray());
 		} catch (Exception e) {

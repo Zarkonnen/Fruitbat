@@ -33,6 +33,7 @@ public final class Util {
 		File f = File.createTempFile("tmp", ".txt");
 		BufferedWriter w = new BufferedWriter(new FileWriter(f));
 		w.write(contents);
+		w.flush();
 		w.close();
 		return f;
 	}
