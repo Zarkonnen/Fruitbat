@@ -101,6 +101,6 @@ class StoreMenuBar extends JMenuBar {
 						mf.search(mf.lastSearch, StoreFrame.DEFAULT_MAX_DOCS, true);
 					} catch (Exception ex) { ex.printStackTrace(); }
 				}});
-
+		
 	}
 }

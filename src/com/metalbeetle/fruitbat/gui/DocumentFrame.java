@@ -81,7 +81,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 			final FixedTextPane notesPane;
 
 	public DocumentFrame(final Document d, final StoreFrame sf) throws HeadlessException {
-		super("Fruitbat Document ");
+		super(d.toString());
 		this.d = d;
 		this.sf = sf;
 
@@ -199,7 +199,7 @@ class DocumentFrame extends JFrame implements FileDrop.Listener {
 	public void updateDisplay() {
 		boolean isDeleted = isDeleted();
 
-		setTitle(isDeleted ? "Fruitbat Document (Deleted)" : "Fruitbat Document");
+		setTitle(isDeleted ? "(Deleted) " + DocumentTools.getDocTitle(d) : DocumentTools.getDocTitle(d));
 		
 		tagsF.setEditable(!isDeleted);
 		tagsF.setCaret(tagsFCaret);

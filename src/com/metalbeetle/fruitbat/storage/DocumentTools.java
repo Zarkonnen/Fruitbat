@@ -10,6 +10,8 @@ import com.metalbeetle.fruitbat.util.PreviewImager;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import javax.imageio.ImageIO;
 import static com.metalbeetle.fruitbat.util.Collections.*;
@@ -29,6 +31,44 @@ public class DocumentTools {
 	public static final String DELETED_PREFIX = "d";
 	public static final String NOT_DELETED_PREFIX = "";
 	public static final String NOTES_KEY = Fruitbat.FULLTEXT_PREFIX + "docnotes";
+
+	public static String getDocTitle(Document d) {
+		try {
+			ArrayList<String> keys = new ArrayList<String>(d.keys());
+			Collections.sort(keys, new KeySorter());
+			StringBuilder sb = new StringBuilder();
+			boolean first = true;
+			for (String k : keys) {
+				if (k.startsWith(Fruitbat.HIDDEN_KEY_PREFIX)) { continue; }
+				if (first) {
+					first = false;
+				} else {
+					sb.append(" ");
+				}
+				sb.append(k);
+				String v = d.get(k);
+				if (v.length() > 0) {
+					sb.append(":");
+					sb.append(v);
+				}
+			}
+			if (sb.length() == 0) {
+				return "Document";
+			}
+			return sb.toString();
+		} catch (FatalStorageException e) {
+			return "Fruitbat Document";
+		}
+	}
+
+	static class KeySorter implements Comparator<String> {
+		public int compare(String k1, String k2) {
+			if (k1.equals(k2)) { return 0; }
+			if (k1.equals("d")) { return -1; }
+			if (k2.equals("d")) { return 1; }
+			return k1.compareToIgnoreCase(k2);
+		}
+	}
 	
 	public static int numPagesFor(Document d, String prefix) throws FatalStorageException {
 		int maxIndex = -1;

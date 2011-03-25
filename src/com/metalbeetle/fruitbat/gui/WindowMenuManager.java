@@ -1,6 +1,7 @@
 package com.metalbeetle.fruitbat.gui;
 
 import com.metalbeetle.fruitbat.gui.setup.ConfigsListFrame;
+import com.metalbeetle.fruitbat.storage.DocumentTools;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
@@ -91,7 +92,11 @@ public class WindowMenuManager implements OpenDocManager.Listener {
 
 		public void storeOpened(final StoreFrame mf) {
 			mf.openDocManager.addListener(this);
-			JMenu storeMenu = new JMenu(mf.store.toString());
+			String storeN = mf.store.toString();
+			if (storeN.length() > 33) {
+				storeN = storeN.substring(0, 30) + "...";
+			}
+			JMenu storeMenu = new JMenu(storeN);
 			JMenuItem storeItem = new JMenuItem("Store");
 			storeItem.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent ae) {
@@ -111,7 +116,7 @@ public class WindowMenuManager implements OpenDocManager.Listener {
 		}
 
 		public void documentOpened(StoreFrame mf, final DocumentFrame df) {
-			JMenuItem docItem = new JMenuItem(df.d.toString());
+			JMenuItem docItem = new JMenuItem(DocumentTools.getDocTitle(df.d));
 			docItem.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent ae) {
 					df.toFront();
