@@ -17,6 +17,7 @@ import com.metalbeetle.fruitbat.util.StringPool;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.prefs.Preferences;
+import javax.swing.UIManager;
 
 /** Application instance. */
 public class Fruitbat {
@@ -83,6 +84,14 @@ public class Fruitbat {
 			} catch (Exception e) {
 				pm.handleException(e, null);
 				System.exit(1);
+			}
+			try {
+				UIManager.setLookAndFeel(
+						ch.randelshofer.quaqua.QuaquaManager.getLookAndFeel());
+				// set UI manager properties here that affect Quaqua
+			} catch (Exception e) {
+				// take an appropriate action here
+				e.printStackTrace();
 			}
 		}
 		final Fruitbat app = this;
