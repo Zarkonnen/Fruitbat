@@ -21,8 +21,8 @@ import javax.swing.UIManager;
 
 /** Application instance. */
 public class Fruitbat {
-	public static final String VERSION = "1.0b";
-	public static final String ABOUT = "by David Stark, 2010";
+	public static final String VERSION = "1.0b2";
+	public static final String ABOUT = "by David Stark, 2011";
 	public static final String HIDDEN_KEY_PREFIX = ":";
 	public static final String DATE_KEY = "d";
 	public static final String CREATION_DATE_KEY = HIDDEN_KEY_PREFIX + "cd";
