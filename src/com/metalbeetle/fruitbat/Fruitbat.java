@@ -147,7 +147,7 @@ public class Fruitbat {
 					// Meh.
 				}
 				try {
-					SavedStoreConfigs.setOpenStores(configToMainframe);
+					SavedStoreConfigs.setOpenStores(configToMainframe, pm);
 				} catch (Exception e) {
 					// Meh.
 				}

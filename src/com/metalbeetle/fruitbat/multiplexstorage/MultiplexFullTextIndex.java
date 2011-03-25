@@ -6,7 +6,6 @@ import com.metalbeetle.fruitbat.storage.Document;
 import com.metalbeetle.fruitbat.storage.EnhancedStore;
 import com.metalbeetle.fruitbat.storage.FatalStorageException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 class MultiplexFullTextIndex implements FullTextIndex {
@@ -32,7 +31,7 @@ class MultiplexFullTextIndex implements FullTextIndex {
 				for (Document d : ds) {
 					multiplexDs.add(s.get(d.getID()));
 				}
-				return Collections.unmodifiableList(multiplexDs);
+				return multiplexDs;
 			} catch (FatalStorageException e) {
 				s.handleStorageException(s.fastest(), e);
 			}

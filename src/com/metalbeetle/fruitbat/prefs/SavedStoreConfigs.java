@@ -55,7 +55,7 @@ public final class SavedStoreConfigs {
 		return l;
 	}
 
-	public static void setOpenStores(HashMap<StoreConfig, StoreFrame> openStores) throws BackingStoreException, StoreConfigInvalidException, FatalStorageException {
+	public static void setOpenStores(HashMap<StoreConfig, StoreFrame> openStores, ProgressMonitor pm) throws BackingStoreException, StoreConfigInvalidException, FatalStorageException {
 		Preferences p = Preferences.userNodeForPackage(SavedStoreConfigs.class).
 				node("openStores");
 		p.clear();
@@ -64,9 +64,14 @@ public final class SavedStoreConfigs {
 		}
 		int i = 0;
 		for (Entry<StoreConfig, StoreFrame> e : openStores.entrySet()) {
-			Preferences n = p.node(string(i++));
-			n.put("config", e.getKey().toStringRepresentation());
-			e.getValue().writePrefs(n.node("prefs"));
+			try {
+				Preferences n = p.node(string(i++));
+				n.put("config", e.getKey().toStringRepresentation());
+				e.getValue().writePrefs(n.node("prefs"));
+			} catch (Exception ex) {
+				i--;
+				pm.handleException(new Exception("Could not save configuration.", ex), null);
+			}
 		}
 		p.flush();
 	}

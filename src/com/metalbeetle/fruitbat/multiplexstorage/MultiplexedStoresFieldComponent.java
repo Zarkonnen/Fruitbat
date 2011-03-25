@@ -13,21 +13,19 @@ import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
-import javax.swing.event.UndoableEditEvent;
-import javax.swing.event.UndoableEditListener;
 
 public class MultiplexedStoresFieldComponent extends JPanel implements
 		FieldJComponent<List<StoreConfig>>, ConfigPanel.ConfigChangedListener
 {
 	ValueListener vl;
 	MultiplexedStoresField f;
-	
+
+	final ArrayList<ConfigPanel> configPanels = new ArrayList<ConfigPanel>();
 	final JTabbedPane tabs;
 	final JPanel buttonP;
 		final JButton addB;
@@ -60,6 +58,7 @@ public class MultiplexedStoresFieldComponent extends JPanel implements
 		if (ss != null) {
 			ConfigPanel cp = new ConfigPanel(ss);
 			cp.setConfigChangedListener(this);
+			configPanels.add(cp);
 			tabs.addTab(getTabName(tabs.getTabCount(), ss), cp);
 			tabs.setSelectedComponent(cp);
 		}
@@ -69,6 +68,7 @@ public class MultiplexedStoresFieldComponent extends JPanel implements
 
 	void removeStore() {
 		if (tabs.getSelectedIndex() != -1) {
+			configPanels.remove(tabs.getSelectedIndex());
 			tabs.removeTabAt(tabs.getSelectedIndex());
 		}
 		updateButtons();
@@ -77,9 +77,7 @@ public class MultiplexedStoresFieldComponent extends JPanel implements
 
 	public List<StoreConfig> getValue() {
 		ArrayList<StoreConfig> l = new ArrayList<StoreConfig>();
-		for (int i = 0; i < tabs.getTabCount(); i++) {
-			l.add(((ConfigPanel) tabs.getComponent(i)).getConfig());
-		}
+		for (ConfigPanel cp : configPanels) { l.add(cp.getConfig()); }
 		return l;
 	}
 
@@ -91,6 +89,7 @@ public class MultiplexedStoresFieldComponent extends JPanel implements
 			cp.setConfig(sc);
 			cp.setConfigChangedListener(this);
 			tabs.addTab(getTabName(i, sc.system), cp);
+			configPanels.add(cp);
 		}
 		updateButtons();
 	}
