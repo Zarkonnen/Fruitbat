@@ -2,6 +2,8 @@ Fruitbat is a personal document storage system, storing multi-page documents alo
 
 This is an experimental piece of code. Feel free to comment at david.stark@metalbeetle.com . It uses Apache's Lucene, commons-io, pdfbox, fontbox, jempbox and commons-logging (the latter three as dependencies of commons-io), which are licensed under the Apache 2.0 licence. It also uses Amazon S3 as a storage backend option.
 
+For GUI display on OS X, it uses the Quaqua Look & Feel, licensed under the LGPL.
+
 It also expects an install of ocropus on the system to do OCR with, which you can get from http://code.google.com/p/ocropus/ .
 
 Specifically, you need the "ocropus-0.4.tar.gz" download from http://code.google.com/p/ocropus/downloads/list , as ocropus has now changed the way it works and won't interface properly.
