@@ -1,6 +1,5 @@
 package com.metalbeetle.fruitbat.gui;
 
-import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -46,5 +45,6 @@ class SimpleProgressPanel2 extends JPanel {
 					);
 		add(progressBar = new JProgressBar(), pbcs);
 		add(infoL = new JLabel("..."), ilcs);
+			infoL.setFont(infoL.getFont().deriveFont(10.0f));
 	}
 }
