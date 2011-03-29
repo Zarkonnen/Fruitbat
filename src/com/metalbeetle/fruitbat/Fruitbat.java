@@ -1,6 +1,7 @@
 package com.metalbeetle.fruitbat;
 
 import apple.dts.samplecode.osxadapter.OSXAdapter;
+import ch.randelshofer.quaqua.QuaquaManager;
 import com.metalbeetle.fruitbat.gui.AboutWindow;
 import com.metalbeetle.fruitbat.gui.Dialogs;
 import com.metalbeetle.fruitbat.gui.EnhancedUndoManager;
@@ -15,7 +16,9 @@ import com.metalbeetle.fruitbat.util.Misc;
 import com.metalbeetle.fruitbat.util.Pair;
 import com.metalbeetle.fruitbat.util.StringPool;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 import java.util.prefs.Preferences;
 import javax.swing.UIManager;
 
@@ -85,6 +88,16 @@ public class Fruitbat {
 				pm.handleException(e, null);
 				System.exit(1);
 			}
+			
+			Set includes = new HashSet();
+			includes.add("ColorChooser");
+			includes.add("FileChooser");
+			includes.add("Component");
+			includes.add("Browser");
+			includes.add("Tree");
+			includes.add("SplitPane");
+			QuaquaManager.setIncludedUIs(includes);
+
 			try {
 				UIManager.setLookAndFeel(
 						ch.randelshofer.quaqua.QuaquaManager.getLookAndFeel());
