@@ -7,7 +7,7 @@ public class PageFileFilter extends FileFilter {
 	public boolean accept(File f) {
 		if (f.isDirectory()) { return true; }
 		for (String ext : DocumentFrame.ACCEPTED_EXTENSIONS) {
-			if (f.getName().endsWith(ext)) { return true; }
+			if (f.getName().toLowerCase().endsWith(ext.toLowerCase())) { return true; }
 		}
 		return false;
 	}
