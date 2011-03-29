@@ -34,7 +34,7 @@ import static com.metalbeetle.fruitbat.util.Collections.*;
 
 public class ShortcutOverlay implements KeyListener, WindowListener {
 	static final long TICK_LENGTH = 50;
-	static final int TICKS_UNTIL_OVERLAY = 9;
+	static final int TICKS_UNTIL_OVERLAY = 15;
 	static final int KEY_NOT_PRESSED = -1;
 	final int keyMask = Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
 	final Timer t;
