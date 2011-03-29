@@ -49,14 +49,18 @@ public class S3Location implements Location {
 						S3Location loc;
 						if (mapping.containsKey(path)) {
 							loc = mapping.get(path);
+							if (child != null) {
+								loc.children.add(child);
+							}
+							break; // Don't need to traverse up the path further.
 						} else {
 							loc = new S3Location(path, this);
 							mapping.put(path, loc);
+							if (child != null) {
+								loc.children.add(child);
+							}
+							child = loc;
 						}
-						if (child != null) {
-							loc.children.add(child);
-						}
-						child = loc;
 					} while ((path = parentPath(path)) != null);
 				}
 				if (!ol.isTruncated()) { break; }

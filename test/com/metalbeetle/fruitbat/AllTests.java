@@ -18,6 +18,7 @@ import com.metalbeetle.fruitbat.io.CryptoTest;
 import com.metalbeetle.fruitbat.multiplexstorage.MultiplexTest;
 import com.metalbeetle.fruitbat.multiplexstorage.Multiplex2Test;
 import com.metalbeetle.fruitbat.multiplexstorage.SyncTest;
+import com.metalbeetle.fruitbat.s3storage.S3LocationTest;
 import com.metalbeetle.fruitbat.storage.FullTextTest;
 import com.metalbeetle.fruitbat.storage.StoreConfigTest;
 import com.metalbeetle.fruitbat.util.MiscTest;
@@ -35,6 +36,7 @@ import org.junit.runners.Suite;
 	ATRTest.class,
 	ATRWriterTest.class,
 	SimpleReaderTest.class,
+	S3LocationTest.class,
 	KVFileTest.class,
 	ReliabilityTest.class,
 	DataStorageTest.class,
