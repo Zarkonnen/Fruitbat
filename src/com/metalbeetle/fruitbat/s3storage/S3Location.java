@@ -153,11 +153,11 @@ public class S3Location implements Location {
 	}
 
 	public KVFile kvFile() {
-		return new LocationKVFile(this, new HashMap<String, String>());
+		return new LocationKVFile(this);
 	}
 
-	public KVFile kvFile(Location cache, HashMap<String, String> defaults) {
-		return new LocationKVFile(this, defaults);
+	public KVFile kvFile(Location cache) {
+		return new LocationKVFile(this);
 	}
 
 	public void put(DataSrc data) throws FatalStorageException {

@@ -167,6 +167,10 @@ public class StoreFrame extends JFrame implements FileDrop.Listener {
 					tagsChanged = false;
 				}
 			}
+			@Override
+			public void windowClosing(WindowEvent e) {
+				runClose();
+			}
 		});
 		setJMenuBar(menuBar = new StoreMenuBar(this));
 		app.shortcutOverlay.attachTo(this);

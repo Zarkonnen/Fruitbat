@@ -26,18 +26,16 @@ public final class AppendingKVFile implements KVFile {
 	final File f;
 	final File cacheF;
 	final FileStreamFactory fsf;
-	private final Map<String, String> defaults;
 	private final HashMap<String, String> keyValueMap = new HashMap<String, String>();
 	private final TreeSet<String> keys = new TreeSet<String>();
 
 	private boolean loaded = false;
 
-	public AppendingKVFile(File f, File cacheF,  Map<String, String> defaults, FileStreamFactory fsf) {
-		this.f = f; this.cacheF = cacheF; this.defaults = new HashMap<String, String>(defaults);
+	public AppendingKVFile(File f, File cacheF, FileStreamFactory fsf) {
+		this.f = f; this.cacheF = cacheF;
 		this.fsf = fsf;
 	}
-	public AppendingKVFile(File f, Map<String, String> defaults, FileStreamFactory fsf) { this(f, null, defaults, fsf); }
-	public AppendingKVFile(File f, FileStreamFactory fsf) { this(f, Collections.<String, String>emptyMap(), fsf); }
+	public AppendingKVFile(File f, FileStreamFactory fsf) { this(f, null, fsf); }
 
 	/** @return The key/value map in the file. Never use keyValueMap directly! */
 	HashMap<String, String> kv() throws FatalStorageException {
@@ -55,8 +53,6 @@ public final class AppendingKVFile implements KVFile {
 		if (!loaded) {
 			keyValueMap.clear();
 			keys.clear();
-			keyValueMap.putAll(defaults);
-			keys.addAll(defaults.keySet());
 			if (cacheF != null && cacheF.exists()) {
 				ATRReader r = null;
 				try {
@@ -85,8 +81,6 @@ public final class AppendingKVFile implements KVFile {
 			if (!loaded && f.exists()) {
 				keyValueMap.clear();
 				keys.clear();
-				keyValueMap.putAll(defaults);
-				keys.addAll(defaults.keySet());
 				ATRReader r = null;
 				try {
 					r = new ATRReader(new BufferedInputStream(fsf.inputStream(f)));

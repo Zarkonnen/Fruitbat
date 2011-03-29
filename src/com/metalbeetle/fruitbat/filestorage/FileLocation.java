@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 /** A location pointing to a file on the local file system. */
@@ -46,8 +45,8 @@ public class FileLocation implements Location, LocalFile {
 		return new AppendingKVFile(f, fsf);
 	}
 
-	public KVFile kvFile(Location cache, HashMap<String, String> defaults) throws FatalStorageException {
-		return new AppendingKVFile(f, ((FileLocation) cache).f, defaults, fsf);
+	public KVFile kvFile(Location cache) throws FatalStorageException {
+		return new AppendingKVFile(f, ((FileLocation) cache).f, fsf);
 	}
 
 	public void put(DataSrc data) throws FatalStorageException {

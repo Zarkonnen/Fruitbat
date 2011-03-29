@@ -391,6 +391,11 @@ public class MultiplexStore implements Store {
 				"when communication is restored.\n\n" +
 				"The backup store gave the following reason for its failure:\n" +
 				getFullMessage(e));
+		try {
+			s.close();
+		} catch (Exception ignored) {
+			// Ignore. qqDPS
+		}
 		storeEnabled.clear(stores.indexOf(s));
 	}
 

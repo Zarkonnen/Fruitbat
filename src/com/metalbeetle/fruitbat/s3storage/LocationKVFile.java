@@ -14,13 +14,11 @@ import java.util.Map.Entry;
 
 public class LocationKVFile implements KVFile {
 	final Location l;
-	final HashMap<String, String> defaults;
 	final HashMap<String, String> __kv = new HashMap<String, String>();
 	boolean loaded = false;
 
-	public LocationKVFile(Location l, HashMap<String, String> defaults) {
+	public LocationKVFile(Location l) {
 		this.l = l;
-		this.defaults = defaults;
 	}
 
 	HashMap<String, String> kv() throws FatalStorageException {
@@ -31,7 +29,6 @@ public class LocationKVFile implements KVFile {
 	void load() throws FatalStorageException {
 		if (!loaded) {
 			__kv.clear();
-			__kv.putAll(defaults);
 			if (l.exists()) {
 				ATRReader r = null;
 				try {

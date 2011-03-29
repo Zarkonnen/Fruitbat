@@ -6,13 +6,10 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import java.util.Properties;
-import java.util.Map;
-import java.util.Collections;
 import com.metalbeetle.fruitbat.filestorage.AppendingKVFile;
 import com.metalbeetle.fruitbat.filestorage.DefaultFileStreamFactory;
 import com.metalbeetle.fruitbat.hierarchicalstorage.KVFile;
 import com.metalbeetle.fruitbat.s3storage.S3Location;
-import java.util.HashMap;
 import java.util.List;
 import java.io.File;
 import java.util.Random;
@@ -28,15 +25,9 @@ public final class KVFileManagers {
 	static class AppendKVFM implements KVFileManager {
 		File f;
 		File cf;
-		Map<String, String> defaults;
 		AppendingKVFile kvf;
 
 		public void setUp(boolean cacheF) throws Exception {
-			setUp(cacheF, Collections.<String, String>emptyMap());
-		}
-
-		public void setUp(boolean cacheF, Map<String, String> defaults) throws Exception {
-			this.defaults = defaults;
 			f = File.createTempFile("kvfiletest", ".atr");
 			if (cacheF) {
 				cf = File.createTempFile("kvfiletest", ".atr");
@@ -45,7 +36,7 @@ public final class KVFileManagers {
 		}
 
 		public void reboot() throws Exception {
-			kvf = new AppendingKVFile(f, cf, defaults, new DefaultFileStreamFactory());
+			kvf = new AppendingKVFile(f, cf, new DefaultFileStreamFactory());
 		}
 
 		public void tearDown() throws Exception {
@@ -73,18 +64,12 @@ public final class KVFileManagers {
 		}
 
 		AmazonS3 s3;
-		Map<String, String> defaults;
 		String bucketName;
 		KVFile kvf;
 		S3Location s3l;
 		final String fileName = "kvfile.atr";
 
 		public void setUp(boolean cacheF) throws Exception {
-			setUp(cacheF, Collections.<String, String>emptyMap());
-		}
-
-		public void setUp(boolean cacheF, Map<String, String> defaults) throws Exception {
-			this.defaults = defaults;
 			s3 = new AmazonS3Client(new AWSCredentials() {
 				public String getAWSAccessKeyId() {
 					return accessKey;
@@ -100,7 +85,7 @@ public final class KVFileManagers {
 		}
 
 		public void reboot() throws Exception {
-			kvf = s3l.kvFile(null, new HashMap<String, String>(defaults));
+			kvf = s3l.kvFile();
 		}
 
 		public void tearDown() throws Exception {

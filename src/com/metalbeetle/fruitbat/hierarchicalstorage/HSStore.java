@@ -49,7 +49,16 @@ public abstract class HSStore implements Store {
 			docsL = location.child("docs");
 			HashMap<String, String> myMetaDefaults = new HashMap<String, String>(META_DEFAULTS);
 			myMetaDefaults.put(STORE_UUID, UUID.randomUUID().toString());
-			metaF = location.child("meta.atr").kvFile(location.child("meta-cache.atr"), myMetaDefaults);
+			metaF = location.child("meta.atr").kvFile(location.child("meta-cache.atr"));
+			ArrayList<DataChange> metaDefaultChanges = new ArrayList<DataChange>();
+			for (Map.Entry<String, String> def : myMetaDefaults.entrySet()) {
+				if (!metaF.has(def.getKey())) {
+					metaDefaultChanges.add(DataChange.put(def.getKey(), def.getValue()));
+				}
+			}
+			if (metaDefaultChanges.size() > 0) {
+				metaF.change(metaDefaultChanges);
+			}
 			if (docsL.exists()) {
 				List<Location> ls = docsL.children();
 				ArrayList<Location> filteredLs = new ArrayList<Location>();
