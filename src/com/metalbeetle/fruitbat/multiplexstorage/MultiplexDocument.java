@@ -38,7 +38,7 @@ class MultiplexDocument implements Document, Comparable<MultiplexDocument> {
 					e);
 		}
 		changeSlaves(changeID, changes);
-		s.updateRevision();
+		s.updateStoredRevisions();
 		return changeID;
 	}
 	
@@ -50,7 +50,7 @@ class MultiplexDocument implements Document, Comparable<MultiplexDocument> {
 					e);
 		}
 		changeSlaves(changeID, changes);
-		s.updateRevision();
+		s.updateStoredRevisions();
 		return changeID;
 	}
 	

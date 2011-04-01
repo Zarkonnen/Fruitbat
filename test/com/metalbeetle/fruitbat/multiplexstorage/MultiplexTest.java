@@ -44,6 +44,8 @@ public class MultiplexTest {
 		assertTrue(ms.isEmptyStore());
 		assertEquals(1, ms.getNextRetainedPageNumber());
 		ms.close();
+		Util.deleteRecursively(sf1);
+		Util.deleteRecursively(sf2);
 	}
 
 	@Test

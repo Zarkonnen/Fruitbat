@@ -91,7 +91,7 @@ public class MultiplexStore implements Store {
 			for (int i = 0; i < stores.size(); i++) { storeEnabled.set(i); }
 			// Synchronize master store data to slaves. (Or download slave data into empty master.)
 			synchronize();
-			// Create MultiplexDocuments
+			// Create a MultiplexDocument for each document currently in the master store.
 			for (Document d : master().docs()) {
 				IdentityHashMap<EnhancedStore, Document> ds = new IdentityHashMap<EnhancedStore, Document>();
 				ds.put(master(), d);
@@ -116,10 +116,10 @@ public class MultiplexStore implements Store {
 	void synchronize() throws FatalStorageException {
 		pm.newProcess("Synchronizing stores", "", stores.size());
 		if (master().isEmptyStore() && !stores.get(1).isEmptyStore()) {
-				pm.showWarning("storeRecovery", "Recovering data",
-						"Since the master store is empty, Fruitbat will now restore it from " +
-						"backup.");
-				syncStores(stores.get(1), master(), -1, /*secondStoreIsBackupOfFirst*/ false);
+			pm.showWarning("storeRecovery", "Recovering data",
+					"Since the master store is empty, Fruitbat will now restore it from " +
+					"backup.");
+			syncStores(stores.get(1), master(), -1, /*secondStoreIsBackupOfFirst*/ false);
 		}
 		for (int i = 1; i < stores.size(); i++) {
 			pm.progress("Backup " + stores.get(i), i);
@@ -175,11 +175,21 @@ public class MultiplexStore implements Store {
 		}
 
 		// If there is a master/slave thing going on, store "to"'s revision in the master's
-		// metadata, then re-sync the metadata for consistency.
+		// metadata.
 		if (secondStoreIsBackupOfFirst && !to.isEmptyStore()) {
 			from.changeMetaData(l(DataChange.put(slaveRevKey, to.getRevision())));
 		}
+		// Now sync metadata changes across for consistency. However, if this is the very first
+		// change made to the "to" store, this may bump up the revision. This means that the value
+		// we just stored in "from" is now outdated.
 		syncMetaData(from, to);
+		// To prevent this from happening, we store the new value if necessary, and re-sync.
+		if (from.hasMetaData(slaveRevKey) && !from.getMetaData(slaveRevKey).equals(to.getRevision())) {
+			if (secondStoreIsBackupOfFirst && !to.isEmptyStore()) {
+				from.changeMetaData(l(DataChange.put(slaveRevKey, to.getRevision())));
+			}
+			syncMetaData(from, to);
+		}
 	}
 
 	void syncMetaData(Store from, Store to) throws FatalStorageException {
@@ -262,6 +272,7 @@ public class MultiplexStore implements Store {
 			MultiplexDocument md = new MultiplexDocument(ds, this);
 			idToDoc.put(md.getID(), md);
 			docs.add(md);
+			updateStoredRevisions();
 			return md;
 		} catch (FatalStorageException e) {
 			throw new FatalStorageException("Could not create a new document in the master store.",
@@ -296,6 +307,7 @@ public class MultiplexStore implements Store {
 			MultiplexDocument md = new MultiplexDocument(ds, this);
 			idToDoc.put(md.getID(), md);
 			docs.add(md);
+			updateStoredRevisions();
 			return md;
 		} catch (FatalStorageException e) {
 			throw new FatalStorageException("Could not get/create/delete a document from the " +
@@ -418,7 +430,7 @@ public class MultiplexStore implements Store {
 					}
 				}
 			}
-			updateRevision();
+			updateStoredRevisions();
 		} catch (FatalStorageException e) {
 			throw new FatalStorageException("Cannot communicate with master store.", e);
 		}
@@ -436,20 +448,22 @@ public class MultiplexStore implements Store {
 		}
 	}
 
-	void updateRevision() throws FatalStorageException {
-		if (!masterIDUpdated) {
-			masterIDUpdated = true;
-			// Store the revisions of all the slaves in the master's metadata for coherency checking
-			// purposes.
-			ArrayList<DataChange> mdc = new ArrayList<DataChange>();
-			for (int i = 1; i < stores.size(); i++) {
-				if (storeEnabled.get(i)) {
-					Store slave = stores.get(i);
-					mdc.add(DataChange.put(
-							getSlaveRevKey(master(), slave),
-							slave.getRevision()));
+	/**
+	 * Stores the revisions of all the slaves in the master's metadata for coherency checking
+	 * purposes.
+	 */
+	void updateStoredRevisions() throws FatalStorageException {
+		ArrayList<DataChange> mdc = new ArrayList<DataChange>();
+		for (int i = 1; i < stores.size(); i++) {
+			if (storeEnabled.get(i) && !stores.get(i).isEmptyStore()) {
+				Store slave = stores.get(i);
+				String slaveRevKey = getSlaveRevKey(master(), slave);
+				if (!hasMetaData(slaveRevKey) || !getMetaData(slaveRevKey).equals(slave.getRevision())) {
+					mdc.add(DataChange.put(slaveRevKey, slave.getRevision()));
 				}
 			}
+		}
+		if (mdc.size() > 0) {
 			changeMetaData(mdc);
 		}
 	}

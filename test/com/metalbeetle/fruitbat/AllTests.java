@@ -17,6 +17,7 @@ import com.metalbeetle.fruitbat.storage.NecromancyTest;
 import com.metalbeetle.fruitbat.io.CryptoTest;
 import com.metalbeetle.fruitbat.multiplexstorage.MultiplexTest;
 import com.metalbeetle.fruitbat.multiplexstorage.Multiplex2Test;
+import com.metalbeetle.fruitbat.multiplexstorage.Multiplex3Test;
 import com.metalbeetle.fruitbat.multiplexstorage.SyncTest;
 import com.metalbeetle.fruitbat.s3storage.S3LocationTest;
 import com.metalbeetle.fruitbat.storage.FullTextTest;
@@ -48,6 +49,7 @@ import org.junit.runners.Suite;
 	MiscTest.class,
 	MultiplexTest.class,
 	Multiplex2Test.class,
+	Multiplex3Test.class,
 	SyncTest.class,
 	StoreConfigTest.class})
 public class AllTests {}
